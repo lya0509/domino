@@ -95,12 +95,12 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
 
       {/* Main Slide Card */}
       <View style={styles.contentContainer}>
-        <View style={styles.iconCircle}>
+        <View style={[styles.iconCircle, currentSlide.id === 'welcome' && styles.welcomeCircle]}>
           {currentSlide.id === 'welcome' ? (
             <Image
               source={require('../../assets/icon.png')}
-              style={{ width: 80, height: 80, borderRadius: 20 }}
-              resizeMode="contain"
+              style={styles.welcomeImage}
+              resizeMode="cover"
             />
           ) : (
             <Text style={styles.mainIcon}>{currentSlide.icon}</Text>
@@ -206,6 +206,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
+  },
+  welcomeCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    overflow: 'hidden',
+    borderWidth: 2.5,
+    borderColor: '#3b82f6',
+    backgroundColor: '#0a0d14',
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  welcomeImage: {
+    width: '100%',
+    height: '100%',
   },
   mainIcon: {
     fontSize: 48,

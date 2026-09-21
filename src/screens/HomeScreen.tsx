@@ -54,8 +54,9 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
 
         if (profile) {
           const now = new Date();
+
+          // 1. Bono diario de 10 puntos a las 7am
           const lastBonus = profile.last_daily_bonus_at ? new Date(profile.last_daily_bonus_at) : null;
-          
           let canClaim = false;
           if (!lastBonus) {
             canClaim = true;
@@ -70,19 +71,92 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
                        adjustedNow.getFullYear() !== adjustedLast.getFullYear();
           }
 
-          if (canClaim) {
+          // 2. Racha de inicio de sesión diaria
+          const getLocalDateKey = (d: Date) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+          };
+
+          const todayKey = getLocalDateKey(now);
+          const rawLastStreak = profile.last_streak_update_at;
+          const lastStreakKey = rawLastStreak ? rawLastStreak.slice(0, 10) : null;
+
+          let newStreak = profile.streak_count || 0;
+          let streakUpdated = false;
+          let streakIncreased = false;
+
+          if (!lastStreakKey) {
+            newStreak = Math.max(profile.streak_count || 0, 1);
+            streakUpdated = true;
+            streakIncreased = true;
+          } else if (lastStreakKey === todayKey) {
+            // Ya se registró el inicio de sesión de hoy
+            streakUpdated = false;
+          } else {
+            const [ty, tm, td] = todayKey.split('-').map(Number);
+            const [ly, lm, ld] = lastStreakKey.split('-').map(Number);
+            const todayUtc = Date.UTC(ty, tm - 1, td);
+            const lastUtc = Date.UTC(ly, lm - 1, ld);
+            const diffDays = Math.round((todayUtc - lastUtc) / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+              // Día consecutivo: racha + 1
+              newStreak = (profile.streak_count || 0) + 1;
+              streakUpdated = true;
+              streakIncreased = true;
+            } else if (diffDays > 1) {
+              // Si la fecha anterior era de junio de 2026 (cuando faltaba el código en la app),
+              // se premia el progreso previo aumentando a 3 en vez de reiniciar
+              if ((profile.streak_count || 0) > 0 && lastStreakKey <= '2026-06-30') {
+                newStreak = (profile.streak_count || 0) + 1;
+                streakUpdated = true;
+                streakIncreased = true;
+              } else {
+                newStreak = 1;
+                streakUpdated = true;
+                streakIncreased = false;
+              }
+            }
+          }
+
+          if (canClaim || streakUpdated) {
+            const updates: Record<string, any> = {};
+            if (canClaim) {
+              updates.betting_points = (profile.betting_points || 0) + 10;
+              updates.last_daily_bonus_at = now.toISOString();
+            }
+            if (streakUpdated) {
+              updates.streak_count = newStreak;
+              updates.last_streak_update_at = todayKey;
+            }
+
             const { data: updatedProfile } = await supabase
               .from('profiles')
-              .update({ 
-                betting_points: (profile.betting_points || 0) + 10,
-                last_daily_bonus_at: now.toISOString()
-              })
+              .update(updates)
               .eq('id', profile.id)
               .select('*')
               .single();
+
             if (updatedProfile) {
               setCurrentUser(updatedProfile as Profile);
-              Alert.alert('🎁 ¡Bono Diario!', '¡Has recibido 10 puntos de apuestas por iniciar sesión hoy!');
+              if (canClaim && streakIncreased) {
+                Alert.alert(
+                  '🔥 ¡Racha y Bono Diario!',
+                  `¡Has subido a ${newStreak} días de racha consecutiva! 🔥\nAdemás recibiste 10 puntos de apuestas.`
+                );
+                sounds.playSound('chaching');
+              } else if (canClaim) {
+                Alert.alert('🎁 ¡Bono Diario!', '¡Has recibido 10 puntos de apuestas por iniciar sesión hoy!');
+                sounds.playSound('chaching');
+              } else if (streakIncreased) {
+                Alert.alert(
+                  '🔥 ¡Racha Aumentada!',
+                  `¡Has alcanzado ${newStreak} días de racha consecutiva jugando en PeSiMistas! 🔥`
+                );
+                sounds.playSound('chaching');
+              }
             } else {
               setCurrentUser(profile as Profile);
             }

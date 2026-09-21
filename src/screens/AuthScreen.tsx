@@ -11,6 +11,13 @@ interface Props {
   initialRecoveryMode?: boolean;
 }
 
+const isAccessCodeValid = (code: string): boolean => {
+  const c = (code || '').trim().toUpperCase();
+  if (!c) return false;
+  const validCodes = ['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'];
+  return validCodes.some(v => c === v || c.includes(v) || c.includes(`INVITE=${v}`) || c.includes(`CODE=${v}`) || c.includes(`REF=${v}`));
+};
+
 export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, inviteCode, initialRecoveryMode }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -141,10 +148,7 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
       return;
     }
 
-    const validCodes = ['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'];
-    const currentCode = accessCode.trim().toUpperCase();
-
-    if (!validCodes.includes(currentCode)) {
+    if (!isAccessCodeValid(accessCode)) {
       Alert.alert(
         '📷 Escaneo de QR Requerido',
         'Para registrarte es obligatorio escanear el código QR de un compañero con tu cámara.',
@@ -419,7 +423,7 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
                         <Text style={styles.label}>Pase de Invitación / Código QR 🔒</Text>
                       </View>
 
-                      {['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'].includes(accessCode.trim().toUpperCase()) ? (
+                      {isAccessCodeValid(accessCode) ? (
                         /* Tarjeta de Código QR Verificado */
                         <View style={{
                           backgroundColor: 'rgba(16, 185, 129, 0.12)',

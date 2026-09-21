@@ -764,7 +764,11 @@ export default function App() {
         <ProfileScreen
           profileId={viewProfileId || currentUserProfileId || null}
           isOwnProfile={!viewProfileId || viewProfileId === currentUserProfileId}
+          onAdminChanged={(newAdminStatus) => {
+            if (currentUserProfileId) fetchCurrentUser(currentUserProfileId);
+          }}
           onBack={() => {
+            if (currentUserProfileId) fetchCurrentUser(currentUserProfileId);
             setCurrentScreen('home');
             setViewProfileId(null);
           }}

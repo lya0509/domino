@@ -15,6 +15,7 @@ interface Props {
   profileId: string | null;
   isOwnProfile: boolean;
   onBack: () => void;
+  onAdminChanged?: (isAdmin: boolean) => void;
 }
 
 interface DuoRecord {
@@ -35,7 +36,7 @@ interface RivalRecord {
   count: number; // veces que me ganó O yo le gané
 }
 
-export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack }) => {
+export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack, onAdminChanged }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [duos, setDuos] = useState<DuoRecord[]>([]);
   const [stats, setStats] = useState({ wins: 0, losses: 0, total: 0, zapatosGiven: 0, zapatosReceived: 0 });
@@ -277,7 +278,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
     if (!isOwnProfile) return;
     setSecretTaps(prev => {
       const newTaps = prev + 1;
-      if (newTaps >= 5) {
+      if (newTaps >= 3) {
         setShowSecretPin(true);
         return 0;
       }
@@ -294,13 +295,14 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           .eq('id', profileId);
 
         if (error) throw error;
-        Alert.alert('Éxito', '¡Modo Superusuario Activado!');
+        Alert.alert('¡Admin Activado!', 'Modo Administrador desbloqueado. Ya puedes gestionar torneos y pagos.');
         setProfile(prev => prev ? { ...prev, is_admin: true } : null);
+        if (onAdminChanged) onAdminChanged(true);
       } catch (e) {
         Alert.alert('Error', 'No se pudo activar el modo');
       }
     } else {
-      Alert.alert('Error', 'PIN Incorrecto');
+      Alert.alert('Error', 'PIN Incorrecto (Usa: 05090105)');
     }
     setShowSecretPin(false);
     setPinInput('');
@@ -316,6 +318,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       if (error) throw error;
       Alert.alert('Éxito', 'Modo Admin Desactivado');
       setProfile(prev => prev ? { ...prev, is_admin: false } : null);
+      if (onAdminChanged) onAdminChanged(false);
     } catch (e) {
       Alert.alert('Error', 'No se pudo desactivar');
     }
@@ -418,18 +421,20 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
               </View>
             )}
           </TouchableOpacity>
-          {profile?.equipped_items?.color === 'rainbow' ? (
-            <RainbowText style={[styles.profileName, { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }]}>
-              {profile.display_name}
-            </RainbowText>
-          ) : (
-            <Text style={[
-              styles.profileName,
-              profile?.equipped_items?.color && { color: profile.equipped_items.color, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }
-            ]}>
-              {profile?.display_name || 'Desconocido'}
-            </Text>
-          )}
+          <TouchableOpacity activeOpacity={0.8} onPress={handleHeaderTap}>
+            {profile?.equipped_items?.color === 'rainbow' ? (
+              <RainbowText style={[styles.profileName, { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }]}>
+                {profile.display_name}
+              </RainbowText>
+            ) : (
+              <Text style={[
+                styles.profileName,
+                profile?.equipped_items?.color && { color: profile.equipped_items.color, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }
+              ]}>
+                {profile?.display_name || 'Desconocido'}
+              </Text>
+            )}
+          </TouchableOpacity>
 
           {profile?.equipped_items?.title && (
             <Text style={{ color: theme.colors.primary, fontWeight: '800', marginTop: 4, fontSize: 14 }}>

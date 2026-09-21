@@ -2,7 +2,7 @@
   "expo": {
     "name": "Domino",
     "slug": "Domino",
-    "version": "1.0.0",
+    "version": "1.0.10",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -16,10 +16,28 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.lyar.Domino"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "shortName": "Dominó VIP",
+      "name": "Dominó VIP Cash App",
+      "themeColor": "#0d0e12",
+      "backgroundColor": "#0d0e12",
+      "display": "standalone"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "76512148-30b5-400c-91d1-4fb37a37730d"
+      }
+    },
+    "owner": "lyar",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/76512148-30b5-400c-91d1-4fb37a37730d"
     }
   }
 }

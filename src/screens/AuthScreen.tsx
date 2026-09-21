@@ -13,6 +13,7 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode }
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [initials, setInitials] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
 
@@ -52,13 +53,22 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode }
       return;
     }
 
+    const validCodes = ['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'];
+    if (!validCodes.includes(accessCode.trim().toUpperCase())) {
+      Alert.alert(
+        '🔒 Código de Acceso Requerido',
+        'Para registrarte en Domino del Cafetín necesitas el código de acceso del local. Pídeselo a los organizadores en la mesa.'
+      );
+      return;
+    }
+
     if (!isSupabaseConfigured) {
       Alert.alert('Modo Local', 'Supabase no está configurado.', [{ text: 'OK', onPress: onGuestMode }]);
       return;
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -72,10 +82,13 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode }
 
     if (error) {
       Alert.alert('Error', error.message);
+    } else if (signUpData?.session) {
+      Alert.alert('✅ ¡Bienvenido!', 'Tu cuenta ha sido creada exitosamente.');
+      onSessionConfigured();
     } else {
       Alert.alert(
         '✅ Registro Exitoso', 
-        'Tu cuenta ha sido creada correctamente.\\n\\nPor favor, revisa tu bandeja de entrada (o la carpeta de SPAM) para confirmar tu correo electrónico antes de iniciar sesión.'
+        'Tu cuenta ha sido creada correctamente. Ya puedes iniciar sesión con tu correo y contraseña.'
       );
       setIsRegistering(false);
     }
@@ -117,6 +130,21 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode }
                     maxLength={3}
                     autoCapitalize="characters"
                   />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Código de Acceso del Cafetín 🔒</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={accessCode}
+                    onChangeText={setAccessCode}
+                    placeholder="Ej: CAFETIN"
+                    placeholderTextColor={theme.colors.textDim}
+                    autoCapitalize="characters"
+                  />
+                  <Text style={{ color: theme.colors.textDim, fontSize: 11, marginTop: 4 }}>
+                    Pídeselo al organizador en la mesa para registrarte.
+                  </Text>
                 </View>
               </>
             )}

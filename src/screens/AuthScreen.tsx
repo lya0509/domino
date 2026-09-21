@@ -20,7 +20,6 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(!!inviteCode);
   const [showScanner, setShowScanner] = useState(false);
-  const [showManualCodeInput, setShowManualCodeInput] = useState(false);
 
   // Estados para Recuperación de Contraseña
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -147,17 +146,10 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
 
     if (!validCodes.includes(currentCode)) {
       Alert.alert(
-        '🔒 Escanea el QR de Acceso',
-        'Para registrarte en Domino del Cafetín necesitas escanear el código QR de un compañero con la cámara, o usar el código de la mesa.',
+        '📷 Escaneo de QR Requerido',
+        'Para registrarte es obligatorio escanear el código QR de un compañero con tu cámara.',
         [
           { text: '📷 Escanear QR', onPress: () => setShowScanner(true) },
-          {
-            text: 'Usar Código CAFETIN',
-            onPress: () => {
-              setAccessCode('CAFETIN');
-              Alert.alert('✅ Código Aplicado', 'Se aplicó el código de acceso CAFETIN. Presiona "Crear Cuenta" de nuevo.');
-            }
-          },
           { text: 'Cancelar', style: 'cancel' }
         ]
       );
@@ -520,57 +512,6 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
                             <Text style={{ color: '#60a5fa', fontSize: 13, fontWeight: '800' }}>Abrir ➜</Text>
                           </View>
                         </TouchableOpacity>
-                      )}
-
-                      {/* Atajos Rápidos y Opción Manual */}
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
-                        <TouchableOpacity
-                          onPress={() => {
-                            setAccessCode('CAFETIN');
-                            Alert.alert('✅ Código Aplicado', 'Se cargó el código de mesa oficial: CAFETIN');
-                          }}
-                          style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                            borderWidth: 1,
-                            borderColor: 'rgba(255, 255, 255, 0.12)',
-                            borderRadius: 10,
-                            paddingVertical: 7,
-                            paddingHorizontal: 12,
-                            alignItems: 'center',
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '700' }}>
-                            ⚡ Usar Código de Mesa: CAFETIN
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          onPress={() => setShowManualCodeInput(!showManualCodeInput)}
-                          style={{ padding: 6 }}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={{ color: theme.colors.textDim, fontSize: 11, textDecorationLine: 'underline' }}>
-                            {showManualCodeInput ? 'Ocultar manual' : 'Escribir manual'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      {showManualCodeInput && (
-                        <TextInput
-                          style={[
-                            styles.input,
-                            { marginTop: 8 },
-                            ['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'].includes(accessCode.trim().toUpperCase())
-                              ? { borderColor: theme.colors.success, backgroundColor: 'rgba(16, 185, 129, 0.08)' }
-                              : { borderColor: '#eab308' }
-                          ]}
-                          value={accessCode}
-                          onChangeText={setAccessCode}
-                          placeholder="Ingresa código manual (Ej: CAFETIN)"
-                          placeholderTextColor={theme.colors.textDim}
-                          autoCapitalize="characters"
-                        />
                       )}
                     </View>
                   </>

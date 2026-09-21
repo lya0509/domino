@@ -241,7 +241,10 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
           }}>
             <Image
               source={require('../../assets/icon.png')}
-              style={{ width: '100%', height: '100%' }}
+              style={[
+                { width: '100%', height: '100%' },
+                Platform.OS === 'web' ? ({ imageRendering: '-webkit-optimize-contrast' } as any) : {}
+              ]}
               resizeMode="cover"
             />
           </View>

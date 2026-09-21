@@ -32,8 +32,27 @@ const theme = {
 
 type ScreenState = 'splash' | 'ad' | 'auth' | 'home' | 'setup' | 'game' | 'live' | 'profile' | 'store' | 'achievements' | 'leaderboard' | 'global_chat' | 'tournaments';
 
+const getInitialScreen = (): ScreenState => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    try {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+        return 'auth';
+      }
+      const seen = window.localStorage.getItem('@domino_onboarding_seen') || window.localStorage.getItem('domino_onboarding_seen');
+      if (seen === '1') {
+        return 'ad';
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return 'splash';
+};
+
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenState>('splash');
+  const [currentScreen, setCurrentScreen] = useState<ScreenState>(getInitialScreen);
   const [match, setMatch] = useState<Match | null>(null);
   const [session, setSession] = useState<any>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -59,6 +78,19 @@ export default function App() {
   const toastAnim = useRef(new Animated.Value(-100)).current;
   const toastTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  const markOnboardingSeen = async () => {
+    try {
+      await AsyncStorage.setItem('@domino_onboarding_seen', '1');
+      await AsyncStorage.setItem('domino_onboarding_seen', '1');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.localStorage.setItem('@domino_onboarding_seen', '1');
+        window.localStorage.setItem('domino_onboarding_seen', '1');
+      }
+    } catch (e) {
+      console.warn('Error saving onboarding seen:', e);
+    }
+  };
+
   const fetchCurrentUser = async (id: string) => {
     setCurrentUserProfileId(id);
     setIsAuthenticated(true);
@@ -70,7 +102,12 @@ export default function App() {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.title = 'PeSiMistas';
       try {
+        const hash = window.location.hash || '';
         const searchParams = new URLSearchParams(window.location.search);
+        if (hash.includes('type=recovery') || searchParams.get('type') === 'recovery') {
+          setIsPasswordRecovery(true);
+          setCurrentScreen('auth');
+        }
         const invite = searchParams.get('invite') || searchParams.get('ref') || searchParams.get('code');
         if (invite) {
           setInitialInviteCode(invite.toUpperCase());
@@ -81,9 +118,40 @@ export default function App() {
       }
     }
 
-    const checkOnboardingAndNavigate = async (_activeSession: any) => {
+    const checkOnboardingAndNavigate = async (activeSession: any) => {
       try {
-        const hasSeen = await AsyncStorage.getItem('@domino_onboarding_seen');
+        // 1. Si viene por enlace de recuperación de contraseña, ir directo a auth
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          const hash = window.location.hash || '';
+          const search = window.location.search || '';
+          if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+            setIsPasswordRecovery(true);
+            setCurrentScreen('auth');
+            return;
+          }
+        }
+
+        // 2. Si el usuario ya está autenticado, nunca mostrar bienvenida
+        if (activeSession) {
+          markOnboardingSeen();
+          setCurrentScreen(match?.status === 'active' ? 'game' : 'home');
+          return;
+        }
+
+        // 3. Revisar si ya vio el onboarding
+        let hasSeen: string | null = null;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          try {
+            hasSeen = window.localStorage.getItem('@domino_onboarding_seen') || window.localStorage.getItem('domino_onboarding_seen');
+          } catch {}
+        }
+        if (!hasSeen) {
+          hasSeen = await AsyncStorage.getItem('@domino_onboarding_seen');
+        }
+        if (!hasSeen) {
+          hasSeen = await AsyncStorage.getItem('domino_onboarding_seen');
+        }
+
         if (hasSeen === '1') {
           setCurrentScreen('ad');
         } else {
@@ -122,8 +190,11 @@ export default function App() {
         setCurrentScreen('auth');
       } else if (session) {
         fetchCurrentUser(session.user.id);
+        markOnboardingSeen();
       } else {
-        setCurrentScreen('auth');
+        if (!isPasswordRecovery) {
+          setCurrentScreen('auth');
+        }
         setCurrentUserProfileId(null);
       }
     });
@@ -760,7 +831,10 @@ export default function App() {
         }}>
           <Image
             source={require('./assets/icon.png')}
-            style={{ width: '100%', height: '100%' }}
+            style={[
+              { width: '100%', height: '100%' },
+              Platform.OS === 'web' ? ({ imageRendering: '-webkit-optimize-contrast' } as any) : {}
+            ]}
             resizeMode="cover"
           />
         </View>
@@ -777,11 +851,7 @@ export default function App() {
       {currentScreen === 'splash' && (
         <OnboardingScreen
           onComplete={async () => {
-            try {
-              await AsyncStorage.setItem('@domino_onboarding_seen', '1');
-            } catch (e) {
-              console.warn('Error saving onboarding status', e);
-            }
+            await markOnboardingSeen();
             setCurrentScreen('ad');
           }}
         />

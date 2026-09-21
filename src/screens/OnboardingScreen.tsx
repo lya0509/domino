@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Platform, Image, PanResponder } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { sounds } from '../lib/sounds';
 import * as Haptics from 'expo-haptics';
@@ -50,7 +51,19 @@ const SLIDES = [
 export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  const saveSeen = async () => {
+    try {
+      await AsyncStorage.setItem('@domino_onboarding_seen', '1');
+      await AsyncStorage.setItem('domino_onboarding_seen', '1');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.localStorage.setItem('@domino_onboarding_seen', '1');
+        window.localStorage.setItem('domino_onboarding_seen', '1');
+      }
+    } catch {}
+  };
+
   const handleFinish = () => {
+    saveSeen();
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
@@ -88,6 +101,7 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleSkip = () => {
+    saveSeen();
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -135,7 +149,10 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
           {currentSlide.id === 'welcome' ? (
             <Image
               source={require('../../assets/icon.png')}
-              style={styles.welcomeImage}
+              style={[
+                styles.welcomeImage,
+                Platform.OS === 'web' ? ({ imageRendering: '-webkit-optimize-contrast' } as any) : {}
+              ]}
               resizeMode="cover"
             />
           ) : (

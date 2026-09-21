@@ -15,6 +15,7 @@ import { AchievementsScreen } from './src/screens/AchievementsScreen';
 import { LeaderboardScreen } from './src/screens/LeaderboardScreen';
 import { GlobalChatScreen } from './src/screens/GlobalChatScreen';
 import { TournamentsScreen } from './src/screens/TournamentsScreen';
+import { DominoLogo } from './src/components/DominoLogo';
 import { Match, Profile } from './src/types';
 import { supabase } from './src/lib/supabase';
 import { sounds } from './src/lib/sounds';
@@ -39,6 +40,7 @@ export default function App() {
   const [sessionChecked, setSessionChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(null);
   const [liveMatchId, setLiveMatchId] = useState<string | null>(null);
   const [viewProfileId, setViewProfileId] = useState<string | null>(null);
@@ -114,9 +116,12 @@ export default function App() {
       setSessionChecked(true);
     });
 
-    const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (session) {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+        setCurrentScreen('auth');
+      } else if (session) {
         fetchCurrentUser(session.user.id);
       } else {
         setCurrentScreen('auth');
@@ -740,12 +745,8 @@ export default function App() {
   if (!sessionChecked) {
     return (
       <View style={{ flex: 1, backgroundColor: '#07080a', justifyContent: 'center', alignItems: 'center' }}>
-        <Image
-          source={require('./assets/icon.png')}
-          style={{ width: 72, height: 72, borderRadius: 18, marginBottom: 14 }}
-          resizeMode="contain"
-        />
-        <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: 1 }}>PeSiMistas</Text>
+        <DominoLogo size={80} glow={true} />
+        <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: 1, marginTop: 14 }}>PeSiMistas</Text>
       </View>
     );
   }
@@ -785,6 +786,7 @@ export default function App() {
           onSessionConfigured={() => {
             setIsAuthenticated(true);
             setIsGuestMode(false);
+            setIsPasswordRecovery(false);
             setCurrentScreen(match?.status === 'active' ? 'game' : 'home');
           }}
           onGuestMode={() => {
@@ -792,6 +794,7 @@ export default function App() {
             setCurrentScreen('setup');
           }}
           inviteCode={initialInviteCode}
+          initialRecoveryMode={isPasswordRecovery}
         />
       )}
 

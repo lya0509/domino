@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Pla
 import { theme } from '../theme';
 import { sounds } from '../lib/sounds';
 import * as Haptics from 'expo-haptics';
+import { DominoLogo } from '../components/DominoLogo';
 
 interface Props {
   onComplete: () => void;
@@ -97,11 +98,7 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
       <View style={styles.contentContainer}>
         <View style={[styles.iconCircle, currentSlide.id === 'welcome' && styles.welcomeCircle]}>
           {currentSlide.id === 'welcome' ? (
-            <Image
-              source={require('../../assets/icon.png')}
-              style={styles.welcomeImage}
-              resizeMode="cover"
-            />
+            <DominoLogo size={105} glow={true} />
           ) : (
             <Text style={styles.mainIcon}>{currentSlide.icon}</Text>
           )}
@@ -208,22 +205,16 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
   },
   welcomeCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    overflow: 'hidden',
-    borderWidth: 2.5,
-    borderColor: '#3b82f6',
-    backgroundColor: '#0a0d14',
+    width: 105,
+    height: 105,
+    borderRadius: 53,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
     shadowColor: '#3b82f6',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  welcomeImage: {
-    width: '100%',
-    height: '100%',
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 6,
   },
   mainIcon: {
     fontSize: 48,

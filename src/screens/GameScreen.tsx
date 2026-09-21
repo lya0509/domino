@@ -87,6 +87,11 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
           if (otherScores.every(s => s === 0)) isZapato = true;
         }
         setWinnerData({ id: key, isZapato });
+        if (isZapato) {
+          sounds.playSound('slap');
+        } else {
+          sounds.playSound('clap');
+        }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     }

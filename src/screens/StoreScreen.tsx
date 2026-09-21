@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 
 import * as Haptics from 'expo-haptics';
+import { sounds } from '../lib/sounds';
 
 interface Props {
   onBack: () => void;
@@ -109,6 +110,7 @@ export const StoreScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) =
               if (Platform.OS !== 'web') {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               }
+              sounds.playSound('chaching');
               setProfile(data as Profile);
               Alert.alert('¡Compra Exitosa!', `Has adquirido y equipado: ${item.name}`);
             } catch (err) {
@@ -159,6 +161,7 @@ export const StoreScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) =
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
+      sounds.playSound('chaching');
       setProfile(data as Profile);
       Alert.alert('¡Compra Exitosa!', `Has adquirido tu etiqueta personalizada: "${customText.trim()}"`);
     } catch (err) {

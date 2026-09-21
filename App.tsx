@@ -3,6 +3,7 @@ import { StatusBar, Alert, BackHandler, View, Text, Animated, TouchableOpacity, 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { SplashAdScreen } from './src/screens/SplashAdScreen';
+import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { GameScreen } from './src/screens/GameScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
@@ -649,7 +650,7 @@ export default function App() {
         <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       {currentScreen === 'splash' && (
-        <SplashAdScreen
+        <OnboardingScreen
           onComplete={() => {
             if (isAuthenticated) {
               setCurrentScreen(match?.status === 'active' ? 'game' : 'home');

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Domino",
-    "slug": "Domino",
+    "name": "Domino del Cafetín",
+    "slug": "domino-del-cafetin",
     "version": "1.0.10",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,8 +21,8 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "shortName": "Dominó VIP",
-      "name": "Dominó VIP Cash App",
+      "shortName": "Domino Cafetín",
+      "name": "Domino del Cafetín (PeSiMiSta)",
       "themeColor": "#0d0e12",
       "backgroundColor": "#0d0e12",
       "display": "standalone"

@@ -86,7 +86,8 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode }
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboard}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <Text style={styles.logo}>🁣</Text>
-          <Text style={styles.title}>Domino Pesimista</Text>
+          <Text style={styles.title}>Domino del Cafetín</Text>
+          <Text style={{ color: theme.colors.primary, fontWeight: '900', fontSize: 13, letterSpacing: 2, textAlign: 'center', marginBottom: 6 }}>PeSiMiSta EDITION</Text>
           <Text style={styles.subtitle}>
             {isRegistering ? 'Crea tu cuenta para guardar tus resultados' : 'Inicia sesión para ver tus stats'}
           </Text>

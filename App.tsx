@@ -3,6 +3,7 @@ import { StatusBar, Alert, BackHandler, View, Text, Animated, TouchableOpacity, 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
+import { SplashAdScreen } from './src/screens/SplashAdScreen';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { GameScreen } from './src/screens/GameScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
@@ -29,7 +30,7 @@ const theme = {
   }
 };
 
-type ScreenState = 'splash' | 'auth' | 'home' | 'setup' | 'game' | 'live' | 'profile' | 'store' | 'achievements' | 'leaderboard' | 'global_chat' | 'tournaments';
+type ScreenState = 'splash' | 'ad' | 'auth' | 'home' | 'setup' | 'game' | 'live' | 'profile' | 'store' | 'achievements' | 'leaderboard' | 'global_chat' | 'tournaments';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenState>('splash');
@@ -79,17 +80,17 @@ export default function App() {
       }
     }
 
-    const checkOnboardingAndNavigate = async (activeSession: any) => {
+    const checkOnboardingAndNavigate = async (_activeSession: any) => {
       try {
         const hasSeen = await AsyncStorage.getItem('@domino_onboarding_seen');
         if (hasSeen === '1') {
-          setCurrentScreen(activeSession ? 'home' : 'auth');
+          setCurrentScreen('ad');
         } else {
           setCurrentScreen('splash');
         }
       } catch (e) {
         console.warn('Error reading onboarding status', e);
-        setCurrentScreen(activeSession ? 'home' : 'auth');
+        setCurrentScreen('ad');
       }
     };
 
@@ -762,6 +763,14 @@ export default function App() {
             } catch (e) {
               console.warn('Error saving onboarding status', e);
             }
+            setCurrentScreen('ad');
+          }}
+        />
+      )}
+
+      {currentScreen === 'ad' && (
+        <SplashAdScreen
+          onComplete={() => {
             if (isAuthenticated) {
               setCurrentScreen(match?.status === 'active' ? 'game' : 'home');
             } else {

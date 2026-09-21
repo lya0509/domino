@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { theme } from '../theme';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -6,16 +6,24 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 interface Props {
   onSessionConfigured: () => void;
   onGuestMode: () => void;
+  inviteCode?: string | null;
 }
 
-export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode }) => {
+export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, inviteCode }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [initials, setInitials] = useState('');
-  const [accessCode, setAccessCode] = useState('');
+  const [accessCode, setAccessCode] = useState(inviteCode || '');
   const [loading, setLoading] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(!!inviteCode);
+
+  useEffect(() => {
+    if (inviteCode) {
+      setAccessCode(inviteCode);
+      setIsRegistering(true);
+    }
+  }, [inviteCode]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -142,9 +150,15 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode }
                     placeholderTextColor={theme.colors.textDim}
                     autoCapitalize="characters"
                   />
-                  <Text style={{ color: theme.colors.textDim, fontSize: 11, marginTop: 4 }}>
-                    Pídeselo al organizador en la mesa para registrarte.
-                  </Text>
+                  {['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'].includes(accessCode.trim().toUpperCase()) ? (
+                    <Text style={{ color: theme.colors.success, fontSize: 12, marginTop: 4, fontWeight: '700' }}>
+                      ✅ Pase de Invitación VIP Verificado por QR
+                    </Text>
+                  ) : (
+                    <Text style={{ color: theme.colors.textDim, fontSize: 11, marginTop: 4 }}>
+                      Escanea el QR de un compañero o pide el código en la mesa.
+                    </Text>
+                  )}
                 </View>
               </>
             )}

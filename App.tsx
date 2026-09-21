@@ -48,6 +48,7 @@ export default function App() {
 
   // In-App Toast State
   const [toastMsg, setToastMsg] = useState<{name: string, text: string, color?: string} | null>(null);
+  const [initialInviteCode, setInitialInviteCode] = useState<string | null>(null);
   const toastAnim = useRef(new Animated.Value(-100)).current;
   const toastTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -61,6 +62,16 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.title = 'PeSiMistas';
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const invite = searchParams.get('invite') || searchParams.get('ref') || searchParams.get('code');
+        if (invite) {
+          setInitialInviteCode(invite.toUpperCase());
+          setCurrentScreen('auth');
+        }
+      } catch (e) {
+        console.warn('Error reading URL params', e);
+      }
     }
 
     const fallbackTimer = setTimeout(() => {
@@ -690,6 +701,7 @@ export default function App() {
             setIsGuestMode(true);
             setCurrentScreen('setup');
           }}
+          inviteCode={initialInviteCode}
         />
       )}
 

@@ -713,6 +713,53 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           </View>
         )}
 
+        {/* QR Invite Card */}
+        {isOwnProfile && (
+          <View style={[styles.card, { alignItems: 'center', borderColor: 'rgba(59, 130, 246, 0.4)', borderWidth: 1, paddingVertical: 20 }]}>
+            <Text style={[styles.cardTitle, { color: '#60a5fa', textAlign: 'center', marginBottom: 6 }]}>📲 Pase de Invitación VIP</Text>
+            <Text style={{ color: theme.colors.textDim, fontSize: 13, textAlign: 'center', marginBottom: 16, paddingHorizontal: 12, lineHeight: 18 }}>
+              Muestra este código QR a un compañero en el cafetín para que lo escanee con su cámara y pueda registrarse en la aplicación.
+            </Text>
+
+            <View style={{ padding: 12, backgroundColor: '#ffffff', borderRadius: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }}>
+              <Image
+                source={{
+                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
+                    Platform.OS === 'web' && typeof window !== 'undefined'
+                      ? `${window.location.origin}/?invite=CAFETIN`
+                      : 'https://domino-mauve.vercel.app/?invite=CAFETIN'
+                  )}`
+                }}
+                style={{ width: 170, height: 170 }}
+                resizeMode="contain"
+              />
+            </View>
+
+            <View style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.3)' }}>
+              <Text style={{ color: '#93c5fd', fontWeight: 'bold', fontSize: 12 }}>
+                Pase Válido: CAFETIN
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.cancelBtn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary, width: '100%', alignItems: 'center', paddingVertical: 12 }]}
+              onPress={() => {
+                const url = Platform.OS === 'web' && typeof window !== 'undefined'
+                  ? `${window.location.origin}/?invite=CAFETIN`
+                  : 'https://domino-mauve.vercel.app/?invite=CAFETIN';
+                if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+                  navigator.clipboard.writeText(url);
+                  Alert.alert('¡Copiado!', 'Enlace de invitación copiado al portapapeles.');
+                } else {
+                  Alert.alert('Enlace de Invitación', url);
+                }
+              }}
+            >
+              <Text style={[styles.cancelBtnText, { color: '#fff', fontWeight: 'bold' }]}>🔗 Copiar Enlace para WhatsApp</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>

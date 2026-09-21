@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { theme } from '../theme';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { QRScannerModal } from '../components/QRScannerModal';
 
 interface Props {
   onSessionConfigured: () => void;
@@ -17,6 +18,7 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
   const [accessCode, setAccessCode] = useState(inviteCode || '');
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(!!inviteCode);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     if (inviteCode) {
@@ -106,7 +108,11 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboard}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <Text style={styles.logo}>🁣</Text>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={{ width: 68, height: 68, borderRadius: 16, alignSelf: 'center', marginBottom: theme.spacing.m }}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>Domino del Cafetín</Text>
           <Text style={{ color: theme.colors.primary, fontWeight: '900', fontSize: 13, letterSpacing: 2, textAlign: 'center', marginBottom: 6 }}>PeSiMiSta EDITION</Text>
           <Text style={styles.subtitle}>
@@ -141,22 +147,71 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Código de Acceso del Cafetín 🔒</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.s }}>
+                    <Text style={styles.label}>Código de Acceso del Cafetín 🔒</Text>
+                  </View>
+
+                  {/* Botón Destacado para Escanear el QR */}
+                  <TouchableOpacity
+                    onPress={() => setShowScanner(true)}
+                    style={{
+                      backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                      borderWidth: 1.5,
+                      borderColor: '#3b82f6',
+                      borderRadius: 14,
+                      padding: 12,
+                      marginBottom: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      shadowColor: '#3b82f6',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 8,
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 12,
+                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: 12,
+                    }}>
+                      <Text style={{ fontSize: 22 }}>📷</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>
+                        Escanear Código QR con Cámara
+                      </Text>
+                      <Text style={{ color: theme.colors.textDim, fontSize: 11, marginTop: 2 }}>
+                        Toca aquí para leer el QR de tu compañero
+                      </Text>
+                    </View>
+                    <Text style={{ color: '#60a5fa', fontSize: 18, fontWeight: 'bold' }}>➜</Text>
+                  </TouchableOpacity>
+
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      ['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'].includes(accessCode.trim().toUpperCase())
+                        ? { borderColor: theme.colors.success, backgroundColor: 'rgba(16, 185, 129, 0.08)' }
+                        : { borderColor: '#eab308' }
+                    ]}
                     value={accessCode}
                     onChangeText={setAccessCode}
-                    placeholder="Ej: CAFETIN"
+                    placeholder="O ingresa el código manual (Ej: CAFETIN)"
                     placeholderTextColor={theme.colors.textDim}
                     autoCapitalize="characters"
                   />
                   {['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'].includes(accessCode.trim().toUpperCase()) ? (
                     <Text style={{ color: theme.colors.success, fontSize: 12, marginTop: 4, fontWeight: '700' }}>
-                      ✅ Pase de Invitación VIP Verificado por QR
+                      ✅ Pase de Invitación VIP Verificado ({accessCode.trim().toUpperCase()})
                     </Text>
                   ) : (
                     <Text style={{ color: theme.colors.textDim, fontSize: 11, marginTop: 4 }}>
-                      Escanea el QR de un compañero o pide el código en la mesa.
+                      Presiona el botón arriba para leer el QR o escribe el código.
                     </Text>
                   )}
                 </View>
@@ -217,6 +272,16 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <QRScannerModal
+        visible={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScanSuccess={(code) => {
+          setAccessCode(code);
+          setShowScanner(false);
+          Alert.alert('✅ ¡Pase Escaneado!', `Código de acceso detectado y verificado: ${code}`);
+        }}
+      />
     </SafeAreaView>
   );
 };

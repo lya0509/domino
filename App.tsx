@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StatusBar, Alert, BackHandler, View, Text, Animated, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { StatusBar, Alert, BackHandler, View, Text, Animated, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
@@ -79,20 +79,37 @@ export default function App() {
       }
     }
 
-    const fallbackTimer = setTimeout(() => {
+    const checkOnboardingAndNavigate = async (activeSession: any) => {
+      try {
+        const hasSeen = await AsyncStorage.getItem('@domino_onboarding_seen');
+        if (hasSeen === '1') {
+          setCurrentScreen(activeSession ? 'home' : 'auth');
+        } else {
+          setCurrentScreen('splash');
+        }
+      } catch (e) {
+        console.warn('Error reading onboarding status', e);
+        setCurrentScreen(activeSession ? 'home' : 'auth');
+      }
+    };
+
+    const fallbackTimer = setTimeout(async () => {
+      await checkOnboardingAndNavigate(session);
       setSessionChecked(true);
     }, 1200);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(fallbackTimer);
       setSession(session);
       if (session) {
         fetchCurrentUser(session.user.id);
       }
+      await checkOnboardingAndNavigate(session);
       setSessionChecked(true);
-    }).catch((err) => {
+    }).catch(async (err) => {
       clearTimeout(fallbackTimer);
       console.warn('Session error:', err);
+      await checkOnboardingAndNavigate(null);
       setSessionChecked(true);
     });
 
@@ -722,7 +739,11 @@ export default function App() {
   if (!sessionChecked) {
     return (
       <View style={{ flex: 1, backgroundColor: '#07080a', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ fontSize: 48, marginBottom: 12 }}>🁣</Text>
+        <Image
+          source={require('./assets/icon.png')}
+          style={{ width: 72, height: 72, borderRadius: 18, marginBottom: 14 }}
+          resizeMode="contain"
+        />
         <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: 1 }}>PeSiMistas</Text>
       </View>
     );
@@ -735,7 +756,12 @@ export default function App() {
 
       {currentScreen === 'splash' && (
         <OnboardingScreen
-          onComplete={() => {
+          onComplete={async () => {
+            try {
+              await AsyncStorage.setItem('@domino_onboarding_seen', '1');
+            } catch (e) {
+              console.warn('Error saving onboarding status', e);
+            }
             if (isAuthenticated) {
               setCurrentScreen(match?.status === 'active' ? 'game' : 'home');
             } else {

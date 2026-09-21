@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Platform, Image } from 'react-native';
 import { theme } from '../theme';
 import { sounds } from '../lib/sounds';
 import * as Haptics from 'expo-haptics';
@@ -96,7 +96,15 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
       {/* Main Slide Card */}
       <View style={styles.contentContainer}>
         <View style={styles.iconCircle}>
-          <Text style={styles.mainIcon}>{currentSlide.icon}</Text>
+          {currentSlide.id === 'welcome' ? (
+            <Image
+              source={require('../../assets/icon.png')}
+              style={{ width: 80, height: 80, borderRadius: 20 }}
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={styles.mainIcon}>{currentSlide.icon}</Text>
+          )}
         </View>
 
         <Text style={styles.title}>{currentSlide.title}</Text>

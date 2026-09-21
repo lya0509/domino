@@ -59,13 +59,24 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.title = 'PeSiMistas';
+    }
+
+    const fallbackTimer = setTimeout(() => {
+      setSessionChecked(true);
+    }, 1200);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(fallbackTimer);
       setSession(session);
       if (session) {
         fetchCurrentUser(session.user.id);
-      } else {
-        setCurrentScreen('auth');
       }
+      setSessionChecked(true);
+    }).catch((err) => {
+      clearTimeout(fallbackTimer);
+      console.warn('Session error:', err);
       setSessionChecked(true);
     });
 
@@ -642,7 +653,14 @@ export default function App() {
     setCurrentScreen('auth');
   };
 
-  if (!sessionChecked) return null;
+  if (!sessionChecked) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#07080a', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: 48, marginBottom: 12 }}>🁣</Text>
+        <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: 1 }}>PeSiMistas</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.appWrapper}>

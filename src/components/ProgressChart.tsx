@@ -41,7 +41,7 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
   });
 
   const maxX = Math.max(rounds.length, 1);
-  const maxY = limitScore; // Siempre llegar a la meta visualmente
+  const maxY = Math.max(limitScore || 100, t1Total, t2Total, 1); // Siempre llegar a la meta visualmente
 
   // Transformar coordenadas (x, y) a pixeles del SVG
   const getCoords = (data: {x: number, y: number}[]) => {

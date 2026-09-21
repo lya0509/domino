@@ -20,32 +20,67 @@ export const QRScannerModal: React.FC<Props> = ({ visible, onClose, onScanSucces
   const animFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
+    let isCancelled = false;
+
     if (visible && Platform.OS === 'web') {
-      startWebScanner();
+      startWebScanner(() => isCancelled);
     } else {
       stopWebScanner();
     }
 
     return () => {
+      isCancelled = true;
       stopWebScanner();
     };
   }, [visible]);
 
   const extractCode = (rawData: string): string => {
+    if (!rawData) return '';
     try {
-      if (rawData.includes('?') || rawData.includes('http')) {
-        const url = new URL(rawData);
+      let toParse = rawData.trim();
+      if (!toParse.startsWith('http://') && !toParse.startsWith('https://') && toParse.includes('/?')) {
+        toParse = 'https://' + toParse;
+      }
+      if (toParse.includes('?') || toParse.startsWith('http')) {
+        const url = new URL(toParse);
         const code = url.searchParams.get('invite') || url.searchParams.get('code') || url.searchParams.get('ref');
         if (code) return code.trim().toUpperCase();
       }
     } catch {
-      // Not a valid URL, treat as raw text
+      // Ignorar error de URL inválida
     }
+
+    // Extracción directa por expresión regular en caso de URLs complejas
+    const match = rawData.match(/(?:invite|code|ref)=([a-zA-Z0-9_-]+)/i);
+    if (match && match[1]) {
+      return match[1].trim().toUpperCase();
+    }
+
     return rawData.trim().toUpperCase();
   };
 
-  const startWebScanner = async () => {
+  const attachStreamToVideo = async () => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (video && stream) {
+      if (video.srcObject !== stream) {
+        video.srcObject = stream;
+      }
+      video.setAttribute('playsinline', 'true');
+      try {
+        await video.play();
+      } catch (e) {
+        console.warn('Video play caught:', e);
+      }
+      if (!animFrameRef.current) {
+        scanFrame();
+      }
+    }
+  };
+
+  const startWebScanner = async (checkCancelled?: () => boolean) => {
     setScanning(true);
+    setHasCameraPermission(null);
     try {
       if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setHasCameraPermission(false);
@@ -53,19 +88,39 @@ export const QRScannerModal: React.FC<Props> = ({ visible, onClose, onScanSucces
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } }
-      });
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } }
+        });
+      } catch (err1) {
+        try {
+          // Fallback a cualquier cámara disponible si environment falla
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        } catch (err2) {
+          console.warn('Camera access denied or failed:', err2);
+          setHasCameraPermission(false);
+          setScanning(false);
+          return;
+        }
+      }
+
+      if (checkCancelled && checkCancelled()) {
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
 
       streamRef.current = stream;
       setHasCameraPermission(true);
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute('playsinline', 'true');
-        await videoRef.current.play();
-        scanFrame();
-      }
+      await attachStreamToVideo();
+
+      // Sondeo de respaldo por si el elemento <video> aún está completando el ciclo de renderizado
+      setTimeout(() => {
+        if (streamRef.current && videoRef.current) {
+          attachStreamToVideo();
+        }
+      }, 120);
     } catch (err) {
       console.warn('Camera access error:', err);
       setHasCameraPermission(false);
@@ -87,7 +142,12 @@ export const QRScannerModal: React.FC<Props> = ({ visible, onClose, onScanSucces
 
   const scanFrame = () => {
     const video = videoRef.current;
-    const canvas = canvasRef.current;
+    let canvas = canvasRef.current;
+
+    if (!canvas && typeof document !== 'undefined') {
+      canvas = document.createElement('canvas');
+      canvasRef.current = canvas;
+    }
 
     if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) {
       animFrameRef.current = requestAnimationFrame(scanFrame);
@@ -179,7 +239,12 @@ export const QRScannerModal: React.FC<Props> = ({ visible, onClose, onScanSucces
             {Platform.OS === 'web' ? (
               <>
                 <video
-                  ref={videoRef as any}
+                  ref={(el: any) => {
+                    videoRef.current = el;
+                    if (el && streamRef.current) {
+                      attachStreamToVideo();
+                    }
+                  }}
                   style={{
                     width: '100%',
                     height: '100%',

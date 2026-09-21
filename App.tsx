@@ -15,7 +15,6 @@ import { AchievementsScreen } from './src/screens/AchievementsScreen';
 import { LeaderboardScreen } from './src/screens/LeaderboardScreen';
 import { GlobalChatScreen } from './src/screens/GlobalChatScreen';
 import { TournamentsScreen } from './src/screens/TournamentsScreen';
-import { DominoLogo } from './src/components/DominoLogo';
 import { Match, Profile } from './src/types';
 import { supabase } from './src/lib/supabase';
 import { sounds } from './src/lib/sounds';
@@ -745,7 +744,26 @@ export default function App() {
   if (!sessionChecked) {
     return (
       <View style={{ flex: 1, backgroundColor: '#07080a', justifyContent: 'center', alignItems: 'center' }}>
-        <DominoLogo size={80} glow={true} />
+        <View style={{
+          width: 88,
+          height: 88,
+          borderRadius: 22,
+          overflow: 'hidden',
+          backgroundColor: '#0a0d14',
+          borderWidth: 2,
+          borderColor: 'rgba(59, 130, 246, 0.4)',
+          shadowColor: '#3b82f6',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.5,
+          shadowRadius: 14,
+          elevation: 8,
+        }}>
+          <Image
+            source={require('./assets/icon.png')}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+        </View>
         <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: 1, marginTop: 14 }}>PeSiMistas</Text>
       </View>
     );

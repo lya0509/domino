@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, SafeAreaVie
 import { theme } from '../theme';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { QRScannerModal } from '../components/QRScannerModal';
-import { DominoLogo } from '../components/DominoLogo';
 
 interface Props {
   onSessionConfigured: () => void;
@@ -21,6 +20,7 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(!!inviteCode);
   const [showScanner, setShowScanner] = useState(false);
+  const [showManualCodeInput, setShowManualCodeInput] = useState(false);
 
   // Estados para Recuperación de Contraseña
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -118,7 +118,7 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setLoading(false);
 
     if (error) {
@@ -143,10 +143,23 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
     }
 
     const validCodes = ['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'];
-    if (!validCodes.includes(accessCode.trim().toUpperCase())) {
+    const currentCode = accessCode.trim().toUpperCase();
+
+    if (!validCodes.includes(currentCode)) {
       Alert.alert(
-        '🔒 Código de Acceso Requerido',
-        'Para registrarte en Domino del Cafetín necesitas el código de acceso del local. Pídeselo a los organizadores en la mesa.'
+        '🔒 Escanea el QR de Acceso',
+        'Para registrarte en Domino del Cafetín necesitas escanear el código QR de un compañero con la cámara, o usar el código de la mesa.',
+        [
+          { text: '📷 Escanear QR', onPress: () => setShowScanner(true) },
+          {
+            text: 'Usar Código CAFETIN',
+            onPress: () => {
+              setAccessCode('CAFETIN');
+              Alert.alert('✅ Código Aplicado', 'Se aplicó el código de acceso CAFETIN. Presiona "Crear Cuenta" de nuevo.');
+            }
+          },
+          { text: 'Cancelar', style: 'cancel' }
+        ]
       );
       return;
     }
@@ -157,29 +170,52 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
     }
 
     setLoading(true);
-    const { data: signUpData, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          display_name: displayName.trim(),
-          initials: initials.trim().toUpperCase(),
+    try {
+      const { data: signUpData, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            display_name: displayName.trim(),
+            initials: initials.trim().toUpperCase(),
+          },
         },
-      },
-    });
-    setLoading(false);
+      });
 
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else if (signUpData?.session) {
-      Alert.alert('✅ ¡Bienvenido!', 'Tu cuenta ha sido creada exitosamente.');
-      onSessionConfigured();
-    } else {
-      Alert.alert(
-        '✅ Registro Exitoso', 
-        'Tu cuenta ha sido creada correctamente. Ya puedes iniciar sesión con tu correo y contraseña.'
-      );
-      setIsRegistering(false);
+      if (error) {
+        setLoading(false);
+        Alert.alert('Error al Crear Cuenta', error.message);
+        return;
+      }
+
+      if (signUpData?.session) {
+        setLoading(false);
+        Alert.alert('✅ ¡Bienvenido!', `¡Tu cuenta ha sido creada exitosamente, ${displayName.trim()}!`);
+        onSessionConfigured();
+        return;
+      }
+
+      // Si Supabase requiere inicio explícito de sesión, intentamos auto-login inmediato
+      const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      setLoading(false);
+
+      if (!loginErr && loginData?.session) {
+        Alert.alert('✅ ¡Bienvenido!', `¡Tu cuenta ha sido creada exitosamente, ${displayName.trim()}!`);
+        onSessionConfigured();
+      } else {
+        Alert.alert(
+          '✅ Cuenta Creada',
+          'Tu cuenta fue creada correctamente. Ya puedes iniciar sesión con tu correo y contraseña.'
+        );
+        setIsRegistering(false);
+      }
+    } catch (e: any) {
+      setLoading(false);
+      Alert.alert('Error', e.message || 'No se pudo completar el registro.');
     }
   };
 
@@ -187,8 +223,27 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboard}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={{ alignSelf: 'center', marginBottom: theme.spacing.m }}>
-            <DominoLogo size={76} glow={true} />
+          <View style={{
+            alignSelf: 'center',
+            marginBottom: theme.spacing.m,
+            width: 80,
+            height: 80,
+            borderRadius: 20,
+            overflow: 'hidden',
+            backgroundColor: '#0a0d14',
+            borderWidth: 2,
+            borderColor: 'rgba(59, 130, 246, 0.4)',
+            shadowColor: '#3b82f6',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.5,
+            shadowRadius: 12,
+            elevation: 8,
+          }}>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
           </View>
           <Text style={styles.title}>Domino del Cafetín</Text>
           <Text style={{ color: theme.colors.primary, fontWeight: '900', fontSize: 13, letterSpacing: 2, textAlign: 'center', marginBottom: 6 }}>PeSiMiSta EDITION</Text>
@@ -366,71 +421,153 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
 
                     <View style={styles.inputGroup}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.s }}>
-                        <Text style={styles.label}>Código de Acceso del Cafetín 🔒</Text>
+                        <Text style={styles.label}>Pase de Invitación / Código QR 🔒</Text>
                       </View>
 
-                      {/* Botón Destacado para Escanear el QR */}
-                      <TouchableOpacity
-                        onPress={() => setShowScanner(true)}
-                        style={{
-                          backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                          borderWidth: 1.5,
-                          borderColor: '#3b82f6',
-                          borderRadius: 14,
-                          padding: 12,
-                          marginBottom: 10,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          shadowColor: '#3b82f6',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.25,
-                          shadowRadius: 8,
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        <View style={{
-                          width: 42,
-                          height: 42,
-                          borderRadius: 12,
-                          backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          marginRight: 12,
-                        }}>
-                          <Text style={{ fontSize: 22 }}>📷</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>
-                            Escanear Código QR con Cámara
-                          </Text>
-                          <Text style={{ color: theme.colors.textDim, fontSize: 11, marginTop: 2 }}>
-                            Toca aquí para leer el QR de tu compañero
-                          </Text>
-                        </View>
-                        <Text style={{ color: '#60a5fa', fontSize: 18, fontWeight: 'bold' }}>➜</Text>
-                      </TouchableOpacity>
-
-                      <TextInput
-                        style={[
-                          styles.input,
-                          ['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'].includes(accessCode.trim().toUpperCase())
-                            ? { borderColor: theme.colors.success, backgroundColor: 'rgba(16, 185, 129, 0.08)' }
-                            : { borderColor: '#eab308' }
-                        ]}
-                        value={accessCode}
-                        onChangeText={setAccessCode}
-                        placeholder="O ingresa el código manual (Ej: CAFETIN)"
-                        placeholderTextColor={theme.colors.textDim}
-                        autoCapitalize="characters"
-                      />
                       {['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'].includes(accessCode.trim().toUpperCase()) ? (
-                        <Text style={{ color: theme.colors.success, fontSize: 12, marginTop: 4, fontWeight: '700' }}>
-                          ✅ Pase de Invitación VIP Verificado ({accessCode.trim().toUpperCase()})
-                        </Text>
+                        /* Tarjeta de Código QR Verificado */
+                        <View style={{
+                          backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                          borderWidth: 1.5,
+                          borderColor: theme.colors.success,
+                          borderRadius: 16,
+                          padding: 14,
+                          marginBottom: 10,
+                        }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <View style={{
+                              width: 42,
+                              height: 42,
+                              borderRadius: 12,
+                              backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              marginRight: 12,
+                            }}>
+                              <Text style={{ fontSize: 22 }}>✅</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '900' }}>
+                                Pase de Invitación VIP Activo
+                              </Text>
+                              <Text style={{ color: '#a7f3d0', fontSize: 12, fontWeight: '700', marginTop: 2 }}>
+                                Código: {accessCode.trim().toUpperCase()}
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => setShowScanner(true)}
+                              style={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                paddingHorizontal: 10,
+                                paddingVertical: 6,
+                                borderRadius: 8,
+                              }}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={{ color: '#6ee7b7', fontSize: 11, fontWeight: 'bold' }}>Re-escanear</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
                       ) : (
-                        <Text style={{ color: theme.colors.textDim, fontSize: 11, marginTop: 4 }}>
-                          Presiona el botón arriba para leer el QR o escribe el código.
-                        </Text>
+                        /* Botón Destacado para Escanear el QR con Cámara */
+                        <TouchableOpacity
+                          onPress={() => setShowScanner(true)}
+                          style={{
+                            backgroundColor: 'rgba(59, 130, 246, 0.16)',
+                            borderWidth: 2,
+                            borderColor: '#3b82f6',
+                            borderRadius: 16,
+                            padding: 14,
+                            marginBottom: 10,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            shadowColor: '#3b82f6',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.35,
+                            shadowRadius: 10,
+                            elevation: 4,
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <View style={{
+                            width: 46,
+                            height: 46,
+                            borderRadius: 14,
+                            backgroundColor: '#3b82f6',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginRight: 12,
+                          }}>
+                            <Text style={{ fontSize: 24 }}>📷</Text>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '900' }}>
+                              Escanear Código QR con Cámara
+                            </Text>
+                            <Text style={{ color: '#93c5fd', fontSize: 11, marginTop: 2, fontWeight: '600' }}>
+                              Toca para abrir el lector y leer el QR de tu compañero
+                            </Text>
+                          </View>
+                          <View style={{
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            paddingHorizontal: 10,
+                            paddingVertical: 6,
+                            borderRadius: 8,
+                          }}>
+                            <Text style={{ color: '#60a5fa', fontSize: 13, fontWeight: '800' }}>Abrir ➜</Text>
+                          </View>
+                        </TouchableOpacity>
+                      )}
+
+                      {/* Atajos Rápidos y Opción Manual */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setAccessCode('CAFETIN');
+                            Alert.alert('✅ Código Aplicado', 'Se cargó el código de mesa oficial: CAFETIN');
+                          }}
+                          style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            borderWidth: 1,
+                            borderColor: 'rgba(255, 255, 255, 0.12)',
+                            borderRadius: 10,
+                            paddingVertical: 7,
+                            paddingHorizontal: 12,
+                            alignItems: 'center',
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '700' }}>
+                            ⚡ Usar Código de Mesa: CAFETIN
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => setShowManualCodeInput(!showManualCodeInput)}
+                          style={{ padding: 6 }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={{ color: theme.colors.textDim, fontSize: 11, textDecorationLine: 'underline' }}>
+                            {showManualCodeInput ? 'Ocultar manual' : 'Escribir manual'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {showManualCodeInput && (
+                        <TextInput
+                          style={[
+                            styles.input,
+                            { marginTop: 8 },
+                            ['CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP'].includes(accessCode.trim().toUpperCase())
+                              ? { borderColor: theme.colors.success, backgroundColor: 'rgba(16, 185, 129, 0.08)' }
+                              : { borderColor: '#eab308' }
+                          ]}
+                          value={accessCode}
+                          onChangeText={setAccessCode}
+                          placeholder="Ingresa código manual (Ej: CAFETIN)"
+                          placeholderTextColor={theme.colors.textDim}
+                          autoCapitalize="characters"
+                        />
                       )}
                     </View>
                   </>

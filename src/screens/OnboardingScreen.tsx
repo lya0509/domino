@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Platform, Image } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Platform, Image, PanResponder } from 'react-native';
 import { theme } from '../theme';
 import { sounds } from '../lib/sounds';
 import * as Haptics from 'expo-haptics';
-import { DominoLogo } from '../components/DominoLogo';
 
 interface Props {
   onComplete: () => void;
@@ -51,17 +50,41 @@ const SLIDES = [
 export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  const handleFinish = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    sounds.playSound('clap');
+    onComplete();
+  };
+
   const handleNext = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     sounds.playSound('pop');
 
-    if (currentIndex < SLIDES.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      handleFinish();
-    }
+    setCurrentIndex((prev) => {
+      if (prev < SLIDES.length - 1) {
+        return prev + 1;
+      } else {
+        handleFinish();
+        return prev;
+      }
+    });
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => {
+      if (prev > 0) {
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+        sounds.playSound('pop');
+        return prev - 1;
+      }
+      return prev;
+    });
   };
 
   const handleSkip = () => {
@@ -72,18 +95,30 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
     onComplete();
   };
 
-  const handleFinish = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-    sounds.playSound('clap');
-    onComplete();
-  };
+  // Configuración de Gestos Swipe Horizontal
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Solo capturar movimientos deliberadamente horizontales
+        return Math.abs(gestureState.dx) > 15 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -40) {
+          // Deslizar hacia la izquierda -> avanzar
+          handleNext();
+        } else if (gestureState.dx > 40) {
+          // Deslizar hacia la derecha -> retroceder
+          handlePrev();
+        }
+      },
+    })
+  ).current;
 
   const currentSlide = SLIDES[currentIndex];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} {...panResponder.panHandlers}>
       {/* Top Header with Skip Button */}
       <View style={styles.topBar}>
         <View style={styles.badgeContainer}>
@@ -98,7 +133,11 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
       <View style={styles.contentContainer}>
         <View style={[styles.iconCircle, currentSlide.id === 'welcome' && styles.welcomeCircle]}>
           {currentSlide.id === 'welcome' ? (
-            <DominoLogo size={105} glow={true} />
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.welcomeImage}
+              resizeMode="cover"
+            />
           ) : (
             <Text style={styles.mainIcon}>{currentSlide.icon}</Text>
           )}
@@ -205,16 +244,22 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
   },
   welcomeCircle: {
-    width: 105,
-    height: 105,
-    borderRadius: 53,
-    backgroundColor: 'transparent',
-    borderWidth: 0,
+    width: 110,
+    height: 110,
+    borderRadius: 26,
+    overflow: 'hidden',
+    borderWidth: 2.5,
+    borderColor: '#3b82f6',
+    backgroundColor: '#0a0d14',
     shadowColor: '#3b82f6',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.6,
     shadowRadius: 16,
-    elevation: 6,
+    elevation: 8,
+  },
+  welcomeImage: {
+    width: '100%',
+    height: '100%',
   },
   mainIcon: {
     fontSize: 48,

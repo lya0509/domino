@@ -59,12 +59,7 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
       if (error) {
         console.error('Error fetching profiles:', error.message);
       } else {
-        const guestProfiles: Profile[] = [
-          { id: 'guest-1', display_name: 'Invitado 1', initials: 'IN1' },
-          { id: 'guest-2', display_name: 'Invitado 2', initials: 'IN2' },
-          { id: 'guest-3', display_name: 'Invitado 3', initials: 'IN3' },
-        ];
-        setProfiles([...guestProfiles, ...(data as Profile[])]);
+        setProfiles(data as Profile[]);
       }
     } catch (err) {
       console.error('Failed to fetch profiles:', err);

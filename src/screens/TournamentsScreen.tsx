@@ -414,9 +414,18 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
   };
 
   const handleCreateTournament = async () => {
-    if (!tName || !tMaxPlayers) return;
-    if (tType === 'vip_cash' && !tEntryFee) return;
-    if (tType !== 'vip_cash' && !tEntryPoints) return;
+    if (!tName.trim()) {
+      Alert.alert('Nombre Requerido', 'Por favor ingresa el nombre del torneo.');
+      return;
+    }
+    if (!tMaxPlayers) {
+      Alert.alert('Participantes Requeridos', 'Por favor selecciona la cantidad de jugadores.');
+      return;
+    }
+    if (tType === 'vip_cash' && !tEntryFee.trim()) {
+      Alert.alert('Precio Requerido', 'Por favor ingresa el precio de entrada en Bs.');
+      return;
+    }
     
     const maxP = parseInt(tMaxPlayers);
     if (tType === 'brackets' && maxP < 4) {
@@ -429,20 +438,24 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       const { error } = await supabase
         .from('tournaments')
         .insert({
-          name: tName,
+          name: tName.trim(),
           entry_fee: tType === 'vip_cash' ? parseFloat(tEntryFee) : 0,
-          entry_points: tType !== 'vip_cash' ? parseFloat(tEntryPoints) : 0,
+          entry_points: tType !== 'vip_cash' ? (tEntryPoints ? parseFloat(tEntryPoints) : 0) : 0,
           max_participants: parseInt(tMaxPlayers),
           tournament_type: tType,
           created_by: profileId
         });
       if (error) throw error;
-      Alert.alert('Éxito', 'Torneo creado');
+      Alert.alert('¡Éxito!', 'Torneo creado exitosamente.');
       setShowCreateModal(false);
+      setTName('');
+      setTEntryFee('');
+      setTEntryPoints('');
+      setTMaxPlayers('');
       fetchData();
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo crear');
+      Alert.alert('Error', 'No se pudo crear el torneo');
     } finally {
       setLoading(false);
     }
@@ -644,6 +657,7 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
           ];
 
           const { data: liveMatchData, error: matchErr } = await supabase.from('matches').insert({
+            tournament_id: t.id,
             status: 'active',
             game_mode: 'teams',
             limit_score: 100, // Torneo default
@@ -691,20 +705,64 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
   };
 
   const handleMatchClick = async (match: BracketMatch) => {
-    if (!match.live_match_id) {
-      if (localIsAdmin && !match.winner_team) {
-         // Fallback if no live match generated (legacy bracket)
-         Alert.alert('Torneo Antiguo', 'Esta partida no tiene una partida en vivo asociada.');
-      } else {
-         Alert.alert('Info', 'Esta partida aún no está lista o no tiene tablero en vivo.');
+    let currentLiveMatchId = match.live_match_id;
+
+    // Si la llave no tiene live_match_id pero tiene ambos equipos y no ha concluido, la creamos al vuelo
+    if (!currentLiveMatchId && !match.winner_team && match.team1_player1 && match.team2_player1) {
+      setLoading(true);
+      try {
+        const playerIds = [match.team1_player1, match.team1_player2, match.team2_player1, match.team2_player2].filter(Boolean);
+        const { data: profs } = await supabase.from('profiles').select('id, display_name, initials').in('id', playerIds);
+        const pMap = new Map((profs || []).map(p => [p.id, p]));
+
+        const p1 = pMap.get(match.team1_player1);
+        const p2 = pMap.get(match.team1_player2);
+        const p3 = pMap.get(match.team2_player1);
+        const p4 = pMap.get(match.team2_player2);
+
+        const players_json = [
+          { id: '1', profileId: match.team1_player1, name: p1?.display_name || 'J1', initials: p1?.initials || 'J1', teamNumber: 1, position: 'bottom' },
+          { id: '2', profileId: match.team2_player1, name: p3?.display_name || 'J3', initials: p3?.initials || 'J3', teamNumber: 2, position: 'right' },
+          { id: '3', profileId: match.team1_player2, name: p2?.display_name || 'J2', initials: p2?.initials || 'J2', teamNumber: 1, position: 'top' },
+          { id: '4', profileId: match.team2_player2, name: p4?.display_name || 'J4', initials: p4?.initials || 'J4', teamNumber: 2, position: 'left' },
+        ];
+
+        const { data: liveData } = await supabase.from('matches').insert({
+          tournament_id: match.tournament_id,
+          status: 'active',
+          game_mode: 'teams',
+          limit_score: 100,
+          team1_total: 0,
+          team2_total: 0,
+          team1_player1: match.team1_player1,
+          team1_player2: match.team1_player2,
+          team2_player1: match.team2_player1,
+          team2_player2: match.team2_player2,
+          rounds: [],
+          players_json
+        }).select('id').single();
+
+        if (liveData) {
+          currentLiveMatchId = liveData.id;
+          match.live_match_id = liveData.id;
+          await supabase.from('tournament_brackets').update({ live_match_id: liveData.id }).eq('id', match.id);
+        }
+      } catch (err) {
+        console.error('Error auto-creating live match:', err);
+      } finally {
+        setLoading(false);
       }
+    }
+
+    if (!currentLiveMatchId) {
+      Alert.alert('Partida en Espera', 'Esta llave aún está esperando que se definan los contrincantes.');
       return;
     }
 
     // Si la partida ya terminó, todos (incluyendo participantes) la ven en modo espectador (Resultados)
     if (match.winner_team) {
       if (onWatchLiveMatch) {
-        onWatchLiveMatch(match.live_match_id);
+        onWatchLiveMatch(currentLiveMatchId);
       }
       return;
     }
@@ -715,7 +773,7 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       if (onRejoinMatch) {
         setLoading(true);
         try {
-          const { data, error } = await supabase.from('matches').select('*').eq('id', match.live_match_id).single();
+          const { data, error } = await supabase.from('matches').select('*').eq('id', currentLiveMatchId).single();
           if (error) throw error;
           if (data) {
              onRejoinMatch(data);
@@ -729,7 +787,7 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       }
     } else {
       if (onWatchLiveMatch) {
-        onWatchLiveMatch(match.live_match_id);
+        onWatchLiveMatch(currentLiveMatchId);
       }
     }
   };
@@ -770,19 +828,49 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
           Alert.alert('¡Torneo Finalizado!', 'El torneo ha concluido exitosamente.');
           fetchData();
         } else {
-          // Generate next round
+          // Generate next round with live matches
           const nextRoundMatches = [];
           let matchCount = 1;
           for (let i = 0; i < winners.length; i += 2) {
             if (i + 1 < winners.length) {
+              const w1 = winners[i];
+              const w2 = winners[i + 1];
+
+              const playerIds = [w1.p1, w1.p2, w2.p1, w2.p2].filter(Boolean);
+              const { data: profs } = await supabase.from('profiles').select('id, display_name, initials').in('id', playerIds);
+              const pMap = new Map((profs || []).map(p => [p.id, p]));
+
+              const players_json = [
+                { id: '1', profileId: w1.p1, name: pMap.get(w1.p1)?.display_name || 'J1', initials: pMap.get(w1.p1)?.initials || 'J1', teamNumber: 1, position: 'bottom' },
+                { id: '2', profileId: w2.p1, name: pMap.get(w2.p1)?.display_name || 'J3', initials: pMap.get(w2.p1)?.initials || 'J3', teamNumber: 2, position: 'right' },
+                { id: '3', profileId: w1.p2, name: pMap.get(w1.p2)?.display_name || 'J2', initials: pMap.get(w1.p2)?.initials || 'J2', teamNumber: 1, position: 'top' },
+                { id: '4', profileId: w2.p2, name: pMap.get(w2.p2)?.display_name || 'J4', initials: pMap.get(w2.p2)?.initials || 'J4', teamNumber: 2, position: 'left' },
+              ];
+
+              const { data: liveMatchData } = await supabase.from('matches').insert({
+                tournament_id: match.tournament_id,
+                status: 'active',
+                game_mode: 'teams',
+                limit_score: 100,
+                team1_total: 0,
+                team2_total: 0,
+                team1_player1: w1.p1,
+                team1_player2: w1.p2,
+                team2_player1: w2.p1,
+                team2_player2: w2.p2,
+                rounds: [],
+                players_json
+              }).select('id').single();
+
               nextRoundMatches.push({
                 tournament_id: match.tournament_id,
                 round_number: match.round_number + 1,
                 match_number: matchCount++,
-                team1_player1: winners[i].p1,
-                team1_player2: winners[i].p2,
-                team2_player1: winners[i + 1].p1,
-                team2_player2: winners[i + 1].p2
+                team1_player1: w1.p1,
+                team1_player2: w1.p2,
+                team2_player1: w2.p1,
+                team2_player2: w2.p2,
+                live_match_id: liveMatchData?.id || null
               });
             }
           }

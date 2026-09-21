@@ -398,63 +398,98 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
       >
 
-        <View style={styles.avatarSection}>
-          <TouchableOpacity
-            style={[
-              styles.avatar,
-              profile?.equipped_items?.border && { borderWidth: 4, borderColor: profile.equipped_items.border, padding: 2 }
-            ]}
-            onPress={isOwnProfile ? handlePickAvatar : undefined}
-            disabled={!isOwnProfile || uploadingAvatar}
-            activeOpacity={isOwnProfile ? 0.8 : 1}
-          >
-            {uploadingAvatar ? (
-              <ActivityIndicator color="#fff" />
-            ) : profile?.avatar_url ? (
-              <Image source={{ uri: profile.avatar_url }} style={[styles.avatarImage, profile?.equipped_items?.border && { width: 72, height: 72, borderRadius: 36 }]} />
-            ) : (
-              <Text style={styles.avatarText}>{profile?.initials}</Text>
-            )}
-            {isOwnProfile && (
-              <View style={styles.editAvatarBadge}>
-                <Text style={styles.editAvatarText}>✏️</Text>
+        {/* Credencial Digital de Socio VIP */}
+        <View style={styles.vipCredentialCard}>
+          {/* Header of Credential */}
+          <View style={styles.credentialHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, marginRight: 8 }}>🁣</Text>
+              <View>
+                <Text style={styles.credentialClubName}>DOMINO DEL CAFETÍN</Text>
+                <Text style={styles.credentialSub}>CREDENCIAL OFICIAL DE SOCIO</Text>
               </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.8} onPress={handleHeaderTap}>
-            {profile?.equipped_items?.color === 'rainbow' ? (
-              <RainbowText style={[styles.profileName, { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }]}>
-                {profile.display_name}
-              </RainbowText>
-            ) : (
-              <Text style={[
-                styles.profileName,
-                profile?.equipped_items?.color && { color: profile.equipped_items.color, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }
-              ]}>
-                {profile?.display_name || 'Desconocido'}
+            </View>
+            <View style={styles.credentialChip}>
+              <Text style={styles.credentialChipText}>💳 VIP</Text>
+            </View>
+          </View>
+
+          {/* Central Avatar & Info */}
+          <View style={styles.credentialBody}>
+            <TouchableOpacity
+              style={[
+                styles.avatar,
+                profile?.equipped_items?.border && { borderWidth: 4, borderColor: profile.equipped_items.border, padding: 2 }
+              ]}
+              onPress={isOwnProfile ? handlePickAvatar : undefined}
+              disabled={!isOwnProfile || uploadingAvatar}
+              activeOpacity={isOwnProfile ? 0.8 : 1}
+            >
+              {uploadingAvatar ? (
+                <ActivityIndicator color="#fff" />
+              ) : profile?.avatar_url ? (
+                <Image source={{ uri: profile.avatar_url }} style={[styles.avatarImage, profile?.equipped_items?.border && { width: 72, height: 72, borderRadius: 36 }]} />
+              ) : (
+                <Text style={styles.avatarText}>{profile?.initials}</Text>
+              )}
+              {isOwnProfile && (
+                <View style={styles.editAvatarBadge}>
+                  <Text style={styles.editAvatarText}>✏️</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity activeOpacity={0.8} onPress={handleHeaderTap} style={{ alignItems: 'center' }}>
+              {profile?.equipped_items?.color === 'rainbow' ? (
+                <RainbowText style={[styles.profileName, { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }]}>
+                  {profile.display_name}
+                </RainbowText>
+              ) : (
+                <Text style={[
+                  styles.profileName,
+                  profile?.equipped_items?.color && { color: profile.equipped_items.color, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }
+                ]}>
+                  {profile?.display_name || 'Desconocido'}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {profile?.equipped_items?.title && (
+              <Text style={{ color: '#fbbf24', fontWeight: '800', marginTop: 4, fontSize: 13, letterSpacing: 0.5 }}>
+                ⭐ {profile.equipped_items.title}
               </Text>
             )}
-          </TouchableOpacity>
 
-          {profile?.equipped_items?.title && (
-            <Text style={{ color: theme.colors.primary, fontWeight: '800', marginTop: 4, fontSize: 14 }}>
-              {profile.equipped_items.title}
-            </Text>
-          )}
+            {profile?.is_admin && (
+              <TouchableOpacity 
+                onPress={isOwnProfile ? handleDisableAdmin : undefined}
+                style={{ backgroundColor: theme.colors.accent, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginTop: 8 }}
+              >
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900', letterSpacing: 1 }}>
+                  🛡️ ADMINISTRADOR {isOwnProfile ? '(Toca para quitar)' : ''}
+                </Text>
+              </TouchableOpacity>
+            )}
 
-          {profile?.is_admin && (
-            <TouchableOpacity 
-              onPress={isOwnProfile ? handleDisableAdmin : undefined}
-              style={{ backgroundColor: theme.colors.accent, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginTop: 8 }}
-            >
-              <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>ADMIN {isOwnProfile ? '(Toca para quitar)' : ''}</Text>
-            </TouchableOpacity>
-          )}
+            {/* Betting Points */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, backgroundColor: 'rgba(234, 179, 8, 0.12)', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(234, 179, 8, 0.35)' }}>
+              <Text style={{ fontSize: 15 }}>🪙 </Text>
+              <Text style={{ color: '#fbbf24', fontWeight: '800', fontSize: 15 }}>{profile?.betting_points || 0} pts</Text>
+            </View>
+          </View>
 
-          {/* Betting Points */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: 'rgba(234, 179, 8, 0.1)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(234, 179, 8, 0.3)' }}>
-            <Text style={{ fontSize: 16 }}>🪙 </Text>
-            <Text style={{ color: theme.colors.text, fontWeight: '800', fontSize: 16 }}>{profile?.betting_points || 0} pts</Text>
+          {/* Footer of Credential: Member ID & Status */}
+          <View style={styles.credentialFooter}>
+            <View>
+              <Text style={styles.credentialFooterLabel}>ID DE SOCIO</Text>
+              <Text style={styles.credentialFooterVal}>
+                #CAF-{profileId ? profileId.substring(0, 8).toUpperCase() : '0000'}
+              </Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={styles.credentialFooterLabel}>ESTADO</Text>
+              <Text style={[styles.credentialFooterVal, { color: '#4ade80' }]}>● ACTIVO</Text>
+            </View>
           </View>
         </View>
 
@@ -779,7 +814,78 @@ const styles = StyleSheet.create({
   backBtn: { paddingVertical: 6 },
   backBtnText: { color: theme.colors.primary, fontSize: 15, fontWeight: '600' },
   scroll: { padding: theme.spacing.l, paddingBottom: 40 },
-  avatarSection: { alignItems: 'center', marginBottom: theme.spacing.xl },
+  vipCredentialCard: {
+    backgroundColor: '#11141b',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: theme.spacing.xl,
+    borderWidth: 1.5,
+    borderColor: 'rgba(234, 179, 8, 0.45)',
+    shadowColor: '#eab308',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  credentialHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    paddingBottom: 10,
+  },
+  credentialClubName: {
+    color: '#fbbf24',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+  },
+  credentialSub: {
+    color: theme.colors.textDim,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    marginTop: 1,
+  },
+  credentialChip: {
+    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+    borderWidth: 1,
+    borderColor: '#eab308',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  credentialChipText: {
+    color: '#fbbf24',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  credentialBody: {
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  credentialFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    paddingTop: 10,
+    marginTop: 4,
+  },
+  credentialFooterLabel: {
+    color: theme.colors.textDim,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  credentialFooterVal: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   avatar: {
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: theme.colors.primary,

@@ -49,6 +49,12 @@ export default function App() {
   // In-App Toast State
   const [toastMsg, setToastMsg] = useState<{name: string, text: string, color?: string} | null>(null);
   const [initialInviteCode, setInitialInviteCode] = useState<string | null>(null);
+  const [waitlistCall, setWaitlistCall] = useState<{
+    p1Name: string;
+    p2Name: string;
+    callerName: string;
+    timeLeft: number;
+  } | null>(null);
   const toastAnim = useRef(new Animated.Value(-100)).current;
   const toastTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -163,6 +169,56 @@ export default function App() {
       supabase.removeChannel(channel);
     };
   }, [session]);
+
+  // Waitlist Call Realtime Broadcast & Countdown
+  useEffect(() => {
+    const channel = supabase.channel('domino_waitlist_calls')
+      .on('broadcast', { event: 'call_duo' }, payload => {
+        const data = payload.payload;
+        if (!data) return;
+
+        const isCalled = currentUserProfileId && (currentUserProfileId === data.p1Id || currentUserProfileId === data.p2Id);
+        if (isCalled) {
+          sounds.playSound('slap');
+          if (Platform.OS === 'web' && 'Notification' in window && Notification.permission === 'granted') {
+            try {
+              new Notification('🚨 ¡A LA MESA! Tu dúo ha sido llamado', {
+                body: `${data.callerName} te ha llamado a la mesa. ¡Tienes 30 segundos!`,
+                icon: '/favicon.ico'
+              });
+            } catch (e) {
+              console.warn('Notif error', e);
+            }
+          }
+
+          setWaitlistCall({
+            p1Name: data.p1Name,
+            p2Name: data.p2Name,
+            callerName: data.callerName,
+            timeLeft: 30
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserProfileId]);
+
+  useEffect(() => {
+    if (!waitlistCall) return;
+    if (waitlistCall.timeLeft <= 0) {
+      setWaitlistCall(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setWaitlistCall(prev => prev ? { ...prev, timeLeft: prev.timeLeft - 1 } : null);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [waitlistCall]);
+
+
 
   // Version Check
   useEffect(() => {
@@ -854,6 +910,112 @@ export default function App() {
             </View>
           </TouchableOpacity>
         </Animated.View>
+      )}
+
+      {/* Urgent Waitlist Call Modal */}
+      {waitlistCall && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.92)',
+          zIndex: 99999,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 24,
+        }}>
+          <View style={{
+            backgroundColor: '#111318',
+            borderRadius: 24,
+            padding: 24,
+            width: '100%',
+            maxWidth: 400,
+            borderWidth: 2,
+            borderColor: waitlistCall.timeLeft <= 10 ? '#ef4444' : '#f59e0b',
+            alignItems: 'center',
+            shadowColor: waitlistCall.timeLeft <= 10 ? '#ef4444' : '#f59e0b',
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.9,
+            shadowRadius: 25,
+            elevation: 20,
+          }}>
+            <Text style={{ fontSize: 48, marginBottom: 8 }}>🚨</Text>
+            <Text style={{ color: '#fff', fontSize: 22, fontWeight: '900', textAlign: 'center', marginBottom: 4 }}>
+              ¡A LA MESA!
+            </Text>
+            <Text style={{ color: '#f59e0b', fontSize: 13, fontWeight: '700', textAlign: 'center', marginBottom: 16 }}>
+              {waitlistCall.callerName} los ha llamado a la mesa
+            </Text>
+
+            <View style={{
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              padding: 12,
+              borderRadius: 12,
+              width: '100%',
+              alignItems: 'center',
+              marginBottom: 16,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.1)'
+            }}>
+              <Text style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
+                Dúo Convocado
+              </Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800', marginTop: 4 }}>
+                {waitlistCall.p1Name} & {waitlistCall.p2Name}
+              </Text>
+            </View>
+
+            <View style={{
+              width: 86,
+              height: 86,
+              borderRadius: 43,
+              backgroundColor: waitlistCall.timeLeft <= 10 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+              borderWidth: 3,
+              borderColor: waitlistCall.timeLeft <= 10 ? '#ef4444' : '#f59e0b',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 16,
+            }}>
+              <Text style={{
+                color: waitlistCall.timeLeft <= 10 ? '#ef4444' : '#f59e0b',
+                fontSize: 34,
+                fontWeight: '900',
+              }}>
+                {waitlistCall.timeLeft}
+              </Text>
+              <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '700' }}>SEGUNDOS</Text>
+            </View>
+
+            <Text style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', marginBottom: 20, lineHeight: 16 }}>
+              Preséntate de inmediato en la mesa del Cafetín o el turno pasará al siguiente dúo en la lista de espera.
+            </Text>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#2563eb',
+                width: '100%',
+                paddingVertical: 14,
+                borderRadius: 12,
+                alignItems: 'center',
+                shadowColor: '#3b82f6',
+                shadowOpacity: 0.8,
+                shadowRadius: 12,
+                elevation: 6,
+              }}
+              onPress={() => {
+                sounds.playSound('chaching');
+                setWaitlistCall(null);
+                setCurrentScreen('home');
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>
+                ¡VOY A LA MESA! 🏃💨
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
       </View>
     </View>

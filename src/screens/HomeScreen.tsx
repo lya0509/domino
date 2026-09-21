@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, RefreshControl, ActivityIndicator, Animated, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, RefreshControl, ActivityIndicator, Animated, Image, Alert, Platform } from 'react-native';
 import { theme } from '../theme';
 import { Profile, PlayerStats, DuoStats } from '../types';
 import { supabase } from '../lib/supabase';
+import { sounds } from '../lib/sounds';
 
 interface Props {
   onNewMatch: () => void;
@@ -28,6 +29,12 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
   const [period, setPeriod] = useState<RankingPeriod>('today');
   const [tab, setTab] = useState<RankingTab>('individual');
   const [refreshing, setRefreshing] = useState(false);
+  const [isMuted, setIsMuted] = useState(sounds.isMuted);
+  const [notifPermission, setNotifPermission] = useState(
+    Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission
+      : 'granted'
+  );
   const [loading, setLoading] = useState(true);
   const [liveMatches, setLiveMatches] = useState<any[]>([]);
   const [waitlist, setWaitlist] = useState<any[]>([]);
@@ -245,6 +252,36 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
     }
   };
 
+  const handleCallDuo = async (item: any) => {
+    try {
+      const p1Name = item.player1?.display_name || 'Jugador 1';
+      const p2Name = item.player2?.display_name || 'Jugador 2';
+
+      const channel = supabase.channel('domino_waitlist_calls');
+      await channel.send({
+        type: 'broadcast',
+        event: 'call_duo',
+        payload: {
+          duoId: item.id,
+          p1Id: item.player1?.id,
+          p2Id: item.player2?.id,
+          p1Name,
+          p2Name,
+          callerName: currentUser?.display_name || 'La Mesa',
+          timestamp: Date.now()
+        }
+      });
+      sounds.playSound('pop');
+      Alert.alert(
+        '📢 Dúo Llamado a Mesa',
+        `Se ha enviado una alerta y notificación a ${p1Name} y ${p2Name}. Tienen 30 segundos para presentarse en la mesa.`
+      );
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'No se pudo enviar la llamada');
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     fetchData();
@@ -345,10 +382,58 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
               </View>
             )}
           </View>
-          <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Salir</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity 
+              onPress={() => setIsMuted(sounds.toggleMute())} 
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, marginRight: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ fontSize: 16 }}>{isMuted ? '🔇' : '🔊'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
+              <Text style={styles.logoutText}>Salir</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {/* Notif Banner */}
+        {Platform.OS === 'web' && notifPermission === 'default' && (
+          <View style={{ 
+            backgroundColor: 'rgba(59, 130, 246, 0.12)', 
+            borderWidth: 1, 
+            borderColor: '#3b82f6', 
+            borderRadius: theme.borderRadius.m, 
+            padding: 12, 
+            marginBottom: theme.spacing.m,
+            flexDirection: 'row',
+            alignItems: 'center'
+          }}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: 13 }}>🔔 Activa las Notificaciones</Text>
+              <Text style={{ color: theme.colors.textDim, fontSize: 11, marginTop: 2 }}>
+                Te avisaremos en tu teléfono cuando llamen a tu dúo a la mesa.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={{ backgroundColor: '#2563eb', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
+              onPress={() => {
+                if (typeof window !== 'undefined' && 'Notification' in window) {
+                  Notification.requestPermission().then(perm => {
+                    setNotifPermission(perm);
+                    if (perm === 'granted') {
+                      new Notification('✅ Notificaciones Activadas', {
+                        body: 'Te avisaremos de inmediato cuando sea tu turno en la mesa.',
+                        icon: '/favicon.ico'
+                      });
+                    }
+                  });
+                }
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>Activar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Active Match Banner */}
         {activeUserMatch && (
@@ -428,12 +513,25 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.actionBtn, { marginLeft: 8, justifyContent: 'center' }]} 
+                style={[
+                  styles.actionBtn, 
+                  { 
+                    marginLeft: 8, 
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                    borderColor: 'rgba(245, 158, 11, 0.6)',
+                    borderWidth: 1.5,
+                    shadowColor: '#f59e0b',
+                    shadowOpacity: 0.7,
+                    shadowRadius: 12,
+                    elevation: 5,
+                  }
+                ]} 
                 onPress={onOpenTournaments}
               >
                 <Text style={styles.actionBtnIcon}>💎</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.actionBtnTitle, { color: theme.colors.accent }]}>Torneos VIP</Text>
+                  <Text style={[styles.actionBtnTitle, { color: '#f59e0b' }]}>Torneos VIP</Text>
                   <Text style={styles.actionBtnSub} numberOfLines={1} adjustsFontSizeToFit>Juega por Bs</Text>
                 </View>
               </TouchableOpacity>
@@ -494,6 +592,21 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
                   <Text style={styles.waitlistAnd}>&</Text>
                   <Text style={styles.waitlistName}>{item.player2?.display_name || 'Desconocido'}</Text>
                 </View>
+                <TouchableOpacity
+                  onPress={() => handleCallDuo(item)}
+                  style={{
+                    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                    borderWidth: 1,
+                    borderColor: '#f59e0b',
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 8,
+                    marginRight: currentUser?.is_admin ? 8 : 0,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '800' }}>📢 Llamar</Text>
+                </TouchableOpacity>
                 {currentUser?.is_admin && (
                   <TouchableOpacity onPress={() => handleRemoveWaitlist(item.id)} style={{ paddingLeft: 8 }}>
                     <Text style={{ color: theme.colors.danger, fontWeight: 'bold', fontSize: 18 }}>X</Text>
@@ -702,11 +815,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: theme.spacing.s,
-    shadowColor: theme.colors.primary,
+    borderWidth: 1.5,
+    borderColor: '#60a5fa',
+    shadowColor: '#3b82f6',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.85,
+    shadowRadius: 18,
+    elevation: 10,
   },
   newMatchIcon: {
     fontSize: 24,

@@ -11,6 +11,25 @@ const SOUND_URLS = {
 
 class SoundManager {
   private sounds: Record<string, Audio.Sound> = {};
+  public isMuted: boolean = false;
+
+  constructor() {
+    this.loadMuteState();
+  }
+
+  toggleMute(): boolean {
+    this.isMuted = !this.isMuted;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('domino_muted', this.isMuted ? '1' : '0');
+    }
+    return this.isMuted;
+  }
+
+  loadMuteState() {
+    if (typeof localStorage !== 'undefined') {
+      this.isMuted = localStorage.getItem('domino_muted') === '1';
+    }
+  }
 
   async preloadSounds() {
     try {
@@ -33,6 +52,7 @@ class SoundManager {
   }
 
   async playSound(name: keyof typeof SOUND_URLS) {
+    if (this.isMuted) return;
     try {
       // Web Audio API Synthesizer (Zero network, 100% reliable sound on web/browsers)
       if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StatusBar, Alert, BackHandler, View, Text, Animated, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -114,6 +114,59 @@ export default function App() {
     const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
     if (data) setCurrentUserProfile(data as Profile);
   };
+
+  // Navegación centralizada sincronizada con el historial del navegador / PWA
+  const navigate = useCallback((
+    screen: ScreenState,
+    extra?: { viewProfileId?: string | null; liveMatchId?: string | null; replace?: boolean }
+  ) => {
+    if (extra?.viewProfileId !== undefined) {
+      setViewProfileId(extra.viewProfileId);
+    }
+    if (extra?.liveMatchId !== undefined) {
+      setLiveMatchId(extra.liveMatchId);
+    }
+    setCurrentScreen(screen);
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const stateObj = {
+        screen,
+        viewProfileId: extra?.viewProfileId !== undefined ? extra.viewProfileId : viewProfileId,
+        liveMatchId: extra?.liveMatchId !== undefined ? extra.liveMatchId : liveMatchId,
+      };
+      if (extra?.replace) {
+        window.history.replaceState(stateObj, '', `#${screen}`);
+      } else {
+        window.history.pushState(stateObj, '', `#${screen}`);
+      }
+    }
+  }, [viewProfileId, liveMatchId]);
+
+  // Retroceso inteligente para botón Volver, gesto swipe-back y botón físico Atrás
+  const navigateBack = useCallback(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (window.history.length > 1 && window.location.hash && window.location.hash !== '#home') {
+        window.history.back();
+        return;
+      }
+    }
+
+    if (currentScreen === 'profile' && viewProfileId && viewProfileId !== currentUserProfileId) {
+      navigate('leaderboard');
+      return;
+    }
+    if (currentScreen === 'game' && match?.tournament_id) {
+      navigate('tournaments');
+      return;
+    }
+    if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat', 'tournaments'].includes(currentScreen)) {
+      if (currentScreen === 'profile' && currentUserProfileId) {
+        fetchCurrentUser(currentUserProfileId);
+      }
+      navigate('home');
+      return;
+    }
+  }, [currentScreen, viewProfileId, currentUserProfileId, match, navigate]);
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -439,17 +492,71 @@ export default function App() {
     saveState();
   }, [match]);
 
+  // 1. Sincronización de eventos de retroceso Web / PWA (gesto swipe-back y botón atrás del navegador)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+
+    // Inicializar el estado de base
+    window.history.replaceState({ screen: 'home_base' }, '', '#home');
+    const initScreen = getInitialScreen();
+    if (initScreen !== 'home') {
+      window.history.pushState({ screen: initScreen }, '', `#${initScreen}`);
+    } else {
+      window.history.pushState({ screen: 'home' }, '', '#home');
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state;
+      if (state && state.screen) {
+        if (state.screen === 'home_base') {
+          // El usuario deslizó hacia atrás estando en Home:
+          // Bloquear salida accidental de la web app y reponer el estado
+          window.history.pushState({ screen: 'home' }, '', '#home');
+          setCurrentScreen('home');
+          setViewProfileId(null);
+          setLiveMatchId(null);
+          return;
+        }
+
+        setCurrentScreen(state.screen);
+        if (state.viewProfileId !== undefined) setViewProfileId(state.viewProfileId);
+        if (state.liveMatchId !== undefined) setLiveMatchId(state.liveMatchId);
+
+        if (state.screen === 'profile' && currentUserProfileId) {
+          fetchCurrentUser(currentUserProfileId);
+        }
+      } else {
+        // Si no hay state, volver a Home de forma segura sin salir de la página
+        setCurrentScreen((prev) => {
+          if (!['home', 'auth', 'splash', 'ad'].includes(prev)) {
+            setViewProfileId(null);
+            setLiveMatchId(null);
+            window.history.replaceState({ screen: 'home' }, '', '#home');
+            return 'home';
+          }
+          return prev;
+        });
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [currentUserProfileId]);
+
+  // 2. Manejo de botón físico Atrás en Android nativo
   useEffect(() => {
     const onBackPress = () => {
-      if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat'].includes(currentScreen)) {
-        setCurrentScreen('home');
+      if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat', 'tournaments'].includes(currentScreen)) {
+        navigateBack();
         return true;
       }
       return false;
     };
     const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => subscription.remove();
-  }, [currentScreen]);
+  }, [currentScreen, navigateBack]);
 
   if (isVersionValid === false) {
     return (
@@ -519,7 +626,7 @@ export default function App() {
     
     setWaitlistSetup(null);
     setMatch(newMatch);
-    setCurrentScreen('game');
+    navigate('game');
   };
 
   const handleRejoinMatch = (matchData: any) => {
@@ -537,7 +644,7 @@ export default function App() {
       wager_amount: matchData.wager_amount,
     };
     setMatch(rejoinedMatch);
-    setCurrentScreen('game');
+    navigate('game');
   };
 
   const handleUpdateMatch = async (updatedMatch: Match) => {
@@ -887,11 +994,11 @@ export default function App() {
 
       setMatch(null);
       if (isGuestMode) {
-        setCurrentScreen('setup');
+        navigate('setup', { replace: true });
       } else if (updatedMatch.tournament_id) {
-        setCurrentScreen('tournaments');
+        navigate('tournaments', { replace: true });
       } else {
-        setCurrentScreen('home');
+        navigate('home', { replace: true });
       }
     }
   };
@@ -902,7 +1009,7 @@ export default function App() {
     setIsGuestMode(false);
     setMatch(null);
     setCurrentUserProfileId(null);
-    setCurrentScreen('auth');
+    navigate('auth', { replace: true });
   };
 
   if (!sessionChecked) {
@@ -982,23 +1089,21 @@ export default function App() {
 
       {currentScreen === 'home' && (
         <HomeScreen
-          onNewMatch={() => setCurrentScreen('setup')}
+          onNewMatch={() => navigate('setup')}
           onLogout={handleLogout}
           currentUserProfileId={currentUserProfileId}
           onWatchLiveMatch={(matchId: string) => {
-            setLiveMatchId(matchId);
-            setCurrentScreen('live');
+            navigate('live', { liveMatchId: matchId });
           }}
           onOpenProfile={(profileId?: string) => {
-            setViewProfileId(profileId || null);
-            setCurrentScreen('profile');
+            navigate('profile', { viewProfileId: profileId || null });
           }}
-          onOpenStore={() => setCurrentScreen('store')}
-          onOpenAchievements={() => setCurrentScreen('achievements')}
-          onOpenLeaderboard={() => setCurrentScreen('leaderboard')}
-          onOpenGlobalChat={() => setCurrentScreen('global_chat')}
+          onOpenStore={() => navigate('store')}
+          onOpenAchievements={() => navigate('achievements')}
+          onOpenLeaderboard={() => navigate('leaderboard')}
+          onOpenGlobalChat={() => navigate('global_chat')}
           onRejoinMatch={handleRejoinMatch}
-          onOpenTournaments={() => setCurrentScreen('tournaments')}
+          onOpenTournaments={() => navigate('tournaments')}
         />
       )}
 
@@ -1011,9 +1116,9 @@ export default function App() {
           onBack={() => {
             setWaitlistSetup(null);
             if (isGuestMode) {
-              setCurrentScreen('auth');
+              navigate('auth');
             } else {
-              setCurrentScreen('home');
+              navigateBack();
             }
           }}
         />
@@ -1026,13 +1131,7 @@ export default function App() {
           onEndMatch={handleEndMatch}
           currentUserProfileId={currentUserProfileId}
           isAdmin={currentUserProfile?.is_admin || false}
-          onBack={() => {
-            if (match.tournament_id) {
-               setCurrentScreen('tournaments');
-            } else {
-               setCurrentScreen('home');
-            }
-          }}
+          onBack={navigateBack}
         />
       )}
 
@@ -1040,10 +1139,7 @@ export default function App() {
         <LiveMatchScreen
           matchId={liveMatchId}
           currentUserProfileId={currentUserProfileId}
-          onBack={() => {
-            setLiveMatchId(null);
-            setCurrentScreen('home');
-          }}
+          onBack={navigateBack}
         />
       )}
 
@@ -1054,54 +1150,48 @@ export default function App() {
           onAdminChanged={(newAdminStatus) => {
             if (currentUserProfileId) fetchCurrentUser(currentUserProfileId);
           }}
-          onBack={() => {
-            if (currentUserProfileId) fetchCurrentUser(currentUserProfileId);
-            setCurrentScreen('home');
-            setViewProfileId(null);
-          }}
+          onBack={navigateBack}
         />
       )}
 
       {currentScreen === 'store' && currentUserProfileId && (
         <StoreScreen
           currentUserProfileId={currentUserProfileId}
-          onBack={() => setCurrentScreen('home')}
+          onBack={navigateBack}
         />
       )}
 
       {currentScreen === 'achievements' && currentUserProfileId && (
         <AchievementsScreen
           currentUserProfileId={currentUserProfileId}
-          onBack={() => setCurrentScreen('home')}
+          onBack={navigateBack}
         />
       )}
 
       {currentScreen === 'global_chat' && currentUserProfileId && (
         <GlobalChatScreen
           currentUserProfileId={currentUserProfileId}
-          onBack={() => setCurrentScreen('home')}
+          onBack={navigateBack}
         />
       )}
 
       {currentScreen === 'leaderboard' && (
         <LeaderboardScreen
-          onBack={() => setCurrentScreen('home')}
+          onBack={navigateBack}
           currentUserProfileId={currentUserProfileId || ''}
           onOpenProfile={(profileId?: string) => {
-            setViewProfileId(profileId || null);
-            setCurrentScreen('profile');
+            navigate('profile', { viewProfileId: profileId || null });
           }}
         />
       )}
 
       {currentScreen === 'tournaments' && (
         <TournamentsScreen
-          onBack={() => setCurrentScreen('home')}
+          onBack={navigateBack}
           profileId={currentUserProfileId}
           isAdmin={currentUserProfile?.is_admin || false}
           onWatchLiveMatch={(matchId) => {
-            setLiveMatchId(matchId);
-            setCurrentScreen('live');
+            navigate('live', { liveMatchId: matchId });
           }}
           onRejoinMatch={handleRejoinMatch}
         />
@@ -1115,7 +1205,7 @@ export default function App() {
             activeOpacity={0.9} 
             onPress={() => {
               Animated.timing(toastAnim, { toValue: -150, duration: 200, useNativeDriver: true }).start(() => setToastMsg(null));
-              setCurrentScreen('global_chat');
+              navigate('global_chat');
             }}
           >
             <View style={styles.toastIconBg}>

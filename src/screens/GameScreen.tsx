@@ -40,6 +40,7 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
   const [subProfiles, setSubProfiles] = useState<any[]>([]);
   const [isSelectSubModalOpen, setIsSelectSubModalOpen] = useState(false);
   const [tableColor, setTableColor] = useState<string | null>(null);
+  const proximityAlertSent = useRef(false);
 
   const viewRef = useRef(null);
   const winnerRef = useRef(null);
@@ -124,6 +125,31 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
         team2_total: currentTotals.team2,
         players_json: updatedMatch.players
       }).eq('id', updatedMatch.id);
+
+      // Si una pareja está a 10 puntos o menos de ganar, alertar al siguiente dúo en fila
+      const highestScore = Math.max(currentTotals.team1, currentTotals.team2);
+      if (
+        !proximityAlertSent.current &&
+        updatedMatch.limitScore > 0 &&
+        highestScore >= updatedMatch.limitScore - 10
+      ) {
+        proximityAlertSent.current = true;
+        try {
+          const waitlistChannel = supabase.channel('domino_waitlist_calls');
+          waitlistChannel.send({
+            type: 'broadcast',
+            event: 'proximity_alert',
+            payload: {
+              matchId: updatedMatch.id,
+              highestScore,
+              limitScore: updatedMatch.limitScore,
+              pointsLeft: Math.max(1, updatedMatch.limitScore - highestScore),
+            }
+          });
+        } catch (alertErr) {
+          console.error('Error sending proximity alert:', alertErr);
+        }
+      }
     } catch (e) {
       console.error('Error syncing match:', e);
     }
@@ -326,6 +352,49 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
       }
     }
     onEndMatch(winnerId);
+  };
+
+  const handleCallNextWaitlistDuo = async () => {
+    try {
+      const { data: queue } = await supabase
+        .from('waitlist')
+        .select('*, player1:profiles!waitlist_player1_id_fkey(id, display_name), player2:profiles!waitlist_player2_id_fkey(id, display_name)')
+        .eq('status', 'waiting')
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      if (!queue || queue.length === 0) {
+        Alert.alert('Lista de Espera Vacía', 'No hay ningún dúo esperando en la lista en este momento.');
+        return;
+      }
+
+      const nextDuo = queue[0];
+      const p1Name = nextDuo.player1?.display_name || 'Jugador 1';
+      const p2Name = nextDuo.player2?.display_name || 'Jugador 2';
+
+      const channel = supabase.channel('domino_waitlist_calls');
+      await channel.send({
+        type: 'broadcast',
+        event: 'call_duo',
+        payload: {
+          duoId: nextDuo.id,
+          p1Id: nextDuo.player1_id,
+          p2Id: nextDuo.player2_id,
+          p1Name,
+          p2Name,
+          callerName: 'La Mesa',
+          timestamp: Date.now()
+        }
+      });
+      sounds.playSound('pop');
+      Alert.alert(
+        '🚨 ¡Dúo Llamado a la Mesa!',
+        `Se ha activado la alarma para ${p1Name} & ${p2Name}. Tienen 30 segundos para sentarse a jugar.`
+      );
+    } catch (e: any) {
+      console.error('Error calling waitlist duo:', e);
+      Alert.alert('Error', 'No se pudo enviar la llamada al dúo.');
+    }
   };
 
   // Build two-column history data
@@ -532,6 +601,17 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
             <TouchableOpacity style={styles.shareBtn} onPress={() => captureAndShare(winnerRef)}>
               <Text style={styles.shareBtnText}>📸 Compartir Resultado</Text>
             </TouchableOpacity>
+
+            {!match.isGuestMode && (
+              <TouchableOpacity 
+                style={[styles.shareBtn, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#f59e0b', marginBottom: theme.spacing.m }]} 
+                onPress={handleCallNextWaitlistDuo}
+              >
+                <Text style={[styles.shareBtnText, { color: '#f59e0b', fontWeight: 'bold' }]}>
+                  🚨 Llamar al Siguiente Dúo a la Mesa
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.finishBtn} onPress={() => handleFinishMatch(winnerData?.id || '')}>
               <Text style={styles.finishBtnText}>Terminar Partida</Text>

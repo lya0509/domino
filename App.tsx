@@ -308,6 +308,59 @@ export default function App() {
           });
         }
       })
+      .on('broadcast', { event: 'proximity_alert' }, async payload => {
+        const data = payload.payload;
+        if (!data || !currentUserProfileId) return;
+
+        try {
+          const { data: queue } = await supabase
+            .from('waitlist')
+            .select('player1_id, player2_id')
+            .eq('status', 'waiting')
+            .order('created_at', { ascending: true })
+            .limit(1);
+
+          if (queue && queue.length > 0) {
+            const nextDuo = queue[0];
+            if (currentUserProfileId === nextDuo.player1_id || currentUserProfileId === nextDuo.player2_id) {
+              sounds.playSound('pop');
+              setToastMsg({
+                name: '⏳ ¡Casi es su turno!',
+                text: `La partida actual va por ${data.highestScore}/${data.limitScore} pts. Quedan ~${data.pointsLeft} pts para que jueguen. ¡Vayan preparándose!`,
+                color: '#f59e0b'
+              });
+
+              if (Platform.OS === 'web' && 'Notification' in window && Notification.permission === 'granted') {
+                try {
+                  new Notification('⏳ ¡Casi es su turno en Dominó!', {
+                    body: `La partida en la mesa va por ${data.highestScore}/${data.limitScore} pts. ¡Prepárense para entrar!`,
+                    icon: '/favicon.ico'
+                  });
+                } catch (e) {
+                  console.warn('Notif error', e);
+                }
+              }
+
+              Animated.spring(toastAnim, {
+                toValue: Platform.OS === 'ios' ? 60 : 40,
+                useNativeDriver: true,
+                bounciness: 12
+              }).start();
+
+              if (toastTimeout.current) clearTimeout(toastTimeout.current);
+              toastTimeout.current = setTimeout(() => {
+                Animated.timing(toastAnim, {
+                  toValue: -150,
+                  duration: 300,
+                  useNativeDriver: true
+                }).start(() => setToastMsg(null));
+              }, 6000);
+            }
+          }
+        } catch (err) {
+          console.error('Error handling proximity alert:', err);
+        }
+      })
       .subscribe();
 
     return () => {

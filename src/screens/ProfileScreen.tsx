@@ -279,7 +279,22 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
     setSecretTaps(prev => {
       const newTaps = prev + 1;
       if (newTaps >= 3) {
-        setShowSecretPin(true);
+        if (profile?.is_admin) {
+          Alert.alert(
+            '🛡️ Modo Administrador Activo',
+            'Ya tienes el Modo Administrador activado.\n\n¿Deseas desactivarlo para volver a ser usuario regular?',
+            [
+              { text: 'Mantener Activo', style: 'cancel' },
+              {
+                text: 'Desactivar Modo Admin',
+                style: 'destructive',
+                onPress: handleDisableAdmin,
+              }
+            ]
+          );
+        } else {
+          setShowSecretPin(true);
+        }
         return 0;
       }
       return newTaps;
@@ -287,19 +302,30 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   };
 
   const handlePinSubmit = async () => {
-    if (pinInput === '05090105') {
+    const cleanPin = pinInput.trim();
+    if (cleanPin === '05090105') {
       try {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ is_admin: true })
-          .eq('id', profileId);
+        // 1. Intentar activar por la función RPC
+        const { data: rpcSuccess, error: rpcErr } = await supabase.rpc('verify_admin_pin', {
+          p_pin: cleanPin,
+          p_enable: true,
+        });
 
-        if (error) throw error;
-        Alert.alert('¡Admin Activado!', 'Modo Administrador desbloqueado. Ya puedes gestionar torneos y pagos.');
+        if (rpcErr || rpcSuccess === false) {
+          // Fallback a actualización directa
+          const { error: updErr } = await supabase
+            .from('profiles')
+            .update({ is_admin: true })
+            .eq('id', profileId);
+          if (updErr) throw updErr;
+        }
+
+        Alert.alert('¡Admin Activado! 👑', 'Modo Administrador activado y guardado en tu cuenta.');
         setProfile(prev => prev ? { ...prev, is_admin: true } : null);
         if (onAdminChanged) onAdminChanged(true);
-      } catch (e) {
-        Alert.alert('Error', 'No se pudo activar el modo');
+      } catch (e: any) {
+        console.error('Error activating admin:', e);
+        Alert.alert('Error', e.message || 'No se pudo activar el modo');
       }
     } else {
       Alert.alert('Error', 'PIN Incorrecto (Usa: 05090105)');
@@ -310,17 +336,25 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
 
   const handleDisableAdmin = async () => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_admin: false })
-        .eq('id', profileId);
+      const { error: rpcErr } = await supabase.rpc('verify_admin_pin', {
+        p_pin: '05090105',
+        p_enable: false,
+      });
 
-      if (error) throw error;
-      Alert.alert('Éxito', 'Modo Admin Desactivado');
+      if (rpcErr) {
+        const { error: updErr } = await supabase
+          .from('profiles')
+          .update({ is_admin: false })
+          .eq('id', profileId);
+        if (updErr) throw updErr;
+      }
+
+      Alert.alert('Éxito', 'Modo Administrador desactivado correctamente.');
       setProfile(prev => prev ? { ...prev, is_admin: false } : null);
       if (onAdminChanged) onAdminChanged(false);
-    } catch (e) {
-      Alert.alert('Error', 'No se pudo desactivar');
+    } catch (e: any) {
+      console.error('Error disabling admin:', e);
+      Alert.alert('Error', e.message || 'No se pudo desactivar el modo');
     }
   };
 

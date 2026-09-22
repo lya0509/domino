@@ -174,6 +174,7 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
           data: {
             display_name: displayName.trim(),
             initials: initials.trim().toUpperCase(),
+            access_code: accessCode.trim(),
           },
         },
       });

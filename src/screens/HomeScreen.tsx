@@ -86,9 +86,11 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
           let newStreak = profile.streak_count || 0;
           let streakUpdated = false;
           let streakIncreased = false;
+          let streakLost = false;
+          const previousStreak = profile.streak_count || 0;
 
           if (!lastStreakKey) {
-            newStreak = Math.max(profile.streak_count || 0, 1);
+            newStreak = 1;
             streakUpdated = true;
             streakIncreased = true;
           } else if (lastStreakKey === todayKey) {
@@ -103,20 +105,16 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
 
             if (diffDays === 1) {
               // Día consecutivo: racha + 1
-              newStreak = (profile.streak_count || 0) + 1;
+              newStreak = previousStreak + 1;
               streakUpdated = true;
               streakIncreased = true;
             } else if (diffDays > 1) {
-              // Si la fecha anterior era de junio de 2026 (cuando faltaba el código en la app),
-              // se premia el progreso previo aumentando a 3 en vez de reiniciar
-              if ((profile.streak_count || 0) > 0 && lastStreakKey <= '2026-06-30') {
-                newStreak = (profile.streak_count || 0) + 1;
-                streakUpdated = true;
-                streakIncreased = true;
-              } else {
-                newStreak = 1;
-                streakUpdated = true;
-                streakIncreased = false;
+              // ¡Pasó más de un día sin iniciar sesión: se pierde la racha!
+              newStreak = 1;
+              streakUpdated = true;
+              streakIncreased = false;
+              if (previousStreak > 1) {
+                streakLost = true;
               }
             }
           }
@@ -141,7 +139,14 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
 
             if (updatedProfile) {
               setCurrentUser(updatedProfile as Profile);
-              if (canClaim && streakIncreased) {
+              if (streakLost) {
+                Alert.alert(
+                  '💔 ¡Racha Perdida!',
+                  `No iniciaste sesión ayer y se perdió tu racha de ${previousStreak} días.\n¡Hoy comienzas una nueva racha de 1 día! 🔥` +
+                  (canClaim ? '\n\nAdemás recibiste 10 puntos de bono diario.' : '')
+                );
+                sounds.playSound('slap');
+              } else if (canClaim && streakIncreased) {
                 Alert.alert(
                   '🔥 ¡Racha y Bono Diario!',
                   `¡Has subido a ${newStreak} días de racha consecutiva! 🔥\nAdemás recibiste 10 puntos de apuestas.`

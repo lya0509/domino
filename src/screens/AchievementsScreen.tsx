@@ -99,7 +99,7 @@ export const AchievementsScreen: React.FC<Props> = ({ onBack, currentUserProfile
       const { data: bets } = await supabase.from('bets').select('*').eq('user_id', currentUserProfileId);
       
       // 4. Fetch Chat
-      const { data: chats } = await supabase.from('live_chat').select('id', { count: 'exact' }).eq('profile_id', currentUserProfileId);
+      const { data: chats } = await supabase.from('live_chat').select('id', { count: 'exact' }).eq('user_id', currentUserProfileId);
       
       // Calculate stats
       const stats = { ...userStats };

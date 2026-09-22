@@ -108,3 +108,19 @@ BEGIN
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- ------------------------------------------------------------------------------
+-- 5. REINICIO AUTOMÁTICO DE RACHAS EXPIRADAS
+-- ------------------------------------------------------------------------------
+-- Pone en 0 la racha de cualquier usuario que no haya iniciado sesión en más de 1 día
+CREATE OR REPLACE FUNCTION public.reset_expired_streaks()
+RETURNS void AS $$
+BEGIN
+  UPDATE public.profiles
+  SET streak_count = 0
+  WHERE last_streak_update_at IS NOT NULL
+    AND last_streak_update_at::date < CURRENT_DATE - INTERVAL '1 day'
+    AND streak_count > 0;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+

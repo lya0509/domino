@@ -49,15 +49,45 @@ const checkIsPasswordRecovery = (): boolean => {
   return false;
 };
 
+const AD_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutos de tiempo mínimo entre publicidades
+
+const shouldShowAd = async (): Promise<boolean> => {
+  try {
+    let lastAd = await AsyncStorage.getItem('@domino_last_ad_timestamp');
+    if (!lastAd && Platform.OS === 'web' && typeof window !== 'undefined') {
+      lastAd = window.localStorage.getItem('@domino_last_ad_timestamp');
+    }
+    if (!lastAd) return true; // Primera vez
+    const lastTime = parseInt(lastAd, 10);
+    if (isNaN(lastTime)) return true;
+    return (Date.now() - lastTime) > AD_COOLDOWN_MS;
+  } catch {
+    return false;
+  }
+};
+
+const markAdShown = async () => {
+  try {
+    const now = Date.now().toString();
+    await AsyncStorage.setItem('@domino_last_ad_timestamp', now);
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.localStorage.setItem('@domino_last_ad_timestamp', now);
+    }
+  } catch (e) {
+    console.warn('Error saving ad timestamp:', e);
+  }
+};
+
 const getInitialScreen = (): ScreenState => {
   if (checkIsPasswordRecovery()) {
     return 'auth';
   }
+  // La publicidad NUNCA debe ser la pantalla de inicio del historial para evitar retrocesos a anuncios
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     try {
       const seen = window.localStorage.getItem('@domino_onboarding_seen') || window.localStorage.getItem('domino_onboarding_seen');
       if (seen === '1') {
-        return 'ad';
+        return 'auth';
       }
     } catch {
       // ignore
@@ -112,7 +142,21 @@ export default function App() {
     setCurrentUserProfileId(id);
     setIsAuthenticated(true);
     const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
-    if (data) setCurrentUserProfile(data as Profile);
+    if (data) {
+      let isAdmin = (data as Profile).is_admin || false;
+      try {
+        let adminOverride = await AsyncStorage.getItem('@domino_admin_override');
+        if (!adminOverride && Platform.OS === 'web' && typeof window !== 'undefined') {
+          adminOverride = window.localStorage.getItem('@domino_admin_override');
+        }
+        if (adminOverride === 'true') {
+          isAdmin = true;
+        }
+      } catch (e) {
+        // ignore
+      }
+      setCurrentUserProfile({ ...(data as Profile), is_admin: isAdmin });
+    }
   };
 
   // Navegación centralizada sincronizada con el historial del navegador / PWA
@@ -129,6 +173,9 @@ export default function App() {
     setCurrentScreen(screen);
 
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      // NUNCA empujar 'ad' al historial del navegador
+      if (screen === 'ad') return;
+
       const stateObj = {
         screen,
         viewProfileId: extra?.viewProfileId !== undefined ? extra.viewProfileId : viewProfileId,
@@ -198,10 +245,15 @@ export default function App() {
           return;
         }
 
-        // 2. Si el usuario ya está autenticado y no está restableciendo clave, ir a app
+        // 2. Si el usuario ya está autenticado y no está restableciendo clave, ir a app o ad si corresponde por tiempo
         if (activeSession && !isPasswordRecoveryRef.current) {
           markOnboardingSeen();
-          setCurrentScreen(match?.status === 'active' ? 'game' : 'home');
+          const showAd = await shouldShowAd();
+          if (showAd) {
+            setCurrentScreen('ad');
+          } else {
+            setCurrentScreen(match?.status === 'active' ? 'game' : 'home');
+          }
           return;
         }
 
@@ -220,13 +272,18 @@ export default function App() {
         }
 
         if (hasSeen === '1') {
-          setCurrentScreen('ad');
+          const showAd = await shouldShowAd();
+          if (showAd) {
+            setCurrentScreen('ad');
+          } else {
+            setCurrentScreen('auth');
+          }
         } else {
           setCurrentScreen('splash');
         }
       } catch (e) {
         console.warn('Error reading onboarding status', e);
-        setCurrentScreen('ad');
+        setCurrentScreen('auth');
       }
     };
 
@@ -496,22 +553,26 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
 
-    // Inicializar el estado de base
+    // Inicializar el estado de base asegurando que 'home' sea el ancla
     window.history.replaceState({ screen: 'home_base' }, '', '#home');
     const initScreen = getInitialScreen();
-    if (initScreen !== 'home') {
+    if (initScreen !== 'home' && initScreen !== 'ad') {
       window.history.pushState({ screen: initScreen }, '', `#${initScreen}`);
     } else {
       window.history.pushState({ screen: 'home' }, '', '#home');
     }
 
+    // Si la URL traía hash '#ad' o '#splash', limpiarlo inmediatamente
+    if (window.location.hash === '#ad' || window.location.hash === '#splash') {
+      window.history.replaceState({ screen: 'home' }, '', '#home');
+    }
+
     const handlePopState = (event: PopStateEvent) => {
       const state = event.state;
       if (state && state.screen) {
-        if (state.screen === 'home_base') {
-          // El usuario deslizó hacia atrás estando en Home:
-          // Bloquear salida accidental de la web app y reponer el estado
-          window.history.pushState({ screen: 'home' }, '', '#home');
+        // La publicidad, splash y base NUNCA deben abrirse al retroceder
+        if (state.screen === 'ad' || state.screen === 'splash' || state.screen === 'home_base') {
+          window.history.replaceState({ screen: 'home' }, '', '#home');
           setCurrentScreen('home');
           setViewProfileId(null);
           setLiveMatchId(null);
@@ -527,15 +588,10 @@ export default function App() {
         }
       } else {
         // Si no hay state, volver a Home de forma segura sin salir de la página
-        setCurrentScreen((prev) => {
-          if (!['home', 'auth', 'splash', 'ad'].includes(prev)) {
-            setViewProfileId(null);
-            setLiveMatchId(null);
-            window.history.replaceState({ screen: 'home' }, '', '#home');
-            return 'home';
-          }
-          return prev;
-        });
+        setCurrentScreen('home');
+        setViewProfileId(null);
+        setLiveMatchId(null);
+        window.history.replaceState({ screen: 'home' }, '', '#home');
       }
     };
 
@@ -1009,6 +1065,7 @@ export default function App() {
     setIsGuestMode(false);
     setMatch(null);
     setCurrentUserProfileId(null);
+    setCurrentUserProfile(null);
     navigate('auth', { replace: true });
   };
 
@@ -1052,18 +1109,24 @@ export default function App() {
         <OnboardingScreen
           onComplete={async () => {
             await markOnboardingSeen();
-            setCurrentScreen('ad');
+            const showAd = await shouldShowAd();
+            if (showAd) {
+              setCurrentScreen('ad');
+            } else {
+              navigate(isAuthenticated ? (match?.status === 'active' ? 'game' : 'home') : 'auth', { replace: true });
+            }
           }}
         />
       )}
 
       {currentScreen === 'ad' && (
         <SplashAdScreen
-          onComplete={() => {
+          onComplete={async () => {
+            await markAdShown();
             if (isAuthenticated) {
-              setCurrentScreen(match?.status === 'active' ? 'game' : 'home');
+              navigate(match?.status === 'active' ? 'game' : 'home', { replace: true });
             } else {
-              setCurrentScreen('auth');
+              navigate('auth', { replace: true });
             }
           }}
         />

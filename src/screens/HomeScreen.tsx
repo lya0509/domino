@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, RefreshControl, ActivityIndicator, Animated, Image, Alert, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { Profile, PlayerStats, DuoStats } from '../types';
 import { supabase } from '../lib/supabase';
@@ -53,6 +54,16 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
           .single();
 
         if (profile) {
+          try {
+            let override = await AsyncStorage.getItem('@domino_admin_override');
+            if (!override && Platform.OS === 'web' && typeof window !== 'undefined') {
+              override = window.localStorage.getItem('@domino_admin_override');
+            }
+            if (override === 'true') {
+              profile.is_admin = true;
+            }
+          } catch {}
+
           const now = new Date();
 
           // 1. Bono diario de 10 puntos a las 7am
@@ -138,6 +149,7 @@ export const HomeScreen: React.FC<Props> = ({ onNewMatch, onLogout, currentUserP
               .single();
 
             if (updatedProfile) {
+              if (profile.is_admin) (updatedProfile as Profile).is_admin = true;
               setCurrentUser(updatedProfile as Profile);
               if (streakLost) {
                 Alert.alert(

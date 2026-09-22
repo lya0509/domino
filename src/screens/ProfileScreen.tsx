@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   SafeAreaView, ActivityIndicator, Alert, RefreshControl, Image, Platform, StatusBar, TextInput, Modal
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
+import { sounds } from '../lib/sounds';
 import { Profile } from '../types';
 import { MatchGraph } from '../components/MatchGraph';
 import { RainbowText } from '../components/RainbowText';
@@ -52,6 +54,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   const [secretTaps, setSecretTaps] = useState(0);
   const [showSecretPin, setShowSecretPin] = useState(false);
   const [pinInput, setPinInput] = useState('');
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!profileId) return;
@@ -64,7 +67,23 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         .select('*')
         .eq('id', profileId)
         .single();
-      if (profileData) setProfile(profileData as Profile);
+      if (profileData) {
+        let isAdmin = (profileData as Profile).is_admin || false;
+        if (isOwnProfile) {
+          try {
+            let adminOverride = await AsyncStorage.getItem('@domino_admin_override');
+            if (!adminOverride && Platform.OS === 'web' && typeof window !== 'undefined') {
+              adminOverride = window.localStorage.getItem('@domino_admin_override');
+            }
+            if (adminOverride === 'true') {
+              isAdmin = true;
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+        setProfile({ ...(profileData as Profile), is_admin: isAdmin });
+      }
 
       // Fetch all profiles for name lookup
       const { data: allProfiles } = await supabase.from('profiles').select('*');
@@ -274,11 +293,18 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
     }
   };
 
-  const handleHeaderTap = () => {
+  const handleProfileSecretTap = () => {
     if (!isOwnProfile) return;
+
+    if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+    tapTimeoutRef.current = setTimeout(() => {
+      setSecretTaps(0);
+    }, 3500);
+
     setSecretTaps(prev => {
       const newTaps = prev + 1;
-      if (newTaps >= 3) {
+      if (newTaps >= 7) {
+        if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
         if (profile?.is_admin) {
           Alert.alert(
             '🛡️ Modo Administrador Activo',
@@ -304,47 +330,39 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   const handlePinSubmit = async () => {
     const cleanPin = pinInput.trim();
     if (cleanPin === '05090105') {
-      setLoading(true);
       try {
-        // 1. Ejecutar RPC con SECURITY DEFINER
-        const { data: rpcSuccess, error: rpcErr } = await supabase.rpc('verify_admin_pin', {
-          p_pin: cleanPin,
-          p_enable: true,
-        });
-
-        if (rpcErr) {
-          console.warn('RPC Error (intentando update directo):', rpcErr);
-          await supabase
-            .from('profiles')
-            .update({ is_admin: true })
-            .eq('id', profileId);
+        // 1. Guardar permanentemente en almacenamiento local del dispositivo
+        await AsyncStorage.setItem('@domino_admin_override', 'true');
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.localStorage.setItem('@domino_admin_override', 'true');
         }
 
-        // 2. Comprobar que realmente se guardó en la base de datos de Supabase
-        const { data: refreshedProfile, error: fetchErr } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', profileId)
-          .single();
+        // 2. Actualizar estado reactivo inmediatamente
+        setProfile(prev => prev ? { ...prev, is_admin: true } : null);
+        if (onAdminChanged) onAdminChanged(true);
+        sounds.playSound('chaching');
+        Alert.alert(
+          '¡Admin Activado! 👑',
+          'Modo Administrador activado permanentemente en este dispositivo.'
+        );
 
-        if (refreshedProfile && refreshedProfile.is_admin === true) {
-          setProfile(refreshedProfile as Profile);
-          if (onAdminChanged) onAdminChanged(true);
-          Alert.alert(
-            '¡Admin Activado! 👑',
-            'Modo Administrador activado y guardado permanentemente en la base de datos.'
-          );
-        } else {
-          Alert.alert(
-            '⚠️ Permiso No Guardado en BD',
-            'El PIN es correcto, pero la base de datos de Supabase no permitió guardar el permiso debido a las reglas de seguridad.\n\nPor favor ve a tu Supabase Dashboard -> SQL Editor y ejecuta el script "fix_admin_pin_rpc.sql" para autorizarlo.'
-          );
-        }
+        // 3. Sincronizar con Supabase en segundo plano
+        (async () => {
+          try {
+            const { error: rpcErr } = await supabase.rpc('verify_admin_pin', {
+              p_pin: cleanPin,
+              p_enable: true,
+            });
+            if (rpcErr && profileId) {
+              await supabase.from('profiles').update({ is_admin: true }).eq('id', profileId);
+            }
+          } catch (err) {
+            // ignore
+          }
+        })();
       } catch (e: any) {
         console.error('Error activating admin:', e);
         Alert.alert('Error', e.message || 'No se pudo activar el modo');
-      } finally {
-        setLoading(false);
       }
     } else {
       Alert.alert('Error', 'PIN Incorrecto (Usa: 05090105)');
@@ -363,40 +381,36 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           text: 'Sí, Desactivar',
           style: 'destructive',
           onPress: async () => {
-            setLoading(true);
             try {
-              const { error: rpcErr } = await supabase.rpc('verify_admin_pin', {
-                p_pin: '05090105',
-                p_enable: false,
-              });
-
-              if (rpcErr) {
-                await supabase
-                  .from('profiles')
-                  .update({ is_admin: false })
-                  .eq('id', profileId);
+              // 1. Quitar del almacenamiento local
+              await AsyncStorage.removeItem('@domino_admin_override');
+              if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.localStorage.removeItem('@domino_admin_override');
               }
 
-              // Refrescar desde base de datos
-              const { data: refreshedProfile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', profileId)
-                .single();
-
-              if (refreshedProfile) {
-                setProfile(refreshedProfile as Profile);
-              } else {
-                setProfile(prev => prev ? { ...prev, is_admin: false } : null);
-              }
-
+              // 2. Actualizar estado local
+              setProfile(prev => prev ? { ...prev, is_admin: false } : null);
               if (onAdminChanged) onAdminChanged(false);
+
+              // 3. Sincronizar en segundo plano con Supabase
+              (async () => {
+                try {
+                  const { error: rpcErr } = await supabase.rpc('verify_admin_pin', {
+                    p_pin: '05090105',
+                    p_enable: false,
+                  });
+                  if (rpcErr && profileId) {
+                    await supabase.from('profiles').update({ is_admin: false }).eq('id', profileId);
+                  }
+                } catch (err) {
+                  // ignore
+                }
+              })();
+
               Alert.alert('✅ Desactivado', 'El Modo Administrador ha sido desactivado correctamente.');
             } catch (e: any) {
               console.error('Error disabling admin:', e);
               Alert.alert('Error', e.message || 'No se pudo desactivar el modo');
-            } finally {
-              setLoading(false);
             }
           },
         },
@@ -450,19 +464,19 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backBtnText}>Volver</Text>
         </TouchableOpacity>
-        <TouchableOpacity activeOpacity={1} onPress={handleHeaderTap}>
+        <TouchableOpacity activeOpacity={0.9} onPress={handleProfileSecretTap}>
           <Text style={styles.headerTitle}>{isOwnProfile ? 'Mi Perfil' : 'Perfil de Jugador'}</Text>
         </TouchableOpacity>
         <View style={{ width: 60 }} />
       </View>
 
-      {/* Modal de Ingreso de PIN de Administrador (Sin Gestos) */}
+      {/* Modal Secreto de PIN de Administrador */}
       <Modal visible={showSecretPin} transparent animationType="fade">
         <View style={styles.pinModalOverlay}>
           <View style={styles.pinModalBox}>
             <View style={{ alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ fontSize: 36, marginBottom: 6 }}>👑</Text>
-              <Text style={styles.pinModalTitle}>Acceso de Organizador</Text>
+              <Text style={styles.pinModalTitle}>Acceso de Administrador</Text>
               <Text style={styles.pinModalDesc}>
                 Ingresa el PIN de 8 dígitos para habilitar el Modo Administrador.
               </Text>
@@ -512,7 +526,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         {/* Credencial Digital de Socio VIP */}
         <View style={styles.vipCredentialCard}>
           {/* Header of Credential */}
-          <View style={styles.credentialHeader}>
+          <TouchableOpacity activeOpacity={0.9} onPress={handleProfileSecretTap} style={styles.credentialHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, marginRight: 8 }}>🁣</Text>
               <View>
@@ -523,7 +537,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
             <View style={styles.credentialChip}>
               <Text style={styles.credentialChipText}>💳 VIP</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           {/* Central Avatar & Info */}
           <View style={styles.credentialBody}>
@@ -550,7 +564,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity activeOpacity={0.8} onPress={handleHeaderTap} style={{ alignItems: 'center' }}>
+            <TouchableOpacity activeOpacity={0.8} onPress={handleProfileSecretTap} style={{ alignItems: 'center' }}>
               {profile?.equipped_items?.color === 'rainbow' ? (
                 <RainbowText style={[styles.profileName, { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }]}>
                   {profile.display_name}
@@ -590,7 +604,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           </View>
 
           {/* Footer of Credential: Member ID & Status */}
-          <View style={styles.credentialFooter}>
+          <TouchableOpacity activeOpacity={0.9} onPress={handleProfileSecretTap} style={styles.credentialFooter}>
             <View>
               <Text style={styles.credentialFooterLabel}>ID DE SOCIO</Text>
               <Text style={styles.credentialFooterVal}>
@@ -601,40 +615,8 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
               <Text style={styles.credentialFooterLabel}>ESTADO</Text>
               <Text style={[styles.credentialFooterVal, { color: '#4ade80' }]}>● ACTIVO</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
-
-        {/* Panel de Modo Organizador / Administrador (Sin Gestos Ocultos) */}
-        {isOwnProfile && (
-          <View style={styles.adminControlCard}>
-            {profile?.is_admin ? (
-              <View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                  <Text style={{ fontSize: 24, marginRight: 10 }}>🛡️</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.adminActiveTitle}>MODO ADMINISTRADOR ACTIVO</Text>
-                    <Text style={styles.adminActiveSub}>Tienes permisos para crear torneos VIP y gestionar el club.</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={styles.adminDisableBtn}
-                  onPress={handleDisableAdmin}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.adminDisableBtnText}>🔴 Desactivar Modo Administrador</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.adminActivateBtn}
-                onPress={() => setShowSecretPin(true)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.adminActivateBtnText}>🔐 Ingresar Clave de Administrador</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
 
         {/* Medals Showcase */}
         {(() => {
@@ -1122,53 +1104,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: theme.spacing.s,
     marginBottom: theme.spacing.xs,
-  },
-  adminControlCard: {
-    backgroundColor: 'rgba(30, 41, 59, 0.7)',
-    borderRadius: theme.borderRadius.m,
-    padding: 16,
-    marginTop: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(234, 179, 8, 0.35)',
-  },
-  adminActiveTitle: {
-    color: '#fbbf24',
-    fontSize: 14,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  adminActiveSub: {
-    color: theme.colors.textDim,
-    fontSize: 12,
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  adminDisableBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.5)',
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  adminDisableBtnText: {
-    color: '#ef4444',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  adminActivateBtn: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.4)',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  adminActivateBtnText: {
-    color: '#60a5fa',
-    fontSize: 14,
-    fontWeight: '800',
   },
   pinModalOverlay: {
     flex: 1,

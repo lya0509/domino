@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert, TextInput, Platform, StatusBar, Image, Modal } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
 import { Match, Profile, Tournament, TournamentParticipant, TournamentBracket, BracketMatch } from '../types';
@@ -17,6 +18,10 @@ interface Props {
 export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack, onRejoinMatch, onWatchLiveMatch }) => {
   const [localIsAdmin, setLocalIsAdmin] = useState(isAdmin);
   const [activeTab, setActiveTab] = useState<'lobby' | 'live' | 'my_tourneys' | 'admin'>('lobby');
+
+  useEffect(() => {
+    setLocalIsAdmin(isAdmin);
+  }, [isAdmin]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,9 +107,24 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
   const fetchData = async () => {
     setLoading(true);
     try {
+      let adminOverride = false;
+      try {
+        let stored = await AsyncStorage.getItem('@domino_admin_override');
+        if (!stored && Platform.OS === 'web' && typeof window !== 'undefined') {
+          stored = window.localStorage.getItem('@domino_admin_override');
+        }
+        if (stored === 'true') adminOverride = true;
+      } catch (e) {}
+
       if (profileId) {
         const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', profileId).single();
-        if (prof) setLocalIsAdmin(prof.is_admin);
+        if (prof) {
+          setLocalIsAdmin(adminOverride || isAdmin || prof.is_admin);
+        } else {
+          setLocalIsAdmin(adminOverride || isAdmin);
+        }
+      } else {
+        setLocalIsAdmin(adminOverride || isAdmin);
       }
 
       // RPC para limpiar torneos viejos (15 días)

@@ -825,7 +825,27 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
         if (winners.length === 1) {
           // Tournament is over!
           await supabase.from('tournaments').update({ status: 'completed' }).eq('id', match.tournament_id);
-          Alert.alert('¡Torneo Finalizado!', 'El torneo ha concluido exitosamente.');
+
+          // Si es un torneo de puntos y hay un pozo acumulado, repartir a los campeones
+          try {
+            const { data: tInfo } = await supabase.from('tournaments').select('*').eq('id', match.tournament_id).single();
+            if (tInfo && tInfo.tournament_type !== 'vip_cash' && Number(tInfo.prize_pool) > 0) {
+              const championIds = [winners[0].p1, winners[0].p2].filter(Boolean);
+              if (championIds.length > 0) {
+                const pointsPerChamp = Math.floor(Number(tInfo.prize_pool) / championIds.length);
+                for (const champId of championIds) {
+                  const { data: cProf } = await supabase.from('profiles').select('betting_points').eq('id', champId).single();
+                  await supabase.from('profiles').update({
+                    betting_points: (cProf?.betting_points || 0) + pointsPerChamp
+                  }).eq('id', champId);
+                }
+              }
+            }
+          } catch (payoutErr) {
+            console.error('Error awarding tournament prize points:', payoutErr);
+          }
+
+          Alert.alert('🏆 ¡Torneo Finalizado!', 'El torneo ha concluido exitosamente y se han entregado los premios a los campeones.');
           fetchData();
         } else {
           // Generate next round with live matches
@@ -983,7 +1003,7 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
             <View style={styles.tStats}>
               <View style={styles.tStatBox}>
                 <Text style={styles.tStatLabel}>Inscripción</Text>
-                <Text style={styles.tStatValue}>{t.tournament_type === 'vip_cash' ? `Bs ${t.entry_fee}` : `🪙 ${t.entry_points}`}</Text>
+                <Text style={styles.tStatValue}>{t.tournament_type === 'vip_cash' ? `Bs ${t.entry_fee}` : (Number(t.entry_points) > 0 ? `🪙 ${t.entry_points}` : 'GRATIS 🆓')}</Text>
               </View>
               <View style={[styles.tStatBox, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: theme.colors.cardBorder }]}>
                 <Text style={styles.tStatLabel}>Pozo Actual</Text>
@@ -1143,7 +1163,7 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
             
             {!isJoined && t.status === 'registration' && (
               <TouchableOpacity style={styles.joinBtn} onPress={() => setShowJoinModal(t)}>
-                <Text style={styles.joinBtnText}>Inscribirse ({t.tournament_type === 'vip_cash' ? `Bs ${t.entry_fee}` : `🪙 ${t.entry_points}`})</Text>
+                <Text style={styles.joinBtnText}>Inscribirse ({t.tournament_type === 'vip_cash' ? `Bs ${t.entry_fee}` : (Number(t.entry_points) > 0 ? `🪙 ${t.entry_points}` : 'GRATIS 🆓')})</Text>
               </TouchableOpacity>
             )}
 
@@ -1456,8 +1476,12 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
             ) : (
               <View style={styles.paymentInfo}>
                 <Text style={{ color: theme.colors.text, fontWeight: 'bold', textAlign: 'center' }}>Costo de Inscripción:</Text>
-                <Text style={{ color: theme.colors.accent, fontSize: 32, fontWeight: '900', textAlign: 'center', marginVertical: 12 }}>🪙 {showJoinModal?.entry_points}</Text>
-                <Text style={{ color: theme.colors.textDim, textAlign: 'center' }}>Se descontarán de tu saldo de puntos.</Text>
+                <Text style={{ color: theme.colors.accent, fontSize: 32, fontWeight: '900', textAlign: 'center', marginVertical: 12 }}>
+                  {Number(showJoinModal?.entry_points) > 0 ? `🪙 ${showJoinModal?.entry_points}` : '¡GRATIS! 🆓'}
+                </Text>
+                <Text style={{ color: theme.colors.textDim, textAlign: 'center' }}>
+                  {Number(showJoinModal?.entry_points) > 0 ? 'Se descontarán de tu saldo de puntos.' : '¡Inscripción libre y sin costo!'}
+                </Text>
               </View>
             )}
 
@@ -1495,7 +1519,12 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
             {tType === 'vip_cash' ? (
               <TextInput style={styles.input} placeholder="Precio de Entrada (Bs)" placeholderTextColor={theme.colors.textDim} value={tEntryFee} onChangeText={setTEntryFee} keyboardType="numeric" />
             ) : (
-              <TextInput style={styles.input} placeholder="Precio de Entrada (Puntos)" placeholderTextColor={theme.colors.textDim} value={tEntryPoints} onChangeText={setTEntryPoints} keyboardType="numeric" />
+              <>
+                <TextInput style={styles.input} placeholder="Precio de Entrada en Puntos (0 para GRATIS)" placeholderTextColor={theme.colors.textDim} value={tEntryPoints} onChangeText={setTEntryPoints} keyboardType="numeric" />
+                <Text style={{ color: theme.colors.textDim, fontSize: 11, marginTop: -8, marginBottom: 12, marginLeft: 4 }}>
+                  💡 Deja en 0 o vacío para que el torneo sea 100% gratuito.
+                </Text>
+              </>
             )}
             
             <View style={{ marginBottom: 16, width: '100%' }}>

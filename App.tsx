@@ -678,7 +678,27 @@ export default function App() {
 
                     if (winners.length === 1) {
                       await supabase.from('tournaments').update({ status: 'completed' }).eq('id', bracket.tournament_id);
-                      Alert.alert('🏆 ¡Torneo Finalizado!', 'El torneo ha concluido exitosamente.');
+
+                      // Si es un torneo de puntos y hay un pozo acumulado, repartir a los campeones
+                      try {
+                        const { data: tInfo } = await supabase.from('tournaments').select('*').eq('id', bracket.tournament_id).single();
+                        if (tInfo && tInfo.tournament_type !== 'vip_cash' && Number(tInfo.prize_pool) > 0) {
+                          const championIds = [winners[0].p1, winners[0].p2].filter(Boolean);
+                          if (championIds.length > 0) {
+                            const pointsPerChamp = Math.floor(Number(tInfo.prize_pool) / championIds.length);
+                            for (const champId of championIds) {
+                              const { data: cProf } = await supabase.from('profiles').select('betting_points').eq('id', champId).single();
+                              await supabase.from('profiles').update({
+                                betting_points: (cProf?.betting_points || 0) + pointsPerChamp
+                              }).eq('id', champId);
+                            }
+                          }
+                        }
+                      } catch (payoutErr) {
+                        console.error('Error awarding tournament prize points:', payoutErr);
+                      }
+
+                      Alert.alert('🏆 ¡Torneo Finalizado!', 'El torneo ha concluido exitosamente y se han entregado los premios a los campeones.');
                     } else {
                       const nextRoundMatches = [];
                       let matchCount = 1;

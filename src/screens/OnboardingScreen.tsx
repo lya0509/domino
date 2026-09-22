@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Platform, Image, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Platform, Image, PanResponder, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { sounds } from '../lib/sounds';
@@ -44,12 +44,59 @@ const SLIDES = [
     title: 'Medallas & Tapetes VIP',
     highlight: 'PERSONALIZACIÓN MÁXIMA',
     description: 'Demuestra tu rango con la vitrina de medallas. Compra en la tienda manteles de mesa (Verde Casino, Rojo, Negro VIP), nombres arcoíris y marcos de diamante.',
-    bullets: ['Bono diario de 10 puntos a las 7:00 AM', '8 Medallas desbloqueables por hazañas', 'Notificaciones Web Push en vivo'],
+    bullets: ['Bono diario de 10 puntos a las 7:00 AM', '8 Medallas desbloqueables por hazañas', 'Economía y recompensas exclusivas'],
+  },
+  {
+    id: 'install_notifications',
+    badge: 'PASO OBLIGATORIO',
+    icon: '🔔',
+    title: 'Notificaciones & App',
+    highlight: 'ALERTAS Y ACCESO RÁPIDO',
+    description: 'Activa sí o sí las notificaciones para enterarte cuando te toque jugar o si ganaste una apuesta, e instala la aplicación en tu teléfono.',
+    bullets: ['Avisos inmediatos de llamada a mesa', 'Instalación sin pasar por App Store', 'Acceso a pantalla completa como app nativa'],
   },
 ];
 
 export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission === 'granted'
+      : false
+  );
+
+  const handleRequestNotifications = async () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+          setNotificationsEnabled(true);
+          sounds.playSound('chaching');
+          Alert.alert('✅ ¡Notificaciones Activadas!', 'Recibirás avisos en tiempo real cuando tu dúo sea llamado a la mesa o haya novedades en torneos.');
+        } else if (perm === 'denied') {
+          Alert.alert('⚠️ Notificaciones Bloqueadas', 'Habilita los permisos de notificaciones desde la configuración de tu navegador.');
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      Alert.alert('Notificaciones', 'Las notificaciones automáticas están habilitadas en navegadores compatibles.');
+    }
+  };
+
+  const handleShowIosInstructions = () => {
+    Alert.alert(
+      '🍏 Cómo Instalar en iPhone (Safari)',
+      '1. Toca el botón Compartir ⎋ (en la barra inferior de Safari).\n\n2. Baja en las opciones y presiona "Agregar a pantalla de inicio ➕".\n\n3. Pulsa "Agregar" arriba a la derecha y ¡listo! Se abrirá como app independiente a pantalla completa.'
+    );
+  };
+
+  const handleShowAndroidInstructions = () => {
+    Alert.alert(
+      '🤖 Cómo Instalar en Android (Chrome)',
+      '1. Toca los tres puntos (⋮) en la esquina superior derecha de Chrome.\n\n2. Presiona "Instalar aplicación" o "Agregar a pantalla principal".\n\n3. Confirma y ¡listo! Tendrás el ícono de la app en tu teléfono.'
+    );
+  };
 
   const saveSeen = async () => {
     try {
@@ -164,15 +211,49 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
         <Text style={styles.highlightText}>{currentSlide.highlight}</Text>
         <Text style={styles.description}>{currentSlide.description}</Text>
 
-        {/* Feature Highlights */}
-        <View style={styles.bulletBox}>
-          {currentSlide.bullets.map((bullet, idx) => (
-            <View key={idx} style={styles.bulletRow}>
-              <Text style={styles.bulletDot}>⚡</Text>
-              <Text style={styles.bulletText}>{bullet}</Text>
+        {/* Feature Highlights or Interactive Buttons */}
+        {currentSlide.id === 'install_notifications' ? (
+          <View style={styles.actionButtonsContainer}>
+            {/* Botón 1: Activar Notificaciones */}
+            <TouchableOpacity
+              style={[styles.notifBtn, notificationsEnabled && styles.notifBtnActive]}
+              onPress={handleRequestNotifications}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.notifBtnText}>
+                {notificationsEnabled ? '✅ Notificaciones Activadas' : '🔔 Activar Notificaciones Sí o Sí'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Fila de Botones: iPhone y Android */}
+            <View style={styles.installRow}>
+              <TouchableOpacity
+                style={styles.installBtn}
+                onPress={handleShowIosInstructions}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.installBtnText}>🍏 Cómo Instalar en iPhone</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.installBtn}
+                onPress={handleShowAndroidInstructions}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.installBtnText}>🤖 Cómo Instalar en Android</Text>
+              </TouchableOpacity>
             </View>
-          ))}
-        </View>
+          </View>
+        ) : (
+          <View style={styles.bulletBox}>
+            {currentSlide.bullets.map((bullet, idx) => (
+              <View key={idx} style={styles.bulletRow}>
+                <Text style={styles.bulletDot}>⚡</Text>
+                <Text style={styles.bulletText}>{bullet}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Bottom Controls */}
@@ -261,13 +342,13 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
   },
   welcomeCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 26,
+    width: 120,
+    height: 120,
+    borderRadius: 28,
     overflow: 'hidden',
     borderWidth: 2.5,
     borderColor: '#3b82f6',
-    backgroundColor: '#0a0d14',
+    backgroundColor: '#000',
     shadowColor: '#3b82f6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.6,
@@ -277,6 +358,55 @@ const styles = StyleSheet.create({
   welcomeImage: {
     width: '100%',
     height: '100%',
+  },
+  actionButtonsContainer: {
+    width: '100%',
+    marginTop: 4,
+    gap: 10,
+  },
+  notifBtn: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  notifBtnActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderWidth: 1.5,
+    borderColor: '#10b981',
+    shadowColor: '#10b981',
+  },
+  notifBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  installRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  installBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  installBtnText: {
+    color: '#e2e8f0',
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
   },
   mainIcon: {
     fontSize: 48,

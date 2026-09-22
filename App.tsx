@@ -32,14 +32,29 @@ const theme = {
 
 type ScreenState = 'splash' | 'ad' | 'auth' | 'home' | 'setup' | 'game' | 'live' | 'profile' | 'store' | 'achievements' | 'leaderboard' | 'global_chat' | 'tournaments';
 
-const getInitialScreen = (): ScreenState => {
+const checkIsPasswordRecovery = (): boolean => {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     try {
       const hash = window.location.hash || '';
       const search = window.location.search || '';
-      if (hash.includes('type=recovery') || search.includes('type=recovery')) {
-        return 'auth';
-      }
+      return (
+        hash.includes('type=recovery') ||
+        search.includes('type=recovery') ||
+        (hash.includes('access_token') && hash.includes('type=recovery'))
+      );
+    } catch {
+      return false;
+    }
+  }
+  return false;
+};
+
+const getInitialScreen = (): ScreenState => {
+  if (checkIsPasswordRecovery()) {
+    return 'auth';
+  }
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    try {
       const seen = window.localStorage.getItem('@domino_onboarding_seen') || window.localStorage.getItem('domino_onboarding_seen');
       if (seen === '1') {
         return 'ad';
@@ -52,13 +67,15 @@ const getInitialScreen = (): ScreenState => {
 };
 
 export default function App() {
+  const isRecoveryInitial = checkIsPasswordRecovery();
+  const isPasswordRecoveryRef = useRef(isRecoveryInitial);
   const [currentScreen, setCurrentScreen] = useState<ScreenState>(getInitialScreen);
   const [match, setMatch] = useState<Match | null>(null);
   const [session, setSession] = useState<any>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(false);
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(isRecoveryInitial);
   const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(null);
   const [liveMatchId, setLiveMatchId] = useState<string | null>(null);
   const [viewProfileId, setViewProfileId] = useState<string | null>(null);
@@ -102,12 +119,12 @@ export default function App() {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.title = 'PeSiMistas';
       try {
-        const hash = window.location.hash || '';
-        const searchParams = new URLSearchParams(window.location.search);
-        if (hash.includes('type=recovery') || searchParams.get('type') === 'recovery') {
+        if (checkIsPasswordRecovery()) {
+          isPasswordRecoveryRef.current = true;
           setIsPasswordRecovery(true);
           setCurrentScreen('auth');
         }
+        const searchParams = new URLSearchParams(window.location.search);
         const invite = searchParams.get('invite') || searchParams.get('ref') || searchParams.get('code');
         if (invite) {
           setInitialInviteCode(invite.toUpperCase());
@@ -121,18 +138,15 @@ export default function App() {
     const checkOnboardingAndNavigate = async (activeSession: any) => {
       try {
         // 1. Si viene por enlace de recuperación de contraseña, ir directo a auth
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          const hash = window.location.hash || '';
-          const search = window.location.search || '';
-          if (hash.includes('type=recovery') || search.includes('type=recovery')) {
-            setIsPasswordRecovery(true);
-            setCurrentScreen('auth');
-            return;
-          }
+        if (isPasswordRecoveryRef.current || checkIsPasswordRecovery()) {
+          isPasswordRecoveryRef.current = true;
+          setIsPasswordRecovery(true);
+          setCurrentScreen('auth');
+          return;
         }
 
-        // 2. Si el usuario ya está autenticado, nunca mostrar bienvenida
-        if (activeSession) {
+        // 2. Si el usuario ya está autenticado y no está restableciendo clave, ir a app
+        if (activeSession && !isPasswordRecoveryRef.current) {
           markOnboardingSeen();
           setCurrentScreen(match?.status === 'active' ? 'game' : 'home');
           return;
@@ -171,7 +185,7 @@ export default function App() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(fallbackTimer);
       setSession(session);
-      if (session) {
+      if (session && !isPasswordRecoveryRef.current) {
         fetchCurrentUser(session.user.id);
       }
       await checkOnboardingAndNavigate(session);
@@ -186,13 +200,16 @@ export default function App() {
     const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       if (event === 'PASSWORD_RECOVERY') {
+        isPasswordRecoveryRef.current = true;
         setIsPasswordRecovery(true);
         setCurrentScreen('auth');
       } else if (session) {
-        fetchCurrentUser(session.user.id);
-        markOnboardingSeen();
+        if (!isPasswordRecoveryRef.current) {
+          fetchCurrentUser(session.user.id);
+          markOnboardingSeen();
+        }
       } else {
-        if (!isPasswordRecovery) {
+        if (!isPasswordRecoveryRef.current) {
           setCurrentScreen('auth');
         }
         setCurrentUserProfileId(null);
@@ -875,9 +892,10 @@ export default function App() {
       {currentScreen === 'auth' && (
         <AuthScreen
           onSessionConfigured={() => {
+            isPasswordRecoveryRef.current = false;
+            setIsPasswordRecovery(false);
             setIsAuthenticated(true);
             setIsGuestMode(false);
-            setIsPasswordRecovery(false);
             setCurrentScreen(match?.status === 'active' ? 'game' : 'home');
           }}
           onGuestMode={() => {

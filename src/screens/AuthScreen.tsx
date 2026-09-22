@@ -31,14 +31,37 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
   // Estados para Recuperación de Contraseña
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [recoverySent, setRecoverySent] = useState(false);
-  const [isSettingNewPassword, setIsSettingNewPassword] = useState(!!initialRecoveryMode);
+  const [isSettingNewPassword, setIsSettingNewPassword] = useState(
+    !!initialRecoveryMode ||
+    (Platform.OS === 'web' && typeof window !== 'undefined' && (
+      (window.location.hash || '').includes('type=recovery') ||
+      (window.location.search || '').includes('type=recovery') ||
+      ((window.location.hash || '').includes('access_token') && (window.location.hash || '').includes('type=recovery'))
+    ))
+  );
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     if (initialRecoveryMode) {
       setIsSettingNewPassword(true);
+    } else if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+        setIsSettingNewPassword(true);
+      }
     }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsSettingNewPassword(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [initialRecoveryMode]);
 
   useEffect(() => {
@@ -57,9 +80,11 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
 
     setLoading(true);
     try {
-      const redirectTo = Platform.OS === 'web' && typeof window !== 'undefined'
+      const isWeb = Platform.OS === 'web' && typeof window !== 'undefined';
+      const webOrigin = isWeb && window.location.origin && !window.location.origin.includes('localhost')
         ? window.location.origin
-        : undefined;
+        : 'https://domino-mauve.vercel.app';
+      const redirectTo = `${webOrigin}/`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo,

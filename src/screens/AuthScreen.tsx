@@ -97,7 +97,14 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
       });
 
       if (error) {
-        Alert.alert('Error al Enviar', error.message);
+        if (error.message.includes('rate limit') || error.message.includes('over_email_send_rate_limit')) {
+          Alert.alert(
+            '⏳ Límite de Envíos',
+            'Por favor espera unos minutos antes de solicitar otro correo de recuperación.'
+          );
+        } else {
+          Alert.alert('Error al Enviar', error.message);
+        }
       } else {
         setRecoverySent(true);
         Alert.alert(
@@ -126,7 +133,11 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) {
-        Alert.alert('Error al Actualizar', error.message);
+        if (error.message.includes('New password should be different')) {
+          Alert.alert('Aviso', 'La nueva contraseña debe ser diferente a la que ya tenías.');
+        } else {
+          Alert.alert('Error al Actualizar', error.message);
+        }
       } else {
         Alert.alert(
           '✅ ¡Contraseña Actualizada!',
@@ -145,7 +156,7 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Ingresa correo y contraseña');
+      Alert.alert('Error', 'Ingresa tu correo y contraseña.');
       return;
     }
 
@@ -159,7 +170,23 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
     setLoading(false);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      if (
+        error.message.includes('Invalid login credentials') ||
+        error.message.includes('invalid_grant') ||
+        error.message.includes('invalid_credentials')
+      ) {
+        Alert.alert(
+          '❌ Credenciales Incorrectas',
+          'El correo electrónico o la contraseña ingresada son incorrectos.\n\nPor favor verifica tus datos e inténtalo de nuevo, o toca "¿Olvidaste tu contraseña?" para restablecerla.'
+        );
+      } else if (error.message.includes('Email not confirmed')) {
+        Alert.alert(
+          '✉️ Correo No Confirmado',
+          'Debes confirmar tu correo electrónico antes de ingresar. Por favor revisa tu bandeja de entrada o carpeta de Spam.'
+        );
+      } else {
+        Alert.alert('Error al Iniciar Sesión', error.message);
+      }
     } else {
       onSessionConfigured();
     }
@@ -212,7 +239,19 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
 
       if (error) {
         setLoading(false);
-        Alert.alert('Error al Crear Cuenta', error.message);
+        if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+          Alert.alert(
+            '⚠️ Correo Ya Registrado',
+            'Este correo electrónico ya tiene una cuenta creada.\n\nPor favor inicia sesión o toca "¿Olvidaste tu contraseña?" para recuperar tu acceso.'
+          );
+        } else if (error.message.includes('Password should be at least')) {
+          Alert.alert(
+            '🔒 Contraseña Muy Corta',
+            'La contraseña debe contener un mínimo de 6 caracteres.'
+          );
+        } else {
+          Alert.alert('Error al Crear Cuenta', error.message);
+        }
         return;
       }
 

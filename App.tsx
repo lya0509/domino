@@ -414,6 +414,9 @@ export default function App() {
           team1_total: 0,
           team2_total: 0,
           players_json: matchConfig.players,
+          wager_amount: matchConfig.wager_amount || 0,
+          is_wager_match: matchConfig.is_wager_match || false,
+          tournament_id: matchConfig.tournament_id || null,
         };
 
         const getValidId = (id?: string) => id && !id.startsWith('guest-') ? id : null;

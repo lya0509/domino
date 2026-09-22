@@ -168,6 +168,18 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
         { event: 'INSERT', schema: 'public', table: 'live_chat', filter: `match_id=eq.${matchId}` },
         () => { fetchChatMessages(); sounds.playSound('pop'); }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bets', filter: `match_id=eq.${matchId}` },
+        () => {
+          fetchBets();
+          if (currentUserProfileId) {
+            supabase.from('profiles').select('betting_points').eq('id', currentUserProfileId).single().then(({ data }) => {
+              if (data) setBettingPoints(data.betting_points || 0);
+            });
+          }
+        }
+      )
       .subscribe();
 
     const fetchWaitlistAndProfiles = async () => {
@@ -386,12 +398,38 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
 
             {activeBets.length > 0 && (
               <View style={styles.myBetsList}>
-                <Text style={{color: theme.colors.textDim, marginBottom: 4, fontWeight: 'bold'}}>Mis Apuestas Activas:</Text>
-                {activeBets.map(b => (
-                  <Text key={b.id} style={{color: theme.colors.text}}>
-                    Apostaste <Text style={{fontWeight: 'bold'}}>{b.amount_wagered} pts</Text> al Eq. {b.bet_on_team} (Paga: {Math.floor(b.amount_wagered * b.multiplier)} pts)
-                  </Text>
-                ))}
+                <Text style={{color: theme.colors.textDim, marginBottom: 8, fontWeight: 'bold'}}>Mis Apuestas en esta Partida:</Text>
+                {activeBets.map(b => {
+                  const isWon = b.status === 'won';
+                  const isLost = b.status === 'lost';
+                  const payout = Math.floor(b.amount_wagered * b.multiplier);
+                  return (
+                    <View key={b.id} style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)'}}>
+                      <View>
+                        <Text style={{color: theme.colors.text, fontSize: 13, fontWeight: '600'}}>
+                          {b.amount_wagered} pts al Eq. {b.bet_on_team} (x{b.multiplier})
+                        </Text>
+                        <Text style={{color: theme.colors.textDim, fontSize: 11}}>
+                          Retorno: {payout} pts
+                        </Text>
+                      </View>
+                      <View style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 6,
+                        backgroundColor: isWon ? 'rgba(16, 185, 129, 0.15)' : isLost ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)'
+                      }}>
+                        <Text style={{
+                          fontSize: 12,
+                          fontWeight: 'bold',
+                          color: isWon ? '#10b981' : isLost ? '#ef4444' : '#f59e0b'
+                        }}>
+                          {isWon ? `✅ Ganada (+${payout} pts)` : isLost ? '❌ Perdida' : '⏳ En juego'}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             )}
           </View>

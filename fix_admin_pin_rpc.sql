@@ -1,5 +1,5 @@
 -- ==============================================================================
--- FIX MODO ADMINISTRADOR: RPC CON SECURITY DEFINER
+-- FIX MODO ADMINISTRADOR: RPC CON SECURITY DEFINER Y BYPASS DE SEGURIDAD
 -- Ejecuta este script en Supabase Cloud -> SQL Editor
 -- ==============================================================================
 
@@ -16,7 +16,10 @@ BEGIN
   END IF;
 
   IF TRIM(p_pin) = '05090105' THEN
-    -- Al ser SECURITY DEFINER, esta función tiene permisos elevados para modificar is_admin
+    -- Establecer variable transaccional para autorizar el cambio en el trigger
+    PERFORM set_config('app.allow_admin_toggle', 'true', true);
+
+    -- Actualizar el estado de administrador
     UPDATE public.profiles 
     SET is_admin = p_enable 
     WHERE id = v_user_id;
@@ -32,18 +35,28 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT EXECUTE ON FUNCTION public.verify_admin_pin(TEXT, BOOLEAN) TO authenticated;
 
 -- 3. Actualizar la función protect_profile_sensitive_fields para que no bloquee 
--- cuando un usuario ya autenticado con el PIN haga el cambio
+-- cuando un usuario verificado con el PIN o el SQL Editor haga el cambio
 CREATE OR REPLACE FUNCTION public.protect_profile_sensitive_fields()
 RETURNS TRIGGER AS $$
 DECLARE
   caller_is_admin BOOLEAN;
 BEGIN
-  -- Si no se está modificando is_admin, permitir
+  -- 1. Si la consulta proviene del SQL Editor de Supabase / Service Role / Postgres superuser (auth.uid() IS NULL)
+  IF auth.uid() IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  -- 2. Si la llamada proviene de verify_admin_pin (con bypass de PIN maestro verificado)
+  IF current_setting('app.allow_admin_toggle', true) = 'true' THEN
+    RETURN NEW;
+  END IF;
+
+  -- 3. Si no se está modificando is_admin, permitir
   IF NEW.is_admin IS NOT DISTINCT FROM OLD.is_admin THEN
     RETURN NEW;
   END IF;
 
-  -- Si el llamador ya es admin, permitir
+  -- 4. Si el llamador ya es admin, permitir
   SELECT COALESCE(is_admin, false) INTO caller_is_admin 
   FROM public.profiles 
   WHERE id = auth.uid();
@@ -52,7 +65,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Si no es admin y se intenta modificar is_admin directamente sin la RPC
+  -- 5. Si no es admin y se intenta modificar is_admin directamente sin la RPC
   -- revertir is_admin a su valor anterior
   NEW.is_admin := OLD.is_admin;
   RETURN NEW;

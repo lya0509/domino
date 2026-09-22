@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Platform, Image, PanResponder, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Platform, Image, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { sounds } from '../lib/sounds';
@@ -156,30 +156,10 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
     onComplete();
   };
 
-  // Configuración de Gestos Swipe Horizontal
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Solo capturar movimientos deliberadamente horizontales
-        return Math.abs(gestureState.dx) > 15 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -40) {
-          // Deslizar hacia la izquierda -> avanzar
-          handleNext();
-        } else if (gestureState.dx > 40) {
-          // Deslizar hacia la derecha -> retroceder
-          handlePrev();
-        }
-      },
-    })
-  ).current;
-
   const currentSlide = SLIDES[currentIndex];
 
   return (
-    <SafeAreaView style={styles.container} {...panResponder.panHandlers}>
+    <SafeAreaView style={styles.container}>
       {/* Top Header with Skip Button */}
       <View style={styles.topBar}>
         <View style={styles.badgeContainer}>
@@ -256,13 +236,21 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
         )}
       </View>
 
-      {/* Bottom Controls */}
+      {/* Bottom Controls (Sin Gestos Ocultos) */}
       <View style={styles.bottomBar}>
-        {/* Pagination Dots */}
+        {/* Pagination Dots (Táctiles) */}
         <View style={styles.dotsRow}>
           {SLIDES.map((_, idx) => (
-            <View
+            <TouchableOpacity
               key={idx}
+              onPress={() => {
+                if (Platform.OS !== 'web') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
+                sounds.playSound('pop');
+                setCurrentIndex(idx);
+              }}
+              activeOpacity={0.7}
               style={[
                 styles.dot,
                 idx === currentIndex ? styles.activeDot : styles.inactiveDot
@@ -271,16 +259,32 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
           ))}
         </View>
 
-        {/* Next / Start Button */}
-        <TouchableOpacity
-          style={[styles.nextBtn, currentIndex === SLIDES.length - 1 && styles.finishBtn]}
-          onPress={handleNext}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.nextBtnText}>
-            {currentIndex === SLIDES.length - 1 ? '¡Comenzar a Jugar! 🚀' : 'Siguiente ➜'}
-          </Text>
-        </TouchableOpacity>
+        {/* Action Buttons Row */}
+        <View style={styles.navButtonsRow}>
+          {currentIndex > 0 && (
+            <TouchableOpacity
+              style={styles.prevBtn}
+              onPress={handlePrev}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.prevBtnText}>◀ Anterior</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={[
+              styles.nextBtn,
+              currentIndex === 0 && { flex: 1 },
+              currentIndex === SLIDES.length - 1 && styles.finishBtn
+            ]}
+            onPress={handleNext}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.nextBtnText}>
+              {currentIndex === SLIDES.length - 1 ? '¡Comenzar a Jugar! 🚀' : 'Siguiente ➜'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -478,7 +482,28 @@ const styles = StyleSheet.create({
     width: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
+  navButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  prevBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: theme.borderRadius.m,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  prevBtnText: {
+    color: '#cbd5e1',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   nextBtn: {
+    flex: 1,
     backgroundColor: theme.colors.primary,
     paddingVertical: 16,
     borderRadius: theme.borderRadius.m,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  SafeAreaView, ActivityIndicator, Alert, RefreshControl, Image, Platform, StatusBar, TextInput
+  SafeAreaView, ActivityIndicator, Alert, RefreshControl, Image, Platform, StatusBar, TextInput, Modal
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
@@ -304,28 +304,47 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   const handlePinSubmit = async () => {
     const cleanPin = pinInput.trim();
     if (cleanPin === '05090105') {
+      setLoading(true);
       try {
-        // 1. Intentar activar por la función RPC
+        // 1. Ejecutar RPC con SECURITY DEFINER
         const { data: rpcSuccess, error: rpcErr } = await supabase.rpc('verify_admin_pin', {
           p_pin: cleanPin,
           p_enable: true,
         });
 
-        if (rpcErr || rpcSuccess === false) {
-          // Fallback a actualización directa
-          const { error: updErr } = await supabase
+        if (rpcErr) {
+          console.warn('RPC Error (intentando update directo):', rpcErr);
+          await supabase
             .from('profiles')
             .update({ is_admin: true })
             .eq('id', profileId);
-          if (updErr) throw updErr;
         }
 
-        Alert.alert('¡Admin Activado! 👑', 'Modo Administrador activado y guardado en tu cuenta.');
-        setProfile(prev => prev ? { ...prev, is_admin: true } : null);
-        if (onAdminChanged) onAdminChanged(true);
+        // 2. Comprobar que realmente se guardó en la base de datos de Supabase
+        const { data: refreshedProfile, error: fetchErr } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', profileId)
+          .single();
+
+        if (refreshedProfile && refreshedProfile.is_admin === true) {
+          setProfile(refreshedProfile as Profile);
+          if (onAdminChanged) onAdminChanged(true);
+          Alert.alert(
+            '¡Admin Activado! 👑',
+            'Modo Administrador activado y guardado permanentemente en la base de datos.'
+          );
+        } else {
+          Alert.alert(
+            '⚠️ Permiso No Guardado en BD',
+            'El PIN es correcto, pero la base de datos de Supabase no permitió guardar el permiso debido a las reglas de seguridad.\n\nPor favor ve a tu Supabase Dashboard -> SQL Editor y ejecuta el script "fix_admin_pin_rpc.sql" para autorizarlo.'
+          );
+        }
       } catch (e: any) {
         console.error('Error activating admin:', e);
         Alert.alert('Error', e.message || 'No se pudo activar el modo');
+      } finally {
+        setLoading(false);
       }
     } else {
       Alert.alert('Error', 'PIN Incorrecto (Usa: 05090105)');
@@ -334,28 +353,55 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
     setPinInput('');
   };
 
-  const handleDisableAdmin = async () => {
-    try {
-      const { error: rpcErr } = await supabase.rpc('verify_admin_pin', {
-        p_pin: '05090105',
-        p_enable: false,
-      });
+  const handleDisableAdmin = () => {
+    Alert.alert(
+      '🛡️ Desactivar Modo Administrador',
+      '¿Deseas desactivar el Modo Administrador y volver a ser un usuario regular?',
+      [
+        { text: 'Mantener Activo', style: 'cancel' },
+        {
+          text: 'Sí, Desactivar',
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const { error: rpcErr } = await supabase.rpc('verify_admin_pin', {
+                p_pin: '05090105',
+                p_enable: false,
+              });
 
-      if (rpcErr) {
-        const { error: updErr } = await supabase
-          .from('profiles')
-          .update({ is_admin: false })
-          .eq('id', profileId);
-        if (updErr) throw updErr;
-      }
+              if (rpcErr) {
+                await supabase
+                  .from('profiles')
+                  .update({ is_admin: false })
+                  .eq('id', profileId);
+              }
 
-      Alert.alert('Éxito', 'Modo Administrador desactivado correctamente.');
-      setProfile(prev => prev ? { ...prev, is_admin: false } : null);
-      if (onAdminChanged) onAdminChanged(false);
-    } catch (e: any) {
-      console.error('Error disabling admin:', e);
-      Alert.alert('Error', e.message || 'No se pudo desactivar el modo');
-    }
+              // Refrescar desde base de datos
+              const { data: refreshedProfile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', profileId)
+                .single();
+
+              if (refreshedProfile) {
+                setProfile(refreshedProfile as Profile);
+              } else {
+                setProfile(prev => prev ? { ...prev, is_admin: false } : null);
+              }
+
+              if (onAdminChanged) onAdminChanged(false);
+              Alert.alert('✅ Desactivado', 'El Modo Administrador ha sido desactivado correctamente.');
+            } catch (e: any) {
+              console.error('Error disabling admin:', e);
+              Alert.alert('Error', e.message || 'No se pudo desactivar el modo');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleCancelDuo = (duo: DuoRecord) => {
@@ -410,22 +456,53 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         <View style={{ width: 60 }} />
       </View>
 
-      {showSecretPin && (
-        <View style={{ padding: 16, backgroundColor: theme.colors.cardBorder, margin: 16, borderRadius: 8 }}>
-          <TextInput
-            style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 8 }}
-            secureTextEntry
-            placeholder="PIN Secreto"
-            placeholderTextColor="rgba(255,255,255,0.5)"
-            value={pinInput}
-            onChangeText={setPinInput}
-            keyboardType="numeric"
-          />
-          <TouchableOpacity onPress={handlePinSubmit} style={{ backgroundColor: theme.colors.primary, padding: 12, borderRadius: 8, alignItems: 'center' }}>
-            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Activar</Text>
-          </TouchableOpacity>
+      {/* Modal de Ingreso de PIN de Administrador (Sin Gestos) */}
+      <Modal visible={showSecretPin} transparent animationType="fade">
+        <View style={styles.pinModalOverlay}>
+          <View style={styles.pinModalBox}>
+            <View style={{ alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 36, marginBottom: 6 }}>👑</Text>
+              <Text style={styles.pinModalTitle}>Acceso de Organizador</Text>
+              <Text style={styles.pinModalDesc}>
+                Ingresa el PIN de 8 dígitos para habilitar el Modo Administrador.
+              </Text>
+            </View>
+
+            <TextInput
+              style={styles.pinModalInput}
+              secureTextEntry
+              placeholder="PIN Maestro"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={pinInput}
+              onChangeText={setPinInput}
+              keyboardType="numeric"
+              maxLength={8}
+              autoFocus
+            />
+
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+              <TouchableOpacity
+                style={[styles.pinModalBtn, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
+                onPress={() => {
+                  setShowSecretPin(false);
+                  setPinInput('');
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.pinModalBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.pinModalBtn, { backgroundColor: theme.colors.primary }]}
+                onPress={handlePinSubmit}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.pinModalBtnText, { fontWeight: '900', color: '#fff' }]}>Activar 👑</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      )}
+      </Modal>
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -526,6 +603,38 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
             </View>
           </View>
         </View>
+
+        {/* Panel de Modo Organizador / Administrador (Sin Gestos Ocultos) */}
+        {isOwnProfile && (
+          <View style={styles.adminControlCard}>
+            {profile?.is_admin ? (
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 24, marginRight: 10 }}>🛡️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.adminActiveTitle}>MODO ADMINISTRADOR ACTIVO</Text>
+                    <Text style={styles.adminActiveSub}>Tienes permisos para crear torneos VIP y gestionar el club.</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.adminDisableBtn}
+                  onPress={handleDisableAdmin}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.adminDisableBtnText}>🔴 Desactivar Modo Administrador</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.adminActivateBtn}
+                onPress={() => setShowSecretPin(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.adminActivateBtnText}>🔐 Ingresar Clave de Administrador</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* Medals Showcase */}
         {(() => {
@@ -1013,5 +1122,112 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: theme.spacing.s,
     marginBottom: theme.spacing.xs,
+  },
+  adminControlCard: {
+    backgroundColor: 'rgba(30, 41, 59, 0.7)',
+    borderRadius: theme.borderRadius.m,
+    padding: 16,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.35)',
+  },
+  adminActiveTitle: {
+    color: '#fbbf24',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  adminActiveSub: {
+    color: theme.colors.textDim,
+    fontSize: 12,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  adminDisableBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.5)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  adminDisableBtnText: {
+    color: '#ef4444',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  adminActivateBtn: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.4)',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  adminActivateBtnText: {
+    color: '#60a5fa',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  pinModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  pinModalBox: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#0f172a',
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  pinModalTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  pinModalDesc: {
+    color: '#94a3b8',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  pinModalInput: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 10,
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  pinModalBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pinModalBtnText: {
+    color: '#cbd5e1',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

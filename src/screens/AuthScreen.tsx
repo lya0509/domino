@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { theme } from '../theme';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { QRScannerModal } from '../components/QRScannerModal';
@@ -27,6 +28,11 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(!!inviteCode);
   const [showScanner, setShowScanner] = useState(false);
+
+  // Estados para visibilidad de contraseñas (ojitos)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Estados para Recuperación de Contraseña
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -296,26 +302,54 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Nueva Contraseña</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    secureTextEntry
-                    placeholder="Mínimo 6 caracteres"
-                    placeholderTextColor={theme.colors.textDim}
-                  />
+                  <View style={styles.passwordWrapper}>
+                    <TextInput
+                      style={[styles.input, styles.passwordInput]}
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry={!showNewPassword}
+                      placeholder="Mínimo 6 caracteres"
+                      placeholderTextColor={theme.colors.textDim}
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeBtn}
+                      onPress={() => setShowNewPassword(!showNewPassword)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      {showNewPassword ? (
+                        <EyeOff size={20} color="#94a3b8" />
+                      ) : (
+                        <Eye size={20} color="#94a3b8" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Confirmar Contraseña</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                    placeholder="Repite la contraseña"
-                    placeholderTextColor={theme.colors.textDim}
-                  />
+                  <View style={styles.passwordWrapper}>
+                    <TextInput
+                      style={[styles.input, styles.passwordInput]}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry={!showConfirmPassword}
+                      placeholder="Repite la contraseña"
+                      placeholderTextColor={theme.colors.textDim}
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeBtn}
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff size={20} color="#94a3b8" />
+                      ) : (
+                        <Eye size={20} color="#94a3b8" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <View style={styles.actions}>
@@ -562,14 +596,28 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Contraseña</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    placeholder="******"
-                    placeholderTextColor={theme.colors.textDim}
-                  />
+                  <View style={styles.passwordWrapper}>
+                    <TextInput
+                      style={[styles.input, styles.passwordInput]}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      placeholder="******"
+                      placeholderTextColor={theme.colors.textDim}
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeBtn}
+                      onPress={() => setShowPassword(!showPassword)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      {showPassword ? (
+                        <EyeOff size={20} color="#94a3b8" />
+                      ) : (
+                        <Eye size={20} color="#94a3b8" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {!isRegistering && (
@@ -687,6 +735,24 @@ const styles = StyleSheet.create({
     padding: theme.spacing.m,
     color: theme.colors.text,
     fontSize: 16,
+  },
+  passwordWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  passwordInput: {
+    paddingRight: 48,
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    zIndex: 10,
   },
   actions: {
     marginTop: theme.spacing.m,

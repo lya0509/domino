@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { theme } from '../theme';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { QRScannerModal } from '../components/QRScannerModal';
+import { LegalModal, LegalTab } from '../components/LegalModal';
 
 interface Props {
   onSessionConfigured: () => void;
@@ -28,6 +29,21 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(!!inviteCode);
   const [showScanner, setShowScanner] = useState(false);
+
+  // Modal Legal
+  const [showLegalModal, setShowLegalModal] = useState(false);
+  const [legalTab, setLegalTab] = useState<LegalTab>('terms');
+
+  const openLegal = (tab: LegalTab) => {
+    setLegalTab(tab);
+    setShowLegalModal(true);
+  };
+
+  // Referencias para navegación por teclado
+  const displayNameRef = useRef<TextInput>(null);
+  const initialsRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   // Estados para visibilidad de contraseñas (ojitos)
   const [showPassword, setShowPassword] = useState(false);
@@ -496,17 +512,23 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>Tu Nombre</Text>
                       <TextInput
+                        ref={displayNameRef}
                         style={styles.input}
                         value={displayName}
                         onChangeText={setDisplayName}
                         placeholder="Ej: Juanito Alcachofa"
                         placeholderTextColor={theme.colors.textDim}
+                        returnKeyType="next"
+                        onSubmitEditing={() => initialsRef.current?.focus()}
+                        blurOnSubmit={false}
+                        accessibilityLabel="Tu nombre o apodo para jugar"
                       />
                     </View>
 
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>Iniciales (máx 3 letras)</Text>
                       <TextInput
+                        ref={initialsRef}
                         style={styles.input}
                         value={initials}
                         onChangeText={(t) => setInitials(t.slice(0, 3).toUpperCase())}
@@ -514,6 +536,10 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
                         placeholderTextColor={theme.colors.textDim}
                         maxLength={3}
                         autoCapitalize="characters"
+                        returnKeyType="next"
+                        onSubmitEditing={() => emailRef.current?.focus()}
+                        blurOnSubmit={false}
+                        accessibilityLabel="Iniciales de jugador de máximo 3 letras"
                       />
                     </View>
 
@@ -623,13 +649,20 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Correo Electrónico</Text>
                   <TextInput
+                    ref={emailRef}
                     style={styles.input}
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
+                    autoCorrect={false}
                     keyboardType="email-address"
+                    textContentType="emailAddress"
                     placeholder="tu@correo.com"
                     placeholderTextColor={theme.colors.textDim}
+                    returnKeyType="next"
+                    onSubmitEditing={() => passwordRef.current?.focus()}
+                    blurOnSubmit={false}
+                    accessibilityLabel="Correo electrónico para ingresar o registrarte"
                   />
                 </View>
 
@@ -637,18 +670,26 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
                   <Text style={styles.label}>Contraseña</Text>
                   <View style={styles.passwordWrapper}>
                     <TextInput
+                      ref={passwordRef}
                       style={[styles.input, styles.passwordInput]}
                       value={password}
                       onChangeText={setPassword}
                       secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      textContentType="password"
                       placeholder="******"
                       placeholderTextColor={theme.colors.textDim}
+                      returnKeyType={isRegistering ? 'done' : 'go'}
+                      onSubmitEditing={isRegistering ? handleRegister : handleLogin}
+                      accessibilityLabel="Contraseña secreta"
                     />
                     <TouchableOpacity
                       style={styles.eyeBtn}
                       onPress={() => setShowPassword(!showPassword)}
                       activeOpacity={0.7}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     >
                       {showPassword ? (
                         <EyeOff size={20} color="#94a3b8" />
@@ -693,6 +734,20 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
                     </TouchableOpacity>
                   </View>
                 )}
+
+                {/* Aviso Legal de Privacidad y Términos */}
+                <View style={styles.legalNoticeContainer}>
+                  <Text style={styles.legalNoticeText}>
+                    Al continuar o registrarte, aceptas nuestros{' '}
+                    <Text style={styles.legalLink} onPress={() => openLegal('terms')}>
+                      Términos y Condiciones
+                    </Text>
+                    {' '}y nuestra{' '}
+                    <Text style={styles.legalLink} onPress={() => openLegal('privacy')}>
+                      Política de Privacidad
+                    </Text>.
+                  </Text>
+                </View>
               </>
             )}
           </View>
@@ -714,6 +769,12 @@ export const AuthScreen: React.FC<Props> = ({ onSessionConfigured, onGuestMode, 
           setShowScanner(false);
           Alert.alert('✅ ¡Pase Escaneado!', `Código de acceso detectado y verificado: ${code}`);
         }}
+      />
+
+      <LegalModal
+        visible={showLegalModal}
+        onClose={() => setShowLegalModal(false)}
+        initialTab={legalTab}
       />
     </SafeAreaView>
   );
@@ -850,5 +911,21 @@ const styles = StyleSheet.create({
     color: theme.colors.textDim,
     fontSize: 12,
     marginTop: 4,
+  },
+  legalNoticeContainer: {
+    marginTop: 18,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+  },
+  legalNoticeText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  legalLink: {
+    color: '#60a5fa',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });

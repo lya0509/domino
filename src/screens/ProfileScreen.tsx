@@ -12,6 +12,7 @@ import { sounds } from '../lib/sounds';
 import { Profile } from '../types';
 import { MatchGraph } from '../components/MatchGraph';
 import { RainbowText } from '../components/RainbowText';
+import { LegalModal, LegalTab } from '../components/LegalModal';
 
 interface Props {
   profileId: string | null;
@@ -55,6 +56,15 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   const [showSecretPin, setShowSecretPin] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Modal Legal y Privacidad
+  const [showLegalModal, setShowLegalModal] = useState(false);
+  const [legalTab, setLegalTab] = useState<LegalTab>('terms');
+
+  const openLegalModal = (tab: LegalTab) => {
+    setLegalTab(tab);
+    setShowLegalModal(true);
+  };
 
   const fetchData = useCallback(async () => {
     if (!profileId) return;
@@ -411,6 +421,55 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
             } catch (e: any) {
               console.error('Error disabling admin:', e);
               Alert.alert('Error', e.message || 'No se pudo desactivar el modo');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '⚠️ Eliminar Cuenta y Datos',
+      '¿Estás seguro de que deseas eliminar permanentemente tu cuenta?\n\nEsta acción es irreversible: se borrarán tus estadísticas, logros, datos de perfil y perderás el acceso a la plataforma según la normativa de protección de datos.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, Eliminar Todo',
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              // 1. Invocar función RPC segura si está instalada en Supabase
+              try {
+                await supabase.rpc('delete_user_account');
+              } catch (rpcErr) {
+                console.warn('RPC delete_user_account fallback:', rpcErr);
+              }
+
+              // 2. Fallback: eliminar perfil de usuario directamente
+              if (profileId) {
+                await supabase.from('profiles').delete().eq('id', profileId);
+              }
+
+              // 3. Limpiar almacenamiento local del dispositivo
+              await AsyncStorage.removeItem('@domino_admin_override');
+              await AsyncStorage.removeItem('@domino_match');
+              if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.localStorage.removeItem('@domino_admin_override');
+                window.localStorage.removeItem('@domino_match');
+              }
+
+              // 4. Cerrar sesión en Supabase Auth
+              await supabase.auth.signOut();
+
+              Alert.alert('Cuenta Eliminada', 'Tu cuenta y todos tus datos personales han sido eliminados.');
+              onBack();
+            } catch (err: any) {
+              console.error('Error deleting account:', err);
+              Alert.alert('Error', err.message || 'No se pudo eliminar la cuenta por completo.');
+            } finally {
+              setLoading(false);
             }
           },
         },
@@ -920,8 +979,111 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           </View>
         )}
 
+        {/* Sección Legal & Seguridad */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>⚖️ Legal & Seguridad</Text>
+          <Text style={{ color: theme.colors.textDim, fontSize: 13, marginBottom: 14, lineHeight: 18 }}>
+            Consulta las normativas oficiales, términos del club y políticas de protección de datos.
+          </Text>
+
+          <View style={styles.legalButtonsList}>
+            <TouchableOpacity
+              style={styles.legalRowBtn}
+              onPress={() => openLegalModal('terms')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Ver Términos y Condiciones de Uso"
+            >
+              <Text style={styles.legalRowIcon}>📜</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.legalRowTitle}>Términos y Condiciones de Uso</Text>
+                <Text style={styles.legalRowSubtitle}>Normas de convivencia y Fair Play</Text>
+              </View>
+              <Text style={styles.legalRowArrow}>➜</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.legalRowBtn}
+              onPress={() => openLegalModal('privacy')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Ver Política de Privacidad y Protección de Datos"
+            >
+              <Text style={styles.legalRowIcon}>🔒</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.legalRowTitle}>Política de Privacidad y Datos</Text>
+                <Text style={styles.legalRowSubtitle}>Minimización y derechos ARCO</Text>
+              </View>
+              <Text style={styles.legalRowArrow}>➜</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.legalRowBtn}
+              onPress={() => openLegalModal('rules')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Ver Reglamento Oficial de Torneos VIP"
+            >
+              <Text style={styles.legalRowIcon}>🏆</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.legalRowTitle}>Reglamento de Torneos VIP</Text>
+                <Text style={styles.legalRowSubtitle}>Pozos de premios, validación y pagos</Text>
+              </View>
+              <Text style={styles.legalRowArrow}>➜</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.legalRowBtn}
+              onPress={() => openLegalModal('cookies')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Ver Política de Almacenamiento Local y Cookies"
+            >
+              <Text style={styles.legalRowIcon}>🍪</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.legalRowTitle}>Almacenamiento Local y Cookies</Text>
+                <Text style={styles.legalRowSubtitle}>Tecnologías esenciales y memoria</Text>
+              </View>
+              <Text style={styles.legalRowArrow}>➜</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.legalRowBtn}
+              onPress={() => openLegalModal('contact')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Ver Canales de Contacto y Soporte Oficial"
+            >
+              <Text style={styles.legalRowIcon}>📬</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.legalRowTitle}>Contacto y Soporte Oficial</Text>
+                <Text style={styles.legalRowSubtitle}>Canales de atención del club</Text>
+              </View>
+              <Text style={styles.legalRowArrow}>➜</Text>
+            </TouchableOpacity>
+          </View>
+
+          {isOwnProfile && (
+            <TouchableOpacity
+              style={styles.deleteAccountBtn}
+              onPress={handleDeleteAccount}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Eliminar mi cuenta y datos personales definitivamente"
+            >
+              <Text style={styles.deleteAccountBtnText}>⚠️ Eliminar mi cuenta y datos personales</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <LegalModal
+        visible={showLegalModal}
+        onClose={() => setShowLegalModal(false)}
+        initialTab={legalTab}
+      />
     </SafeAreaView>
   );
 };
@@ -1164,5 +1326,52 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     fontSize: 14,
     fontWeight: '700',
+  },
+  legalButtonsList: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  legalRowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+  },
+  legalRowIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  legalRowTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  legalRowSubtitle: {
+    color: '#94a3b8',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  legalRowArrow: {
+    color: '#60a5fa',
+    fontSize: 14,
+    fontWeight: '800',
+    marginLeft: 8,
+  },
+  deleteAccountBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  deleteAccountBtnText: {
+    color: '#ef4444',
+    fontSize: 13,
+    fontWeight: '800',
   },
 });

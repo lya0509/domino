@@ -936,11 +936,12 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       {tournaments.filter(t => {
         if (activeTab === 'lobby') return t.status === 'registration';
         if (activeTab === 'live') return t.status === 'in_progress';
-        if (activeTab === 'my_tourneys') return (t.status === 'completed' || t.status === 'cancelled') && participants.some(p => p.tournament_id === t.id);
+        if (activeTab === 'my_tourneys') return (t.status === 'completed' || t.status === 'cancelled') && participants.some(p => p.tournament_id === t.id && p.user_id === profileId);
         return false;
       }).map(t => {
-        const isJoined = participants.some(p => p.tournament_id === t.id);
-        const myJoin = participants.find(p => p.tournament_id === t.id);
+        // participants also holds other users' approved entries, so match on the current user
+        const myJoin = participants.find(p => p.tournament_id === t.id && p.user_id === profileId);
+        const isJoined = !!myJoin;
 
         const getStatusLabel = (status: string) => {
           if (status === 'registration') return 'Abierto';
@@ -998,8 +999,12 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
                 <Text style={styles.tStatValue}>{t.tournament_type === 'vip_cash' ? `Bs ${t.entry_fee}` : (Number(t.entry_points) > 0 ? `🪙 ${t.entry_points}` : 'GRATIS 🆓')}</Text>
               </View>
               <View style={[styles.tStatBox, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: theme.colors.cardBorder }]}>
-                <Text style={styles.tStatLabel}>Pozo Actual</Text>
-                <Text style={[styles.tStatValue, { color: theme.colors.accent }]}>{t.tournament_type === 'vip_cash' ? `Bs ${t.prize_pool}` : `🪙 ${t.prize_pool}`}</Text>
+                <Text style={styles.tStatLabel}>{t.status === 'cancelled' ? 'Pozo' : 'Pozo Actual'}</Text>
+                {t.status === 'cancelled' ? (
+                  <Text style={[styles.tStatValue, { color: theme.colors.textDim }]}>Reembolsado</Text>
+                ) : (
+                  <Text style={[styles.tStatValue, { color: theme.colors.accent }]}>{t.tournament_type === 'vip_cash' ? `Bs ${t.prize_pool}` : `🪙 ${t.prize_pool}`}</Text>
+                )}
               </View>
               <View style={styles.tStatBox}>
                 <Text style={styles.tStatLabel}>Estado</Text>

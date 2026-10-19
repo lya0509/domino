@@ -112,6 +112,11 @@ export default function App() {
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(isRecoveryInitial);
   const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(null);
+  // Refs read by the popstate handler, which is registered once
+  const sessionRef = useRef<any>(null);
+  sessionRef.current = session;
+  const currentUserProfileIdRef = useRef<string | null>(null);
+  currentUserProfileIdRef.current = currentUserProfileId;
   const [liveMatchId, setLiveMatchId] = useState<string | null>(null);
   const [viewProfileId, setViewProfileId] = useState<string | null>(null);
   const [waitlistSetup, setWaitlistSetup] = useState<{ waitlistId: string, team1: Profile[], team2: Profile[] } | null>(null);
@@ -631,8 +636,10 @@ export default function App() {
     const handlePopState = (event: PopStateEvent) => {
       const state = event.state;
       if (state && state.screen) {
-        // La publicidad, splash y base NUNCA deben abrirse al retroceder
-        if (state.screen === 'ad' || state.screen === 'splash' || state.screen === 'home_base') {
+        // La publicidad, splash y base NUNCA deben abrirse al retroceder,
+        // y con sesión iniciada tampoco el login
+        const isLoginEntry = (state.screen === 'auth' || state.screen === 'splash') && !!sessionRef.current && !isPasswordRecoveryRef.current;
+        if (state.screen === 'ad' || state.screen === 'splash' || state.screen === 'home_base' || isLoginEntry) {
           window.history.replaceState({ screen: 'home' }, '', '#home');
           setCurrentScreen('home');
           setViewProfileId(null);
@@ -644,8 +651,8 @@ export default function App() {
         if (state.viewProfileId !== undefined) setViewProfileId(state.viewProfileId);
         if (state.liveMatchId !== undefined) setLiveMatchId(state.liveMatchId);
 
-        if (state.screen === 'profile' && currentUserProfileId) {
-          fetchCurrentUser(currentUserProfileId);
+        if (state.screen === 'profile' && currentUserProfileIdRef.current) {
+          fetchCurrentUser(currentUserProfileIdRef.current);
         }
       } else {
         // Si no hay state, volver a Home de forma segura sin salir de la página
@@ -660,7 +667,8 @@ export default function App() {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [currentUserProfileId]);
+    // Run once: re-running on login used to push extra '#auth' entries into the history
+  }, []);
 
   // 2. Manejo de botón físico Atrás en Android nativo
   useEffect(() => {

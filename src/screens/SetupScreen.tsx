@@ -61,12 +61,15 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
   }, [isGuestMode]);
 
   const fetchProfiles = async () => {
+    // Show the cached list instantly, then replace it with the server's (new sign-ups appear)
     const cached = offlineSync.getCachedProfilesSync();
     if (cached.length === 0) {
       setLoadingProfiles(true);
+    } else {
+      setProfiles(cached);
     }
     try {
-      const data = await offlineSync.getProfiles();
+      const data = await offlineSync.getProfiles(true);
       if (data && data.length > 0) {
         setProfiles(data);
       }

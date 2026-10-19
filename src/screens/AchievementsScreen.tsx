@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, StatusBar } from 'react-native';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
+import { offlineSync } from '../lib/offlineSync';
 import { Profile } from '../types';
 
 interface Props {
@@ -88,24 +89,29 @@ export const AchievementsScreen: React.FC<Props> = ({ onBack, currentUserProfile
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Fetch Profile
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', currentUserProfileId).single();
+      const [profileRes, matchesRes, betsRes, chatsRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', currentUserProfileId).single(),
+        supabase
+          .from('matches')
+          .select('id, status, winner_team, is_zapato, team1_player1, team1_player2, team2_player1, team2_player2, team1_total, team2_total, rounds, created_at')
+          .eq('status', 'completed')
+          .or(`team1_player1.eq.${currentUserProfileId},team1_player2.eq.${currentUserProfileId},team2_player1.eq.${currentUserProfileId},team2_player2.eq.${currentUserProfileId}`),
+        supabase.from('bets').select('status, amount_wagered').eq('user_id', currentUserProfileId),
+        supabase.from('live_chat').select('id').eq('user_id', currentUserProfileId),
+      ]);
+
+      const profileData = profileRes.data;
+      const matches = matchesRes.data;
+      const bets = betsRes.data;
+      const chats = chatsRes.data;
+
       if (profileData) setProfile(profileData as Profile);
 
-      // 2. Fetch Matches
-      const { data: matches } = await supabase.from('matches').select('*').eq('status', 'completed');
-      
-      // 3. Fetch Bets
-      const { data: bets } = await supabase.from('bets').select('*').eq('user_id', currentUserProfileId);
-      
-      // 4. Fetch Chat
-      const { data: chats } = await supabase.from('live_chat').select('id', { count: 'exact' }).eq('user_id', currentUserProfileId);
-      
       // Calculate stats
       const stats = { ...userStats };
       
       if (profileData) {
-        stats.max_points = profileData.betting_points || 0; // Aproximación
+        stats.max_points = profileData.betting_points || 0;
         stats.store_items = (profileData.inventory || []).length;
       }
 
@@ -205,21 +211,15 @@ export const AchievementsScreen: React.FC<Props> = ({ onBack, currentUserProfile
       const currentClaimed = profile.achievements || [];
       if (currentClaimed.includes(achievement.id)) return; // Ya reclamado
 
-      const newClaimed = [...currentClaimed, achievement.id];
-      const newPoints = (profile.betting_points || 0) + achievement.points;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({ achievements: newClaimed, betting_points: newPoints })
-        .eq('id', profile.id)
-        .select()
-        .single();
+      // Server pays the catalog reward and blocks claiming twice
+      const { data, error } = await supabase.rpc('claim_achievement', { p_achievement_id: achievement.id });
 
       if (error) throw error;
       setProfile(data as Profile);
+      offlineSync.updateCachedProfile(data as Profile);
       Alert.alert('¡Logro Reclamado!', `Has recibido ${achievement.points} puntos de apuesta.`);
-    } catch (err) {
-      Alert.alert('Error', 'No se pudo reclamar la recompensa.');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'No se pudo reclamar la recompensa.');
     } finally {
       setClaimingId(null);
     }

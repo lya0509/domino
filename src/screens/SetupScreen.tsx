@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, SafeAr
 import { theme } from '../theme';
 import { GameMode, Player, Match, Profile } from '../types';
 import { supabase } from '../lib/supabase';
+import { offlineSync } from '../lib/offlineSync';
 
 interface Props {
   onStartMatch: (match: Omit<Match, 'id' | 'rounds' | 'status'>, waitlistId?: string) => void;
@@ -15,13 +16,23 @@ interface Props {
 export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack, initialSlots, waitlistId }) => {
   const [mode] = useState<GameMode>('teams');
   const [limitScore, setLimitScore] = useState<number>(100);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>(() => offlineSync.getCachedProfilesSync());
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [isWagerMatch, setIsWagerMatch] = useState(false);
   const [wagerAmount, setWagerAmount] = useState<number>(0);
 
-  // Slots for team mode (profile IDs or null)
-  const [slots, setSlots] = useState<(Profile | null)[]>(initialSlots || [null, null, null, null]);
+  // Slots for team mode (always 4 slots)
+  const [slots, setSlots] = useState<(Profile | null)[]>(() => {
+    if (initialSlots && initialSlots.length > 0) {
+      return [
+        initialSlots[0] || null,
+        initialSlots[1] || null,
+        initialSlots[2] || null,
+        initialSlots[3] || null,
+      ];
+    }
+    return [null, null, null, null];
+  });
 
   // Guest mode fallback inputs
   const [t1p1, setT1p1] = useState('J1');
@@ -50,16 +61,14 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
   }, [isGuestMode]);
 
   const fetchProfiles = async () => {
-    setLoadingProfiles(true);
+    const cached = offlineSync.getCachedProfilesSync();
+    if (cached.length === 0) {
+      setLoadingProfiles(true);
+    }
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('display_name');
-      if (error) {
-        console.error('Error fetching profiles:', error.message);
-      } else {
-        setProfiles(data as Profile[]);
+      const data = await offlineSync.getProfiles();
+      if (data && data.length > 0) {
+        setProfiles(data);
       }
     } catch (err) {
       console.error('Failed to fetch profiles:', err);

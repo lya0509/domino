@@ -7,6 +7,9 @@ import { ProgressChart } from '../components/ProgressChart';
 import { supabase } from '../lib/supabase';
 import * as Haptics from 'expo-haptics';
 import { sounds } from '../lib/sounds';
+import { offlineSync } from '../lib/offlineSync';
+import { realtimeManager } from '../lib/realtimeManager';
+import { fetchActiveWaitlist, callWaitlistDuo } from '../lib/waitlistService';
 
 let captureRef: any;
 let ConfettiCannon: any;
@@ -18,7 +21,7 @@ if (Platform.OS !== 'web') {
 
 interface Props {
   match: Match;
-  onUpdateMatch: (match: Match) => void;
+  onUpdateMatch: (match: Match, fromRemote?: boolean) => void;
   onEndMatch: (winnerId: string) => void;
   currentUserProfileId?: string | null;
   isAdmin?: boolean;
@@ -46,9 +49,14 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
   const winnerRef = useRef(null);
 
   useEffect(() => {
-    // Fetch host table color
     const fetchTableColor = async () => {
       if (!match.created_by) return;
+      const cached = offlineSync.getCachedProfilesSync().find(p => p.id === match.created_by);
+      if (cached?.equipped_items?.table_color) {
+        setTableColor(cached.equipped_items.table_color);
+        return;
+      }
+      if (!offlineSync.getIsOnline()) return;
       const { data } = await supabase.from('profiles').select('equipped_items').eq('id', match.created_by).single();
       if (data?.equipped_items?.table_color) {
         setTableColor(data.equipped_items.table_color);
@@ -98,15 +106,13 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
     }
   }, [totals, match.limitScore, winnerData]);
 
-  // Sync Helper
+  // Proximity Alert Helper (Match DB sync is handled in App.tsx handleUpdateMatch with offline queue + broadcast)
   const syncToSupabase = async (updatedMatch: Match) => {
     if (updatedMatch.isGuestMode || !updatedMatch.id || !updatedMatch.id.includes('-')) return;
     try {
       const currentTotals = { team1: 0, team2: 0 };
       updatedMatch.rounds.forEach(r => {
         if (r.scorerId === 'tie') return;
-        // In team mode, scorerId is 'team1' or 'team2'.
-        // In free-for-all, it's the player ID.
         if (r.scorerId === 'team1' || r.scorerId === 'team2') {
           currentTotals[r.scorerId] += r.points;
         } else {
@@ -118,71 +124,57 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
         }
       });
 
-      await supabase.from('matches').update({
-        rounds: updatedMatch.rounds,
-        substitutions: updatedMatch.substitutions || [],
-        team1_total: currentTotals.team1,
-        team2_total: currentTotals.team2,
-        players_json: updatedMatch.players
-      }).eq('id', updatedMatch.id);
-
-      // Si una pareja está a 10 puntos o menos de ganar, alertar al siguiente dúo en fila
       const highestScore = Math.max(currentTotals.team1, currentTotals.team2);
       if (
         !proximityAlertSent.current &&
         updatedMatch.limitScore > 0 &&
-        highestScore >= updatedMatch.limitScore - 10
+        highestScore >= updatedMatch.limitScore - 10 &&
+        offlineSync.getIsOnline()
       ) {
         proximityAlertSent.current = true;
-        try {
-          const waitlistChannel = supabase.channel('domino_waitlist_calls');
-          waitlistChannel.send({
-            type: 'broadcast',
-            event: 'proximity_alert',
-            payload: {
-              matchId: updatedMatch.id,
-              highestScore,
-              limitScore: updatedMatch.limitScore,
-              pointsLeft: Math.max(1, updatedMatch.limitScore - highestScore),
-            }
-          });
-        } catch (alertErr) {
-          console.error('Error sending proximity alert:', alertErr);
-        }
+        await realtimeManager.broadcastProximityAlert({
+          matchId: updatedMatch.id,
+          highestScore,
+          limitScore: updatedMatch.limitScore,
+          pointsLeft: Math.max(1, updatedMatch.limitScore - highestScore),
+        });
       }
     } catch (e) {
-      console.error('Error syncing match:', e);
+      console.error('Error checking proximity alert:', e);
     }
   };
 
-  // Realtime Subscription
+  // Realtime Subscription (Broadcast + Postgres Changes)
   useEffect(() => {
     if (match.isGuestMode || !match.id || !match.id.includes('-')) return;
 
-    const channel = supabase.channel(`sync_match_${match.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${match.id}` }, payload => {
-        const newMatchData = payload.new;
-        if (newMatchData.rounds && newMatchData.rounds.length !== match.rounds.length) {
-          onUpdateMatch({
+    const unsub = realtimeManager.subscribeToMatch(match.id, (newMatchData) => {
+      if (
+        newMatchData.rounds &&
+        (newMatchData.rounds.length !== match.rounds.length ||
+          (newMatchData.substitutions || []).length !== (match.substitutions || []).length)
+      ) {
+        onUpdateMatch(
+          {
             ...match,
             rounds: newMatchData.rounds,
             substitutions: newMatchData.substitutions || [],
             players: newMatchData.players_json || match.players,
-            status: newMatchData.status
-          });
-        }
-      })
-      .subscribe();
+            status: newMatchData.status || match.status,
+          },
+          true
+        );
+      }
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsub();
     };
-  }, [match.id, match.rounds.length]);
+  }, [match.id, match.rounds.length, (match.substitutions || []).length]);
 
   const handleOpenScoreModal = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (match.isGuestMode) {
-      // In guest mode, anyone can edit
       setScorerId(id);
       setEndingType('normal');
       setPointsStr('');
@@ -190,7 +182,6 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
       return;
     }
 
-    // In normal mode, ONLY participants or admin can score.
     const isParticipant = match.players.some(p => p.profileId === currentUserProfileId);
     
     if (!isParticipant && !isAdmin) {
@@ -220,7 +211,7 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
       endingType: type,
     };
     const newMatch = { ...match, rounds: [...match.rounds, newRound] };
-    onUpdateMatch(newMatch);
+    onUpdateMatch(newMatch, false);
     syncToSupabase(newMatch);
     
     sounds.playSound('pop');
@@ -235,9 +226,8 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
     if (match.rounds.length > 0) {
       const newRounds = match.rounds.slice(0, -1);
       const newMatch = { ...match, rounds: newRounds };
-      onUpdateMatch(newMatch);
+      onUpdateMatch(newMatch, false);
       syncToSupabase(newMatch);
-      // If we undo past a win, clear winnerData
       if (winnerData) setWinnerData(null);
     }
   };
@@ -287,8 +277,8 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
   const handleOpenSubstitution = async () => {
     setIsSubModalOpen(true);
     if (!match.isGuestMode) {
-      const { data } = await supabase.from('profiles').select('*');
-      if (data) setSubProfiles(data);
+      const profiles = await offlineSync.getProfiles();
+      if (profiles) setSubProfiles(profiles);
     }
   };
 
@@ -318,7 +308,7 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
       players: updatedPlayers,
       substitutions: [...(match.substitutions || []), newSub]
     };
-    onUpdateMatch(newMatch);
+    onUpdateMatch(newMatch, false);
     syncToSupabase(newMatch);
 
     setIsSelectSubModalOpen(false);
@@ -327,27 +317,27 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
   };
 
   const handleFinishMatch = async (winnerId: string) => {
-    // Si el usuario está logueado y es participante con compañero, preguntarle por el duo
-    if (currentUserProfileId && match.gameMode === 'teams' && !match.isGuestMode) {
+    if (currentUserProfileId && match.gameMode === 'teams' && !match.isGuestMode && offlineSync.getIsOnline()) {
       const myTeam = match.players.filter(p => p.profileId === currentUserProfileId);
       if (myTeam.length > 0) {
         const teammate = match.players.find(
           p => p.teamNumber === myTeam[0].teamNumber && p.profileId !== currentUserProfileId
         );
         if (teammate?.profileId) {
-          // Verificar si ya son duos
-          const { data: existingDuo } = await supabase
-            .from('duos')
-            .select('id')
-            .or(`and(player1_id.eq.${currentUserProfileId},player2_id.eq.${teammate.profileId}),and(player1_id.eq.${teammate.profileId},player2_id.eq.${currentUserProfileId})`)
-            .limit(1);
+          try {
+            const { data: existingDuo } = await supabase
+              .from('duos')
+              .select('*')
+              .or(`and(player1_id.eq.${currentUserProfileId},player2_id.eq.${teammate.profileId}),and(player1_id.eq.${teammate.profileId},player2_id.eq.${currentUserProfileId})`);
 
-          if (!existingDuo || existingDuo.length === 0) {
-            // No son duos todavía, preguntar
-            setDuoPendingWinnerId(winnerId);
-            setShowDuoModal(true);
-            return;
-          }
+            // Only ask when there is no ACTIVE duo in either order (a cancelled duo can be reactivated)
+            const hasActiveDuo = (existingDuo || []).some((d: any) => d.is_active !== false);
+            if (!hasActiveDuo) {
+              setDuoPendingWinnerId(winnerId);
+              setShowDuoModal(true);
+              return;
+            }
+          } catch {}
         }
       }
     }
@@ -356,12 +346,7 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
 
   const handleCallNextWaitlistDuo = async () => {
     try {
-      const { data: queue } = await supabase
-        .from('waitlist')
-        .select('*, player1:profiles!waitlist_player1_id_fkey(id, display_name), player2:profiles!waitlist_player2_id_fkey(id, display_name)')
-        .eq('status', 'waiting')
-        .order('created_at', { ascending: true })
-        .limit(1);
+      const queue = await fetchActiveWaitlist();
 
       if (!queue || queue.length === 0) {
         Alert.alert('Lista de Espera Vacía', 'No hay ningún dúo esperando en la lista en este momento.');
@@ -372,20 +357,7 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
       const p1Name = nextDuo.player1?.display_name || 'Jugador 1';
       const p2Name = nextDuo.player2?.display_name || 'Jugador 2';
 
-      const channel = supabase.channel('domino_waitlist_calls');
-      await channel.send({
-        type: 'broadcast',
-        event: 'call_duo',
-        payload: {
-          duoId: nextDuo.id,
-          p1Id: nextDuo.player1_id,
-          p2Id: nextDuo.player2_id,
-          p1Name,
-          p2Name,
-          callerName: 'La Mesa',
-          timestamp: Date.now()
-        }
-      });
+      await callWaitlistDuo(nextDuo, 'La Mesa');
       sounds.playSound('pop');
       Alert.alert(
         '🚨 ¡Dúo Llamado a la Mesa!',
@@ -717,12 +689,20 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
                       );
                       if (teammate?.profileId) {
                         try {
-                          await supabase.from('duos').insert({
-                            player1_id: currentUserProfileId,
-                            player2_id: teammate.profileId,
-                          });
+                          // Reuse any existing row (either order) instead of inserting a mirrored duplicate
+                          const { data: rows } = await supabase
+                            .from('duos')
+                            .select('id')
+                            .or(`and(player1_id.eq.${currentUserProfileId},player2_id.eq.${teammate.profileId}),and(player1_id.eq.${teammate.profileId},player2_id.eq.${currentUserProfileId})`)
+                            .limit(1);
+                          if (rows && rows.length > 0) {
+                            await supabase.from('duos').update({ is_active: true }).eq('id', rows[0].id);
+                          } else {
+                            const [p1, p2] = [currentUserProfileId, teammate.profileId].sort();
+                            await supabase.from('duos').insert({ player1_id: p1, player2_id: p2 });
+                          }
                         } catch (e) {
-                          // Duo ya existe (UNIQUE constraint), no hacer nada
+                          // Network error: the prompt will simply appear again next match
                         }
                       }
                     }

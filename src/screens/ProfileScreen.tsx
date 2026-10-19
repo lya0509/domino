@@ -13,6 +13,8 @@ import { Profile } from '../types';
 import { MatchGraph } from '../components/MatchGraph';
 import { RainbowText } from '../components/RainbowText';
 import { LegalModal, LegalTab } from '../components/LegalModal';
+import { offlineSync } from '../lib/offlineSync';
+import { reconcileUserPendingBets } from '../lib/bettingService';
 
 interface Props {
   profileId: string | null;
@@ -46,6 +48,10 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   const [theyWonMore, setTheyWonMore] = useState<RivalRecord[]>([]);
   const [iWonMore, setIWonMore] = useState<RivalRecord[]>([]);
   const [recentMatches, setRecentMatches] = useState<any[]>([]);
+  // Full history + full rival lists for the "Ver todo" modal (cards show top 3)
+  const [allMyMatches, setAllMyMatches] = useState<any[]>([]);
+  const [showAllRivals, setShowAllRivals] = useState(false);
+  const [allRivalsTab, setAllRivalsTab] = useState<'won' | 'lost'>('lost');
   const [betHistory, setBetHistory] = useState<any[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, Profile>>({});
   const [loading, setLoading] = useState(true);
@@ -71,12 +77,48 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
     setLoading(true);
 
     try {
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', profileId)
-        .single();
+      // Reconcile any pending winning bets for own profile first so balance is 100% accurate
+      if (isOwnProfile && offlineSync.getIsOnline()) {
+        await reconcileUserPendingBets(profileId);
+      }
+
+      const [profileData, allProfiles, duosRes, matchesRes, betsRes] = await Promise.all([
+        (async () => {
+          if (!offlineSync.getIsOnline()) {
+            return offlineSync.getCachedProfilesSync().find(p => p.id === profileId) || null;
+          }
+          const { data } = await supabase.from('profiles').select('*').eq('id', profileId).single();
+          return data;
+        })(),
+        offlineSync.getProfiles(),
+        offlineSync.getIsOnline()
+          ? supabase.from('duos').select('*').or(`player1_id.eq.${profileId},player2_id.eq.${profileId}`)
+          : Promise.resolve({ data: [] as any[] }),
+        (async () => {
+          if (!offlineSync.getIsOnline()) {
+            const cached = await offlineSync.getCachedMatches();
+            return cached.filter((m: any) =>
+              m.status === 'completed' &&
+              [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2].includes(profileId)
+            );
+          }
+          const { data } = await supabase
+            .from('matches')
+            .select('id, status, winner_team, is_zapato, team1_player1, team1_player2, team2_player1, team2_player2, team1_total, team2_total, limit_score, rounds, created_at')
+            .eq('status', 'completed')
+            .or(`team1_player1.eq.${profileId},team1_player2.eq.${profileId},team2_player1.eq.${profileId},team2_player2.eq.${profileId}`);
+          return data || [];
+        })(),
+        offlineSync.getIsOnline()
+          ? supabase
+              .from('bets')
+              .select('id, amount_wagered, multiplier, bet_on_team, status, created_at, match_id')
+              .eq('user_id', profileId)
+              .order('created_at', { ascending: false })
+              .limit(10)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
       if (profileData) {
         let isAdmin = (profileData as Profile).is_admin || false;
         if (isOwnProfile) {
@@ -92,27 +134,17 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
             // ignore
           }
         }
-        setProfile({ ...(profileData as Profile), is_admin: isAdmin });
+        const finalProf = { ...(profileData as Profile), is_admin: isAdmin };
+        setProfile(finalProf);
+        offlineSync.updateProfileInCache(finalProf);
       }
 
-      // Fetch all profiles for name lookup
-      const { data: allProfiles } = await supabase.from('profiles').select('*');
       const pMap: Record<string, Profile> = {};
       (allProfiles || []).forEach((p: Profile) => { pMap[p.id] = p; });
       setProfileMap(pMap);
 
-      // Fetch this user's duos (both directions)
-      const { data: duosData } = await supabase
-        .from('duos')
-        .select('*')
-        .or(`player1_id.eq.${profileId},player2_id.eq.${profileId}`);
-
-      const { data: matchesData } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('status', 'completed');
-
-      const matches = matchesData || [];
+      const duosData = duosRes.data || [];
+      const matches = matchesRes || [];
 
       let wins = 0, losses = 0, zapatosGiven = 0, zapatosReceived = 0;
       matches.forEach((m: any) => {
@@ -121,8 +153,8 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         const inTeam1 = team1.includes(profileId);
         const inTeam2 = team2.includes(profileId);
 
-        if (!inTeam1 && !inTeam2) return; // Skip matches where user didn't play
-        if (!m.winner_team) return; // Ignorar partidas sin ganador
+        if (!inTeam1 && !inTeam2) return;
+        if (!m.winner_team) return;
 
         const won = (inTeam1 && m.winner_team === 1) || (inTeam2 && m.winner_team === 2);
         if (won) {
@@ -136,12 +168,10 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       setStats({ wins, losses, total: wins + losses, zapatosGiven, zapatosReceived });
 
       // Build recent matches history
-      const myMatches = matches.filter((m: any) => {
-        const allPlayers = [m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2].filter(Boolean);
-        return allPlayers.includes(profileId);
-      });
+      const myMatches = [...matches];
       myMatches.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setRecentMatches(myMatches.slice(0, 5));
+      setAllMyMatches(myMatches);
 
       // Compute rival stats
       const theyWonCounter: Record<string, number> = {};
@@ -153,10 +183,9 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         const inTeam1 = team1.includes(profileId);
         const inTeam2 = team2.includes(profileId);
 
-        if (!inTeam1 && !inTeam2) return; // Ignore matches where user did not play
-        if (!m.winner_team) return; // Ignorar partidas sin ganador
+        if (!inTeam1 && !inTeam2) return;
+        if (!m.winner_team) return;
 
-        const myTeam = inTeam1 ? team1 : team2;
         const rivalTeam = inTeam1 ? team2 : team1;
         const iWon = (inTeam1 && m.winner_team === 1) || (!inTeam1 && m.winner_team === 2);
 
@@ -173,7 +202,6 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       const buildRivals = (counter: Record<string, number>): RivalRecord[] =>
         Object.entries(counter)
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
           .map(([playerId, count]) => ({
             playerId,
             name: pMap[playerId]?.display_name || 'Desconocido',
@@ -184,30 +212,25 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       setTheyWonMore(buildRivals(theyWonCounter));
       setIWonMore(buildRivals(iWonCounter));
 
-      // Fetch bets
-      const { data: betsData, error: betsError } = await supabase
-        .from('bets')
-        .select(`
-          id, amount_wagered, bet_on_team, status, created_at,
-          matches ( id, winner_team, team1_player1, team1_player2, team2_player1, team2_player2 )
-        `)
-        .eq('user_id', profileId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (betsData) {
-        setBetHistory(betsData);
+      if (betsRes.data) {
+        setBetHistory(betsRes.data);
       }
 
       // Build duo records
-      const duoRecords: DuoRecord[] = (duosData || []).map((d: any) => {
+      // Collapse legacy duplicate rows (A,B)/(B,A) into one per partner, preferring the active one
+      const duoByPartner: Record<string, any> = {};
+      (duosData || []).forEach((d: any) => {
+        const pid = d.player1_id === profileId ? d.player2_id : d.player1_id;
+        const prev = duoByPartner[pid];
+        if (!prev || (prev.is_active === false && d.is_active !== false)) duoByPartner[pid] = d;
+      });
+      const duoRecords: DuoRecord[] = Object.values(duoByPartner).map((d: any) => {
         const partnerId = d.player1_id === profileId ? d.player2_id : d.player1_id;
         const partner = pMap[partnerId];
 
-        // Count matches played together and wins
         let duoWins = 0, duoLosses = 0;
         matches.forEach((m: any) => {
-          if (!m.winner_team) return; // Ignorar partidas sin ganador
+          if (!m.winner_team) return;
           const team1 = [m.team1_player1, m.team1_player2].filter(Boolean);
           const team2 = [m.team2_player1, m.team2_player2].filter(Boolean);
           const togetherInTeam1 = team1.includes(profileId) && team1.includes(partnerId);
@@ -224,7 +247,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           partnerId,
           partnerName: partner?.display_name || 'Desconocido',
           partnerInitials: partner?.initials || '??',
-          isActive: d.is_active !== false, // default true if column not yet present
+          isActive: d.is_active !== false,
           wins: duoWins,
           losses: duoLosses,
           totalMatches: duoWins + duoLosses,
@@ -237,7 +260,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
     } finally {
       setLoading(false);
     }
-  }, [profileId]);
+  }, [profileId, isOwnProfile]);
 
   useEffect(() => {
     fetchData();
@@ -491,7 +514,14 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
               await supabase
                 .from('duos')
                 .update({ is_active: false })
-                .eq('id', duo.duoId);
+                .or(`and(player1_id.eq.${profileId},player2_id.eq.${duo.partnerId}),and(player1_id.eq.${duo.partnerId},player2_id.eq.${profileId})`)
+                .select('id')
+                .then(({ data, error }) => {
+                  // RLS silently updates 0 rows when no UPDATE policy exists (see fix_duos_duplicates.sql)
+                  if (error || !data || data.length === 0) {
+                    Alert.alert('Error', 'No se pudo cancelar el duo. Intenta de nuevo.');
+                  }
+                });
               fetchData(); // Recargar
             } catch (err) {
               Alert.alert('Error', 'No se pudo cancelar el duo. Intenta de nuevo.');
@@ -501,6 +531,15 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       ]
     );
   };
+
+  const isMatchWon = (m: any) => {
+    const inTeam1 = [m.team1_player1, m.team1_player2].includes(profileId);
+    return (inTeam1 && m.winner_team === 1) || (!inTeam1 && m.winner_team === 2);
+  };
+  const decidedMatches = allMyMatches.filter((m) => !!m.winner_team);
+  const wonMatches = decidedMatches.filter(isMatchWon);
+  const lostMatches = decidedMatches.filter((m) => !isMatchWon(m));
+  const sumCounts = (list: RivalRecord[]) => list.reduce((acc, r) => acc + r.count, 0);
 
   if (loading) {
     return (
@@ -807,7 +846,10 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         {theyWonMore.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>😤 Me han ganado más</Text>
-            {theyWonMore.map((r, i) => (
+            <Text style={styles.rivalTotalText}>
+              Total: {lostMatches.length} partidas perdidas · {theyWonMore.length} rivales
+            </Text>
+            {theyWonMore.slice(0, 3).map((r, i) => (
               <View key={r.playerId} style={styles.rivalRow}>
                 <Text style={styles.rivalRank}>#{i + 1}</Text>
                 <View style={[styles.duoAvatar, { backgroundColor: theme.colors.danger }]}>
@@ -819,6 +861,12 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                 </View>
               </View>
             ))}
+            <TouchableOpacity
+              style={styles.seeAllBtn}
+              onPress={() => { setAllRivalsTab('lost'); setShowAllRivals(true); }}
+            >
+              <Text style={styles.seeAllBtnText}>Ver todo →</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -826,7 +874,10 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         {iWonMore.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>😎 Yo más les he ganado</Text>
-            {iWonMore.map((r, i) => (
+            <Text style={styles.rivalTotalText}>
+              Total: {wonMatches.length} partidas ganadas · {iWonMore.length} rivales
+            </Text>
+            {iWonMore.slice(0, 3).map((r, i) => (
               <View key={r.playerId} style={styles.rivalRow}>
                 <Text style={styles.rivalRank}>#{i + 1}</Text>
                 <View style={[styles.duoAvatar, { backgroundColor: theme.colors.success }]}>
@@ -838,8 +889,82 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                 </View>
               </View>
             ))}
+            <TouchableOpacity
+              style={styles.seeAllBtn}
+              onPress={() => { setAllRivalsTab('won'); setShowAllRivals(true); }}
+            >
+              <Text style={styles.seeAllBtnText}>Ver todo →</Text>
+            </TouchableOpacity>
           </View>
         )}
+
+        {/* Ver todo: all won/lost matches + full rival list */}
+        <Modal visible={showAllRivals} animationType="slide" transparent onRequestClose={() => setShowAllRivals(false)}>
+          <View style={styles.allRivalsOverlay}>
+            <View style={styles.allRivalsSheet}>
+              <View style={styles.allRivalsHeader}>
+                <Text style={styles.cardTitle}>📊 Historial de Rivalidades</Text>
+                <TouchableOpacity onPress={() => setShowAllRivals(false)} accessibilityLabel="Cerrar">
+                  <Text style={styles.allRivalsClose}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.allRivalsTabs}>
+                <TouchableOpacity
+                  style={[styles.allRivalsTab, allRivalsTab === 'lost' && { borderColor: theme.colors.danger }]}
+                  onPress={() => setAllRivalsTab('lost')}
+                >
+                  <Text style={[styles.allRivalsTabText, allRivalsTab === 'lost' && { color: theme.colors.danger }]}>
+                    😤 Perdidas ({lostMatches.length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.allRivalsTab, allRivalsTab === 'won' && { borderColor: theme.colors.success }]}
+                  onPress={() => setAllRivalsTab('won')}
+                >
+                  <Text style={[styles.allRivalsTabText, allRivalsTab === 'won' && { color: theme.colors.success }]}>
+                    😎 Ganadas ({wonMatches.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ flexGrow: 0 }}>
+                <Text style={styles.allRivalsSection}>
+                  {allRivalsTab === 'lost' ? 'Quiénes me han ganado' : 'A quiénes les he ganado'} ({sumCounts(allRivalsTab === 'lost' ? theyWonMore : iWonMore)})
+                </Text>
+                {(allRivalsTab === 'lost' ? theyWonMore : iWonMore).map((r, i) => (
+                  <View key={r.playerId} style={styles.rivalRow}>
+                    <Text style={styles.rivalRank}>#{i + 1}</Text>
+                    <Text style={styles.rivalName}>{r.name}</Text>
+                    <Text style={[styles.rivalBadgeText, { color: allRivalsTab === 'lost' ? theme.colors.danger : theme.colors.success }]}>
+                      {r.count}x
+                    </Text>
+                  </View>
+                ))}
+                <Text style={styles.allRivalsSection}>Partidas</Text>
+                {(allRivalsTab === 'lost' ? lostMatches : wonMatches).map((m) => {
+                  const inTeam1 = [m.team1_player1, m.team1_player2].includes(profileId);
+                  const rivalTeam = (inTeam1 ? [m.team2_player1, m.team2_player2] : [m.team1_player1, m.team1_player2]).filter(Boolean);
+                  const myScore = inTeam1 ? m.team1_total : m.team2_total;
+                  const rivalScore = inTeam1 ? m.team2_total : m.team1_total;
+                  return (
+                    <View key={m.id} style={styles.rivalRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.rivalName, { fontSize: 14 }]}>
+                          vs {rivalTeam.map((id: string) => profileMap[id]?.display_name || 'Desconocido').join(' y ') || 'Nadie'}
+                        </Text>
+                        <Text style={{ color: theme.colors.textDim, fontSize: 12 }}>
+                          {new Date(m.created_at).toLocaleDateString()} {m.is_zapato ? '👟' : ''}
+                        </Text>
+                      </View>
+                      <Text style={[styles.rivalBadgeText, { color: allRivalsTab === 'lost' ? theme.colors.danger : theme.colors.success, fontSize: 16 }]}>
+                        {myScore} - {rivalScore}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         {/* Active Duos */}
         <View style={styles.card}>
@@ -901,15 +1026,22 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           <View style={styles.card}>
             <Text style={styles.cardTitle}>🎲 Últimas Apuestas</Text>
             {betHistory.map((bet) => {
-              const match = bet.matches;
               const isResolved = bet.status !== 'pending';
               const wonBet = bet.status === 'won';
+              const isCancelled = bet.status === 'cancelled';
+              const mult = Number(bet.multiplier) > 0 ? Number(bet.multiplier) : 2.0;
+              const payout = Math.floor(Number(bet.amount_wagered || 0) * mult);
 
               let resultText = 'En curso ⏳';
               let resultColor = theme.colors.textDim;
               if (isResolved) {
-                resultText = wonBet ? `+${bet.amount_wagered * 2} pts 🤑` : `-${bet.amount_wagered} pts 💸`;
-                resultColor = wonBet ? theme.colors.success : theme.colors.danger;
+                if (isCancelled) {
+                  resultText = `Reembolsado (+${bet.amount_wagered} pts)`;
+                  resultColor = '#60a5fa';
+                } else {
+                  resultText = wonBet ? `+${payout} pts 🤑` : `-${bet.amount_wagered} pts 💸`;
+                  resultColor = wonBet ? theme.colors.success : theme.colors.danger;
+                }
               }
 
               return (
@@ -917,7 +1049,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                   <Text style={styles.rivalRank}>🎲</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.rivalName, { fontSize: 14 }]}>
-                      Apuesta: {bet.amount_wagered} pts
+                      Apuesta: {bet.amount_wagered} pts (x{mult})
                     </Text>
                     <Text style={{ color: theme.colors.textDim, fontSize: 12 }}>
                       Equipo {bet.bet_on_team}
@@ -1241,6 +1373,30 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.cardBorder,
   },
   inactiveBadgeText: { color: theme.colors.textDim, fontSize: 11, fontWeight: '600' },
+  rivalTotalText: { color: theme.colors.textDim, fontSize: 12, marginBottom: 8 },
+  seeAllBtn: { alignSelf: 'flex-end', paddingVertical: 8, paddingHorizontal: 4, marginTop: 4 },
+  seeAllBtnText: { color: theme.colors.primary, fontSize: 14, fontWeight: '700' },
+  allRivalsOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  allRivalsSheet: {
+    backgroundColor: theme.colors.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    maxHeight: '85%',
+  },
+  allRivalsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  allRivalsClose: { color: theme.colors.textDim, fontSize: 22, padding: 4 },
+  allRivalsTabs: { flexDirection: 'row', gap: 8, marginVertical: 12 },
+  allRivalsTab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    alignItems: 'center',
+  },
+  allRivalsTabText: { color: theme.colors.textDim, fontWeight: '700', fontSize: 13 },
+  allRivalsSection: { color: theme.colors.text, fontWeight: '800', fontSize: 14, marginTop: 12, marginBottom: 6 },
   rivalRow: {
     flexDirection: 'row', alignItems: 'center', gap: theme.spacing.m,
     paddingVertical: theme.spacing.m,

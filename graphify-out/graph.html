@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Domino VIP (PeSiMistas) — Full-System Graphify Explorer (v3.0.0)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #f59e0b;
+      --primary: #3b82f6;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: #0b1120;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .badge {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    input[type="search"], select {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 13px;
+      outline: none;
+    }
+    .tab-btn {
+      background: var(--panel);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 7px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 390px;
+      overflow: hidden;
+    }
+    #canvas-wrap {
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #1e293b 0%, #0f172a 75%);
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+    canvas:active { cursor: grabbing; }
+    .legend {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      max-width: 320px;
+      font-size: 12px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    aside {
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      padding: 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .card h3 {
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .card p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .pill {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #cbd5e1;
+    }
+    #qa-view {
+      display: none;
+      padding: 24px;
+      overflow-y: auto;
+      grid-column: 1 / -1;
+    }
+    .qa-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .qa-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .qa-card h4 {
+      color: var(--accent);
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .qa-card code {
+      display: block;
+      background: #0b1120;
+      color: #38bdf8;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      margin: 8px 0;
+    }
+    .qa-card ul {
+      padding-left: 18px;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span style="font-size:24px;">🎲</span>
+      <div>
+        <h1>Domino VIP (PeSiMistas) — Full-System Graphify</h1>
+        <div style="font-size:12px;color:var(--muted);">8 Communities • 51 Nodes • 49 Directed Edges • 6 Hyperedges • 14 Claude Code QA Suites</div>
+      </div>
+      <span class="badge">v3.0.0 Full-System</span>
+    </div>
+    <div class="controls">
+      <input type="search" id="searchInput" placeholder="Buscar pantalla, tabla, RPC, servicio..." />
+      <select id="communityFilter">
+        <option value="all">Todas las Comunidades (8)</option>
+      </select>
+      <button class="tab-btn active" id="btnGraphTab">🕸️ Grafo Interactivo</button>
+      <button class="tab-btn" id="btnQaTab">🧪 Matriz QA Claude Code (14)</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="canvas-wrap">
+      <canvas id="graphCanvas"></canvas>
+      <div class="legend" id="legendBox"></div>
+    </div>
+    <aside id="inspectorPanel">
+      <div class="card">
+        <h3>🔍 Inspector de Nodo del Sistema</h3>
+        <p id="nodeTitle" style="font-weight:700;color:#fff;font-size:15px;">Haz clic en cualquier nodo del grafo</p>
+        <p id="nodeRole" style="margin-top:6px;">Explora las 11 pantallas, 5 componentes visuales, 7 servicios backend/offline/realtime, 11 tablas de Supabase y 4 RPCs.</p>
+        <div class="pill-list" id="nodePills"></div>
+      </div>
+      <div class="card">
+        <h3>⚡ Hyperedges del Sistema (6)</h3>
+        <div id="hyperedgeList" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;"></div>
+      </div>
+      <div class="card">
+        <h3>🤖 Comandos Rápidos Claude Code</h3>
+        <div class="pill-list">
+          <span class="pill">window.__DOMINO_GRAPHIFY__.getState()</span>
+          <span class="pill">window.__DOMINO_GRAPHIFY__.navigate('home')</span>
+          <span class="pill">window.__DOMINO_GRAPHIFY__.navigate('game')</span>
+          <span class="pill">window.__DOMINO_GRAPHIFY__.navigate('live')</span>
+          <span class="pill">window.__DOMINO_GRAPHIFY__.navigate('store')</span>
+          <span class="pill">window.__DOMINO_GRAPHIFY__.navigate('tournaments')</span>
+          <span class="pill">await window.__DOMINO_GRAPHIFY__.runDiagnostics()</span>
+        </div>
+      </div>
+    </aside>
+
+    <div id="qa-view">
+      <h2>🧪 Matriz Completa de Pruebas E2E & Diseño Visual para Claude Code</h2>
+      <p style="color:var(--muted);margin-top:4px;">Cada suite incluye el comando directo de navegación en `window.__DOMINO_GRAPHIFY__` y los criterios de verificación.</p>
+      <div class="qa-grid" id="qaGrid"></div>
+    </div>
+  </main>
+
+  <script>
+    const COMMUNITIES = [
+      { id: 'core_router', name: '1. Core Router & Lifecycle', color: '#3b82f6' },
+      { id: 'backend_services', name: '2. Backend, Offline & Realtime Services', color: '#10b981' },
+      { id: 'onboarding_auth_screens', name: '3. Onboarding, Ads & Auth Screens', color: '#a855f7' },
+      { id: 'gameplay_live_screens', name: '4. Gameplay & Spectator Live Screens', color: '#f59e0b' },
+      { id: 'social_economy_screens', name: '5. Social, Store, Achievements & Tourneys', color: '#ec4899' },
+      { id: 'ui_components', name: '6. Reusable Visual & Modal Components', color: '#06b6d4' },
+      { id: 'database_sql', name: '7. Supabase Tables, RPCs & SQL', color: '#ef4444' },
+      { id: 'pwa_build_config', name: '8. PWA, Service Worker & Config', color: '#64748b' }
+    ];
+
+    const NODES = [
+      { id: 'index.ts', label: 'index.ts', community: 'core_router', role: 'Expo Root Entry' },
+      { id: 'App.tsx', label: 'App.tsx (13 Routes)', community: 'core_router', role: 'Central Router, Toast, 30s Call Modal & Offline Banner' },
+      { id: 'src/types.ts', label: 'types.ts', community: 'core_router', role: 'Domain Interfaces (Match, Profile, Round, Substitution)' },
+      { id: 'src/theme.ts', label: 'theme.ts', community: 'core_router', role: 'Dark-Slate Visual Design Tokens' },
+      { id: 'src/lib/supabase.ts', label: 'supabase.ts', community: 'backend_services', role: 'Supabase Client + Auth Storage' },
+      { id: 'src/lib/offlineSync.ts', label: 'offlineSync.ts', community: 'backend_services', role: 'FIFO Offline Outbox + SWR Profile/Match Cache' },
+      { id: 'src/lib/realtimeManager.ts', label: 'realtimeManager.ts', community: 'backend_services', role: '<100ms Broadcast + Postgres Changes Multiplexer' },
+      { id: 'src/lib/bettingService.ts', label: 'bettingService.ts', community: 'backend_services', role: 'Atomic Betting, Wager Settlement & Self-Healing Reconciler' },
+      { id: 'src/lib/waitlistService.ts', label: 'waitlistService.ts', community: 'backend_services', role: 'Pedir Mesa Queue & 30s Urgent Call Service' },
+      { id: 'src/lib/sounds.ts', label: 'sounds.ts', community: 'backend_services', role: 'Audio Effects (pop, slap, clap, chaching) & Mute' },
+      { id: 'src/lib/graphifyBridge.ts', label: 'graphifyBridge.ts', community: 'backend_services', role: 'Claude Code Runtime QA & Navigation Bridge' },
+      { id: 'src/screens/OnboardingScreen.tsx', label: 'OnboardingScreen', community: 'onboarding_auth_screens', role: '5-Slide Tutorial + iOS/Android PWA Install Guides (route: splash)' },
+      { id: 'src/screens/SplashAdScreen.tsx', label: 'SplashAdScreen', community: 'onboarding_auth_screens', role: '5s Sponsored Ad Interstitial with 30m Cooldown (route: ad)' },
+      { id: 'src/screens/AuthScreen.tsx', label: 'AuthScreen', community: 'onboarding_auth_screens', role: 'Login, Invite/QR Register, Password Recovery & Guest Mode (route: auth)' },
+      { id: 'src/screens/HomeScreen.tsx', label: 'HomeScreen', community: 'gameplay_live_screens', role: 'Main Dashboard, Daily Streak, Pedir Mesa & Rankings (route: home)' },
+      { id: 'src/screens/SetupScreen.tsx', label: 'SetupScreen', community: 'gameplay_live_screens', role: '2v2/Individual Setup, Salida Order & VIP Wager (route: setup)' },
+      { id: 'src/screens/GameScreen.tsx', label: 'GameScreen', community: 'gameplay_live_screens', role: 'Live Scorepad, Substitutions, Zapato & Share Receipt (route: game)' },
+      { id: 'src/screens/LiveMatchScreen.tsx', label: 'LiveMatchScreen', community: 'gameplay_live_screens', role: 'Spectator Scoreboard, Dynamic Odds Betting & Live Chat (route: live)' },
+      { id: 'src/screens/ProfileScreen.tsx', label: 'ProfileScreen', community: 'social_economy_screens', role: 'Stats, VAR MatchGraph, Rivals, Duos, QR Pass & Admin PIN 0509 (route: profile)' },
+      { id: 'src/screens/StoreScreen.tsx', label: 'StoreScreen', community: 'social_economy_screens', role: '14 VIP Cosmetics + 250k Custom Title Shop (route: store)' },
+      { id: 'src/screens/AchievementsScreen.tsx', label: 'AchievementsScreen', community: 'social_economy_screens', role: '50 Unlockable Medals & Point Rewards (route: achievements)' },
+      { id: 'src/screens/LeaderboardScreen.tsx', label: 'LeaderboardScreen', community: 'social_economy_screens', role: 'Top 100 Ricos, Ganadores & Zapateros (route: leaderboard)' },
+      { id: 'src/screens/TournamentsScreen.tsx', label: 'TournamentsScreen', community: 'social_economy_screens', role: 'VIP Cash, Elimination Brackets, Leaderboard & Admin (route: tournaments)' },
+      { id: 'src/screens/GlobalChatScreen.tsx', label: 'GlobalChatScreen', community: 'social_economy_screens', role: 'Realtime Community Lobby Chat with Cosmetics (route: global_chat)' },
+      { id: 'src/components/ProgressChart.tsx', label: 'ProgressChart', community: 'ui_components', role: 'Animated Horizontal Score Race Bars' },
+      { id: 'src/components/MatchGraph.tsx', label: 'MatchGraph (VAR)', community: 'ui_components', role: 'SVG Round-by-Round Polyline Chart' },
+      { id: 'src/components/QRScannerModal.tsx', label: 'QRScannerModal', community: 'ui_components', role: 'Web Camera + jsQR + Image Upload Decoder' },
+      { id: 'src/components/RainbowText.tsx', label: 'RainbowText', community: 'ui_components', role: 'Animated VIP Rainbow Gradient Text' },
+      { id: 'src/components/LegalModal.tsx', label: 'LegalModal', community: 'ui_components', role: '5-Tab Legal & Club Rules Modal' },
+      { id: 'db:profiles', label: 'DB: profiles', community: 'database_sql', role: 'Users, betting_points, inventory, equipped_items, achievements, streaks' },
+      { id: 'db:matches', label: 'DB: matches', community: 'database_sql', role: 'Matches, rounds JSONB, substitutions, wager_amount, tournament_id' },
+      { id: 'db:waitlist', label: 'DB: waitlist', community: 'database_sql', role: 'Pedir Mesa Queue (creator_id, player1_id, player2_id, status)' },
+      { id: 'db:bets', label: 'DB: bets', community: 'database_sql', role: 'Spectator Bets (amount_wagered, multiplier, bet_on_team, status)' },
+      { id: 'db:duos', label: 'DB: duos', community: 'database_sql', role: 'Official Player Partnerships' },
+      { id: 'db:live_chat', label: 'DB: live_chat', community: 'database_sql', role: 'Per-Match Spectator Chat' },
+      { id: 'db:global_chat', label: 'DB: global_chat', community: 'database_sql', role: 'Global Community Chat' },
+      { id: 'db:tournaments', label: 'DB: tournaments', community: 'database_sql', role: 'VIP Cash, Brackets & Leaderboard Tournaments' },
+      { id: 'db:tournament_participants', label: 'DB: tournament_participants', community: 'database_sql', role: 'Registrations, Receipts & Pago Móvil Payout Info' },
+      { id: 'db:tournament_brackets', label: 'DB: tournament_brackets', community: 'database_sql', role: 'Elimination Bracket Matches (live_match_id)' },
+      { id: 'db:ads', label: 'DB: ads', community: 'database_sql', role: 'Sponsored Splash Screen Ads' },
+      { id: 'rpc:resolve_match_bets', label: 'RPC: resolve_match_bets', community: 'database_sql', role: 'SECURITY DEFINER Atomic Bet Payout Resolver' },
+      { id: 'rpc:resolve_match_wagers', label: 'RPC: resolve_match_wagers', community: 'database_sql', role: 'SECURITY DEFINER VIP Match Wager Resolver' },
+      { id: 'supabase_maintenance_fix.sql', label: 'supabase_maintenance_fix.sql', community: 'database_sql', role: 'Idempotent SQL Migration (Indexes, RLS, RPCs, Realtime)' },
+      { id: 'public/sw.js', label: 'public/sw.js (SW v3)', community: 'pwa_build_config', role: 'Offline-First Service Worker' },
+      { id: 'scripts/graphify.js', label: 'scripts/graphify.js', community: 'pwa_build_config', role: 'Full-System AST/Regex Graph Analyzer' }
+    ];
+
+    const EDGES = [
+      ['index.ts', 'App.tsx'],
+      ['App.tsx', 'src/screens/OnboardingScreen.tsx'],
+      ['App.tsx', 'src/screens/SplashAdScreen.tsx'],
+      ['App.tsx', 'src/screens/AuthScreen.tsx'],
+      ['App.tsx', 'src/screens/HomeScreen.tsx'],
+      ['App.tsx', 'src/screens/SetupScreen.tsx'],
+      ['App.tsx', 'src/screens/GameScreen.tsx'],
+      ['App.tsx', 'src/screens/LiveMatchScreen.tsx'],
+      ['App.tsx', 'src/screens/ProfileScreen.tsx'],
+      ['App.tsx', 'src/screens/StoreScreen.tsx'],
+      ['App.tsx', 'src/screens/AchievementsScreen.tsx'],
+      ['App.tsx', 'src/screens/LeaderboardScreen.tsx'],
+      ['App.tsx', 'src/screens/TournamentsScreen.tsx'],
+      ['App.tsx', 'src/screens/GlobalChatScreen.tsx'],
+      ['App.tsx', 'src/lib/offlineSync.ts'],
+      ['App.tsx', 'src/lib/realtimeManager.ts'],
+      ['App.tsx', 'src/lib/bettingService.ts'],
+      ['App.tsx', 'src/lib/waitlistService.ts'],
+      ['App.tsx', 'src/lib/graphifyBridge.ts'],
+      ['App.tsx', 'src/lib/sounds.ts'],
+      ['src/screens/AuthScreen.tsx', 'src/components/QRScannerModal.tsx'],
+      ['src/screens/AuthScreen.tsx', 'src/components/LegalModal.tsx'],
+      ['src/screens/GameScreen.tsx', 'src/components/ProgressChart.tsx'],
+      ['src/screens/LiveMatchScreen.tsx', 'src/components/ProgressChart.tsx'],
+      ['src/screens/ProfileScreen.tsx', 'src/components/MatchGraph.tsx'],
+      ['src/screens/HomeScreen.tsx', 'src/components/RainbowText.tsx'],
+      ['src/screens/ProfileScreen.tsx', 'src/components/RainbowText.tsx'],
+      ['src/screens/LeaderboardScreen.tsx', 'src/components/RainbowText.tsx'],
+      ['src/screens/GlobalChatScreen.tsx', 'src/components/RainbowText.tsx'],
+      ['src/screens/HomeScreen.tsx', 'src/lib/waitlistService.ts'],
+      ['src/screens/HomeScreen.tsx', 'src/lib/offlineSync.ts'],
+      ['src/screens/LiveMatchScreen.tsx', 'src/lib/bettingService.ts'],
+      ['src/screens/LiveMatchScreen.tsx', 'src/lib/realtimeManager.ts'],
+      ['src/lib/offlineSync.ts', 'db:profiles'],
+      ['src/lib/offlineSync.ts', 'db:matches'],
+      ['src/lib/bettingService.ts', 'db:bets'],
+      ['src/lib/bettingService.ts', 'db:profiles'],
+      ['src/lib/bettingService.ts', 'rpc:resolve_match_bets'],
+      ['src/lib/bettingService.ts', 'rpc:resolve_match_wagers'],
+      ['src/lib/waitlistService.ts', 'db:waitlist'],
+      ['src/screens/TournamentsScreen.tsx', 'db:tournaments'],
+      ['src/screens/TournamentsScreen.tsx', 'db:tournament_participants'],
+      ['src/screens/TournamentsScreen.tsx', 'db:tournament_brackets'],
+      ['src/screens/GlobalChatScreen.tsx', 'db:global_chat'],
+      ['src/screens/LiveMatchScreen.tsx', 'db:live_chat'],
+      ['src/screens/SplashAdScreen.tsx', 'db:ads']
+    ];
+
+    const HYPEREDGES = [
+      { name: '1. Offline-First Match Outbox Pipeline', desc: 'public/sw.js → SetupScreen → GameScreen → offlineSync.ts → db:matches' },
+      { name: '2. <100ms Realtime Score & Spectator Sync', desc: 'GameScreen ↔ realtimeManager.ts (sync_match_id) ↔ LiveMatchScreen' },
+      { name: '3. Pedir Mesa Queue & 30s Urgent Call', desc: 'HomeScreen / LiveMatchScreen → waitlistService.ts → domino_waitlist_calls → SetupScreen' },
+      { name: '4. Triple-Redundant Bet & Wager Settlement', desc: 'bettingService.ts → rpc:resolve_match_bets + rpc:resolve_match_wagers + reconcileUserPendingBets' },
+      { name: '5. Cosmetics, Achievements & Economy Loop', desc: 'Daily Streak / 50 Achievements → StoreScreen → RainbowText / Table Colors' },
+      { name: '6. VIP Tournaments & Elimination Brackets', desc: 'TournamentsScreen → Receipts / Admin Approval → Auto-Brackets → GameScreen' }
+    ];
+
+    const QA_SUITES = [
+      { id: 'QA-01: OnboardingScreen', cmd: "window.__DOMINO_GRAPHIFY__.navigate('splash')", items: ['5 slides interactivos', 'Guía iPhone (Safari) y Guía Android (Chrome)', 'Permiso de notificaciones web'] },
+      { id: 'QA-02: SplashAdScreen', cmd: "window.__DOMINO_GRAPHIFY__.navigate('ad')", items: ['Cuenta regresiva de 5s', 'Cooldown de 30m (@domino_last_ad_timestamp)', 'Sin contaminar el historial #ad'] },
+      { id: 'QA-03: AuthScreen', cmd: "window.__DOMINO_GRAPHIFY__.navigate('auth')", items: ['Login, Registro con código (CAFETIN/VIP) o cámara QR', 'Recuperación de contraseña', 'Modo Invitado (Solo Anotar)'] },
+      { id: 'QA-04: HomeScreen', cmd: "window.__DOMINO_GRAPHIFY__.navigate('home')", items: ['Carga instantánea desde caché SWR (<100ms)', 'Racha diaria 🔥 (+10 pts a las 7am)', 'Rankings Individual y Dúos (Hoy/Semana/Histórico)'] },
+      { id: 'QA-05: Pedir Mesa (Waitlist)', cmd: "window.__DOMINO_GRAPHIFY__.uiTestHelpers.triggerSampleWaitlistModal()", items: ['Anotarse en fila con compañero', 'Alerta urgente de 30s (¡A LA MESA!)', 'Botón 🎲 Pasar pre-carga SetupScreen'] },
+      { id: 'QA-06: SetupScreen', cmd: "window.__DOMINO_GRAPHIFY__.navigate('setup')", items: ['Modo 2v2 e Individual', 'Configurador de Salida y Mano (orden 1-2-3-4)', 'Apuesta de Puntos VIP (is_wager_match)'] },
+      { id: 'QA-07: GameScreen (Scorepad)', cmd: "window.__DOMINO_GRAPHIFY__.navigate('game')", items: ['Anotación normal, trancado 🔒 y empate 🤝', 'Sustitución de jugador (regla de 50 pts)', 'Juego 100% Offline + sincronización automática'] },
+      { id: 'QA-08: LiveMatchScreen & Apuestas', cmd: "window.__DOMINO_GRAPHIFY__.navigate('live')", items: ['Sincronización en vivo <100ms', 'Multiplicadores dinámicos (x1.20 - x3.50)', 'Liquidación automática de ganancias + Chat en vivo'] },
+      { id: 'QA-09: ProfileScreen & VAR', cmd: "window.__DOMINO_GRAPHIFY__.navigate('profile')", items: ['Gráfica SVG El VAR del Dominó (MatchGraph)', 'Rivalidades (Papá/Hijo), Dúos y últimas 10 apuestas', 'QR de invitación y PIN Admin secreto (5 toques -> 0509)'] },
+      { id: 'QA-10: StoreScreen', cmd: "window.__DOMINO_GRAPHIFY__.navigate('store')", items: ['14 cosméticos VIP (títulos, colores, bordes, mesas)', 'Título personalizado de 250,000 pts (20 chars)', 'Equipar / Desequipar instantáneo'] },
+      { id: 'QA-11: AchievementsScreen', cmd: "window.__DOMINO_GRAPHIFY__.navigate('achievements')", items: ['50 medallas desbloqueables con barras de progreso', 'Reclamo de recompensas en betting_points'] },
+      { id: 'QA-12: LeaderboardScreen', cmd: "window.__DOMINO_GRAPHIFY__.navigate('leaderboard')", items: ['Top 100 💰 Ricos, 🏆 Ganadores y 🥾 Zapateros', 'Navegación directa al perfil de cada jugador'] },
+      { id: 'QA-13: TournamentsScreen', cmd: "window.__DOMINO_GRAPHIFY__.navigate('tournaments')", items: ['Torneos VIP Cash (Bs + capture), Llaves (Brackets) y Leaderboard', 'Panel Admin para aprobar inscripciones y generar llaves'] },
+      { id: 'QA-14: GlobalChatScreen', cmd: "window.__DOMINO_GRAPHIFY__.navigate('global_chat')", items: ['Chat global en tiempo real (últimos 100 mensajes)', 'Renderizado de RainbowText, bordes y títulos equipados'] }
+    ];
+
+    const commColorMap = Object.fromEntries(COMMUNITIES.map(c => [c.id, c.color]));
+
+    // Populate filter, legend, hyperedges, and QA cards
+    const selectEl = document.getElementById('communityFilter');
+    const legendEl = document.getElementById('legendBox');
+    COMMUNITIES.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      selectEl.appendChild(opt);
+
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `<span class="dot" style="background:${c.color}"></span><span>${c.name}</span>`;
+      legendEl.appendChild(item);
+    });
+
+    const heList = document.getElementById('hyperedgeList');
+    HYPEREDGES.forEach(h => {
+      const div = document.createElement('div');
+      div.style.fontSize = '12px';
+      div.innerHTML = `<strong style="color:#f8fafc">${h.name}</strong><div style="color:#94a3b8">${h.desc}</div>`;
+      heList.appendChild(div);
+    });
+
+    const qaGrid = document.getElementById('qaGrid');
+    QA_SUITES.forEach(q => {
+      const card = document.createElement('div');
+      card.className = 'qa-card';
+      card.innerHTML = `
+        <h4>${q.id}</h4>
+        <code>${q.cmd}</code>
+        <ul>${q.items.map(i => `<li>${i}</li>`).join('')}</ul>
+      `;
+      qaGrid.appendChild(card);
+    });
+
+    // Layout nodes in concentric community clusters
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = 900, height = 650;
+
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      width = canvas.width = rect.width;
+      height = canvas.height = rect.height;
+      layoutNodes();
+      draw();
+    }
+
+    function layoutNodes() {
+      const cx = width / 2;
+      const cy = height / 2;
+      const commGroups = {};
+      COMMUNITIES.forEach((c, idx) => { commGroups[c.id] = { idx, nodes: [] }; });
+      NODES.forEach(n => commGroups[n.community].nodes.push(n));
+
+      COMMUNITIES.forEach((c, cIdx) => {
+        const angleCluster = (cIdx / COMMUNITIES.length) * Math.PI * 2 - Math.PI / 2;
+        const clusterRadius = Math.min(width, height) * 0.33;
+        const gx = cx + Math.cos(angleCluster) * clusterRadius;
+        const gy = cy + Math.sin(angleCluster) * clusterRadius;
+        const groupNodes = commGroups[c.id].nodes;
+        groupNodes.forEach((node, nIdx) => {
+          const a = (nIdx / Math.max(1, groupNodes.length)) * Math.PI * 2;
+          const r = groupNodes.length === 1 ? 0 : 58 + (nIdx % 2) * 26;
+          node.x = gx + Math.cos(a) * r;
+          node.y = gy + Math.sin(a) * r;
+        });
+      });
+    }
+
+    let selectedNode = null;
+    let searchQuery = '';
+    let activeCommunity = 'all';
+
+    function isNodeVisible(n) {
+      if (activeCommunity !== 'all' && n.community !== activeCommunity) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return n.label.toLowerCase().includes(q) || n.id.toLowerCase().includes(q) || n.role.toLowerCase().includes(q);
+      }
+      return true;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+      const nodeMap = Object.fromEntries(NODES.map(n => [n.id, n]));
+
+      // Draw edges
+      EDGES.forEach(([sId, tId]) => {
+        const s = nodeMap[sId], t = nodeMap[tId];
+        if (!s || !t || (!isNodeVisible(s) && !isNodeVisible(t))) return;
+        const isHighlighted = selectedNode && (selectedNode.id === sId || selectedNode.id === tId);
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(t.x, t.y);
+        ctx.strokeStyle = isHighlighted ? '#f59e0b' : 'rgba(148, 163, 184, 0.22)';
+        ctx.lineWidth = isHighlighted ? 2.2 : 1;
+        ctx.stroke();
+      });
+
+      // Draw nodes
+      NODES.forEach(n => {
+        const visible = isNodeVisible(n);
+        ctx.globalAlpha = visible ? 1 : 0.15;
+        ctx.beginPath();
+        const radius = selectedNode && selectedNode.id === n.id ? 11 : 8;
+        ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = commColorMap[n.community] || '#3b82f6';
+        ctx.fill();
+        ctx.lineWidth = selectedNode && selectedNode.id === n.id ? 3 : 1.5;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '600 11px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(n.label, n.x, n.y + radius + 13);
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const hit = NODES.find(n => Math.hypot(n.x - mx, n.y - my) < 14);
+      if (hit) {
+        selectedNode = hit;
+        document.getElementById('nodeTitle').textContent = hit.label;
+        document.getElementById('nodeRole').textContent = hit.role;
+        const pills = document.getElementById('nodePills');
+        pills.innerHTML = `<span class="pill">ID: ${hit.id}</span><span class="pill">Community: ${hit.community}</span>`;
+        draw();
+      }
+    });
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      draw();
+    });
+
+    selectEl.addEventListener('change', (e) => {
+      activeCommunity = e.target.value;
+      draw();
+    });
+
+    document.getElementById('btnGraphTab').addEventListener('click', () => {
+      document.getElementById('btnGraphTab').classList.add('active');
+      document.getElementById('btnQaTab').classList.remove('active');
+      document.getElementById('canvas-wrap').style.display = 'block';
+      document.getElementById('inspectorPanel').style.display = 'flex';
+      document.getElementById('qa-view').style.display = 'none';
+      resize();
+    });
+
+    document.getElementById('btnQaTab').addEventListener('click', () => {
+      document.getElementById('btnQaTab').classList.add('active');
+      document.getElementById('btnGraphTab').classList.remove('active');
+      document.getElementById('canvas-wrap').style.display = 'none';
+      document.getElementById('inspectorPanel').style.display = 'none';
+      document.getElementById('qa-view').style.display = 'block';
+    });
+
+    window.addEventListener('resize', resize);
+    setTimeout(resize, 50);
+  </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ActivityIndicator, ScrollView, Modal, Alert, Image, TextInput, KeyboardAvoidingView, Platform, SafeAreaView
@@ -9,6 +9,10 @@ import { ProgressChart } from '../components/ProgressChart';
 import { RainbowText } from '../components/RainbowText';
 import { sounds } from '../lib/sounds';
 import { Player, Round, Profile } from '../types';
+import { offlineSync } from '../lib/offlineSync';
+import { realtimeManager } from '../lib/realtimeManager';
+import { placeMatchBet, reconcileUserPendingBets, settleMatchBetsAndWagers } from '../lib/bettingService';
+import { fetchActiveWaitlist, joinOrUpdateWaitlist, removeWaitlistEntry } from '../lib/waitlistService';
 
 interface Props {
   matchId: string;
@@ -29,7 +33,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
   const [loading, setLoading] = useState(true);
   const [isParticipant, setIsParticipant] = useState(false);
   const [waitlist, setWaitlist] = useState<any[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>(() => offlineSync.getCachedProfilesSync());
   const [showModal, setShowModal] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<Profile | null>(null);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
@@ -44,7 +48,51 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
   const [showBetModal, setShowBetModal] = useState(false);
   const [betTeam, setBetTeam] = useState<1 | 2>(1);
   const [betAmount, setBetAmount] = useState('10');
+  const [placingBet, setPlacingBet] = useState(false);
   const [lastMessageTime, setLastMessageTime] = useState(0);
+  const settledMatchRef = useRef(false);
+
+  const refreshUserPointsAndBets = async () => {
+    if (!currentUserProfileId) return;
+    await reconcileUserPendingBets(currentUserProfileId);
+    const [{ data: betsData }, { data: prof }] = await Promise.all([
+      supabase.from('bets').select('*').eq('match_id', matchId).eq('user_id', currentUserProfileId),
+      supabase.from('profiles').select('betting_points').eq('id', currentUserProfileId).single(),
+    ]);
+    if (betsData) setActiveBets(betsData);
+    if (prof) setBettingPoints(prof.betting_points || 0);
+  };
+
+  const fetchBets = async () => {
+    if (!currentUserProfileId) return;
+    const { data } = await supabase.from('bets').select('*').eq('match_id', matchId).eq('user_id', currentUserProfileId);
+    if (data) setActiveBets(data);
+  };
+
+  const checkAndSettleCompletedMatch = async (mData: any) => {
+    if (!mData) return;
+    const limit = mData.limit_score || 100;
+    const t1 = mData.team1_total || 0;
+    const t2 = mData.team2_total || 0;
+    const isDone = mData.status === 'completed' || t1 >= limit || t2 >= limit;
+    if (isDone && !settledMatchRef.current) {
+      settledMatchRef.current = true;
+      const winTeam = mData.winner_team || (t1 >= limit ? 1 : t2 >= limit ? 2 : null);
+      if (winTeam) {
+        await settleMatchBetsAndWagers({
+          matchId: mData.id || matchId,
+          winnerTeam: winTeam,
+          isWagerMatch: mData.is_wager_match,
+          wagerAmount: mData.wager_amount,
+          team1Player1: mData.team1_player1,
+          team1Player2: mData.team1_player2,
+          team2Player1: mData.team2_player1,
+          team2Player2: mData.team2_player2,
+        });
+      }
+      await refreshUserPointsAndBets();
+    }
+  };
 
   const fetchMatch = async () => {
     const { data, error } = await supabase
@@ -62,27 +110,28 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
         ].filter(Boolean);
         setIsParticipant(participants.includes(currentUserProfileId));
 
-        const { data: prof } = await supabase.from('profiles').select('betting_points').eq('id', currentUserProfileId).single();
-        if (prof) setBettingPoints(prof.betting_points || 0);
-
-        fetchBets();
+        await refreshUserPointsAndBets();
         calculateMultipliers(data);
       }
+      await checkAndSettleCompletedMatch(data);
     }
     setLoading(false);
   };
 
-  const fetchBets = async () => {
-    const { data } = await supabase.from('bets').select('*').eq('match_id', matchId).eq('user_id', currentUserProfileId);
-    if (data) setActiveBets(data);
-  };
-
   const calculateMultipliers = async (matchInfo: any) => {
-    const { data } = await supabase.from('matches').select('winner_team, team1_player1, team1_player2, team2_player1, team2_player2').eq('status', 'completed');
-    
+    const cachedMatches = await offlineSync.getCachedMatches();
+    let data = cachedMatches.filter((m: any) => m.status === 'completed');
+    if (data.length === 0 && offlineSync.getIsOnline()) {
+      const { data: netData } = await supabase
+        .from('matches')
+        .select('winner_team, team1_player1, team1_player2, team2_player1, team2_player2')
+        .eq('status', 'completed');
+      data = netData || [];
+    }
+
     const getStats = (p1: string, p2: string) => {
       let total = 0, wins = 0;
-      data?.forEach(m => {
+      data?.forEach((m: any) => {
         const t1 = [m.team1_player1, m.team1_player2];
         const t2 = [m.team2_player1, m.team2_player2];
         if (t1.includes(p1) && t1.includes(p2)) { total++; if (m.winner_team === 1) wins++; }
@@ -94,12 +143,13 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
     const s1 = getStats(matchInfo.team1_player1, matchInfo.team1_player2);
     const s2 = getStats(matchInfo.team2_player1, matchInfo.team2_player2);
 
-    const calcMult = (s: {total: number, wins: number}) => {
+    const calcMult = (s: { total: number; wins: number }) => {
       if (s.total === 0) return 2.0;
       let wr = s.wins / s.total;
       if (wr < 0.1) wr = 0.1;
       if (wr > 0.9) wr = 0.9;
-      return parseFloat((1 / wr).toFixed(2));
+      // Same 1.20x–3.50x clamp as the place_bet RPC, which sets the real multiplier
+      return Math.min(3.5, Math.max(1.2, parseFloat((1 / wr).toFixed(2))));
     };
 
     setMultiplierT1(calcMult(s1));
@@ -152,17 +202,32 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
     }
   };
 
+  const fetchWaitlistAndProfiles = async () => {
+    const [profData, wlData] = await Promise.all([
+      offlineSync.getProfiles(),
+      fetchActiveWaitlist(),
+    ]);
+    if (profData) setProfiles(profData);
+    if (wlData) setWaitlist(wlData);
+  };
+
   useEffect(() => {
+    settledMatchRef.current = false;
     fetchMatch();
     fetchChatMessages();
+    fetchWaitlistAndProfiles();
+
+    // Dual-channel match subscription (Instant Broadcast + Postgres Changes)
+    const unsubMatch = realtimeManager.subscribeToMatch(matchId, (incoming) => {
+      setMatchData((prev: any) => {
+        const merged = { ...(prev || {}), ...incoming };
+        checkAndSettleCompletedMatch(merged);
+        return merged;
+      });
+    });
 
     const channel = supabase
-      .channel(`match-live-${matchId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` },
-        (payload) => { setMatchData(payload.new); }
-      )
+      .channel(`match-live-aux-${matchId}-${Date.now()}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'live_chat', filter: `match_id=eq.${matchId}` },
@@ -172,46 +237,30 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bets', filter: `match_id=eq.${matchId}` },
         () => {
-          fetchBets();
-          if (currentUserProfileId) {
-            supabase.from('profiles').select('betting_points').eq('id', currentUserProfileId).single().then(({ data }) => {
-              if (data) setBettingPoints(data.betting_points || 0);
-            });
-          }
+          refreshUserPointsAndBets();
         }
       )
       .subscribe();
 
-    const fetchWaitlistAndProfiles = async () => {
-      const { data: profData } = await supabase.from('profiles').select('*').order('display_name');
-      if (profData) setProfiles(profData);
-      const { data: wlData } = await supabase
-        .from('waitlist')
-        .select(`
-          id, created_at, status, creator_id,
-          player1:profiles!waitlist_player1_id_fkey(id, display_name, initials, avatar_url),
-          player2:profiles!waitlist_player2_id_fkey(id, display_name, initials, avatar_url)
-        `)
-        .eq('status', 'waiting')
-        .order('created_at', { ascending: true });
-      if (wlData) setWaitlist(wlData);
-    };
-
-    fetchWaitlistAndProfiles();
-
     const waitlistChannel = supabase
-      .channel(`live-waitlist-${matchId}`)
+      .channel(`live-waitlist-${matchId}-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'waitlist' }, fetchWaitlistAndProfiles)
       .subscribe();
 
+    const unsubWaitlistBroadcast = realtimeManager.onWaitlistChange(() => {
+      fetchWaitlistAndProfiles();
+    });
+
     return () => {
+      unsubMatch();
       supabase.removeChannel(channel);
       supabase.removeChannel(waitlistChannel);
+      unsubWaitlistBroadcast();
     };
-  }, [matchId]);
+  }, [matchId, currentUserProfileId]);
 
   const myWaitlistEntry = currentUserProfileId 
-    ? waitlist.find(w => w.player1?.id === currentUserProfileId || w.player2?.id === currentUserProfileId)
+    ? waitlist.find(w => w.creator_id === currentUserProfileId || w.player1?.id === currentUserProfileId || w.player2?.id === currentUserProfileId || w.player1_id === currentUserProfileId || w.player2_id === currentUserProfileId)
     : null;
 
   const handleOpenJoin = () => {
@@ -235,58 +284,74 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
     Alert.alert('Salir de fila', '¿Seguro que quieres salir de la lista de espera?', [
       { text: 'No' },
       { text: 'Sí, salir', style: 'destructive', onPress: async () => {
-        await supabase.from('waitlist').update({ status: 'cancelled' }).eq('id', myWaitlistEntry.id);
+        await removeWaitlistEntry(myWaitlistEntry.id);
         setShowModal(false);
+        fetchWaitlistAndProfiles();
       }}
     ]);
   };
 
   const handleSaveWaitlist = async () => {
     if (!currentUserProfileId || !selectedPartner) return;
-    
-    if (editingEntryId) {
-      const { error } = await supabase.from('waitlist').update({
-        player1_id: currentUserProfileId,
-        player2_id: selectedPartner.id
-      }).eq('id', editingEntryId);
-      if (error) Alert.alert('Error', 'No se pudo editar: ' + error.message);
-    } else {
-      const { error } = await supabase.from('waitlist').insert({
-        creator_id: currentUserProfileId,
-        player1_id: currentUserProfileId,
-        player2_id: selectedPartner.id,
-        status: 'waiting'
-      });
-      if (error) Alert.alert('Error', 'No se pudo pedir mesa: ' + error.message);
+    const res = await joinOrUpdateWaitlist({
+      currentUserId: currentUserProfileId,
+      partnerId: selectedPartner.id,
+      existingWaitlistId: editingEntryId || myWaitlistEntry?.id || null,
+    });
+    if (!res.success) {
+      Alert.alert('Error', res.error || 'No se pudo pedir mesa.');
+      return;
     }
+    sounds.playSound('pop');
     setShowModal(false);
+    fetchWaitlistAndProfiles();
   };
 
+  // Players at the table may only bet on their own team (betting against yourself invites throwing the game)
+  const myTeamNumber: 1 | 2 | null = !matchData || !currentUserProfileId
+    ? null
+    : [matchData.team1_player1, matchData.team1_player2].includes(currentUserProfileId)
+      ? 1
+      : [matchData.team2_player1, matchData.team2_player2].includes(currentUserProfileId)
+        ? 2
+        : null;
+  const bettingClosed = !matchData || (matchData.team1_total || 0) >= 50 || (matchData.team2_total || 0) >= 50;
+  const myPendingOnTeam = activeBets
+    .filter((b) => b.status === 'pending' && Number(b.bet_on_team) === betTeam)
+    .reduce((acc, b) => acc + Number(b.amount_wagered || 0), 0);
+
   const handlePlaceBet = async () => {
-    const amount = parseInt(betAmount);
+    if (!currentUserProfileId) return Alert.alert('Error', 'Debes iniciar sesión para apostar.');
+    if (bettingClosed) return Alert.alert('Apuestas cerradas', 'Alguien ya llegó a 50 puntos.');
+    if (myTeamNumber && betTeam !== myTeamNumber) {
+      return Alert.alert('No permitido', 'Como jugador solo puedes apostar por tu propio equipo.');
+    }
+    const amount = parseInt(betAmount, 10);
     if (isNaN(amount) || amount <= 0) return Alert.alert('Error', 'Ingresa una cantidad válida.');
     if (amount > bettingPoints) return Alert.alert('Error', 'No tienes suficientes puntos.');
 
     const mult = betTeam === 1 ? multiplierT1 : multiplierT2;
 
-    const { error } = await supabase.from('bets').insert({
-      user_id: currentUserProfileId,
-      match_id: matchId,
-      bet_on_team: betTeam,
-      amount_wagered: amount,
+    // Block double taps while the place_bet RPC is in flight
+    if (placingBet) return;
+    setPlacingBet(true);
+    const result = await placeMatchBet({
+      userId: currentUserProfileId,
+      matchId,
+      betOnTeam: betTeam,
+      amount,
       multiplier: mult,
-      status: 'pending'
-    });
+    }).finally(() => setPlacingBet(false));
 
-    if (error) {
-      Alert.alert('Error', 'No se pudo realizar la apuesta.');
+    if (!result.success) {
+      Alert.alert('Error', result.error || 'No se pudo realizar la apuesta.');
     } else {
-      const newPoints = bettingPoints - amount;
-      setBettingPoints(newPoints);
-      await supabase.from('profiles').update({ betting_points: newPoints }).eq('id', currentUserProfileId);
+      const finalMult = result.multiplier || mult;
+      setBettingPoints(result.newBalance);
       setShowBetModal(false);
       fetchBets();
-      Alert.alert('Apuesta Registrada', `Has apostado ${amount} pts al Equipo ${betTeam} con multiplicador x${mult}`);
+      sounds.playSound('pop');
+      Alert.alert('Apuesta Registrada', `Has apostado ${amount} pts al Equipo ${betTeam} con multiplicador x${finalMult}. ¡Si ganan recibirás ${Math.floor(amount * finalMult)} pts automáticamente!`);
     }
   };
 
@@ -374,7 +439,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
         </View>
 
         {/* Betting UI */}
-        {!isParticipant && matchData.status === 'active' && currentUserProfileId && (
+        {matchData.status === 'active' && currentUserProfileId && (
           <View style={styles.bettingContainer}>
             <View style={styles.bettingHeader}>
               <Text style={styles.bettingTitle}>🎯 Zona de Apuestas</Text>
@@ -385,14 +450,18 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
               <Text style={styles.betClosed}>Las apuestas están cerradas (alguien llegó a 50 puntos).</Text>
             ) : (
               <View style={styles.betActions}>
+                {myTeamNumber !== 2 && (
                 <TouchableOpacity style={[styles.betBtn, { borderColor: theme.colors.primary }]} onPress={() => { setBetTeam(1); setShowBetModal(true); }}>
-                  <Text style={[styles.betBtnText, { color: theme.colors.primary }]}>Apuesta a Eq. 1</Text>
+                  <Text style={[styles.betBtnText, { color: theme.colors.primary }]}>{myTeamNumber === 1 ? 'Apuesta por tu equipo' : 'Apuesta a Eq. 1'}</Text>
                   <Text style={[styles.betMult, { color: theme.colors.primary }]}>x{multiplierT1}</Text>
                 </TouchableOpacity>
+                )}
+                {myTeamNumber !== 1 && (
                 <TouchableOpacity style={[styles.betBtn, { borderColor: theme.colors.secondary }]} onPress={() => { setBetTeam(2); setShowBetModal(true); }}>
-                  <Text style={[styles.betBtnText, { color: theme.colors.secondary }]}>Apuesta a Eq. 2</Text>
+                  <Text style={[styles.betBtnText, { color: theme.colors.secondary }]}>{myTeamNumber === 2 ? 'Apuesta por tu equipo' : 'Apuesta a Eq. 2'}</Text>
                   <Text style={[styles.betMult, { color: theme.colors.secondary }]}>x{multiplierT2}</Text>
                 </TouchableOpacity>
+                )}
               </View>
             )}
 
@@ -623,7 +692,26 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
             </Text>
             <Text style={{color: theme.colors.text, marginTop: 10, alignSelf: 'flex-start'}}>¿Cuántos puntos deseas apostar?</Text>
             <Text style={{color: theme.colors.textDim, fontSize: 12, marginBottom: 10, alignSelf: 'flex-start'}}>Saldo disponible: {bettingPoints}</Text>
-            
+            {myPendingOnTeam > 0 && (
+              <Text style={styles.betTopUpNote}>
+                Ya llevas {myPendingOnTeam} pts en el Eq. {betTeam}. Lo que pongas ahora se suma con la cuota actual.
+              </Text>
+            )}
+            <View style={styles.betQuickRow}>
+              {[1000, 3000].map((inc) => (
+                <TouchableOpacity
+                  key={inc}
+                  style={styles.betQuickBtn}
+                  onPress={() => setBetAmount(String(Math.min(bettingPoints, (parseInt(betAmount, 10) || 0) + inc)))}
+                >
+                  <Text style={styles.betQuickText}>+{inc}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={styles.betQuickBtn} onPress={() => setBetAmount(String(bettingPoints))}>
+                <Text style={styles.betQuickText}>Todo 🔥</Text>
+              </TouchableOpacity>
+            </View>
+
             <TextInput
               style={styles.modalInput}
               keyboardType="number-pad"
@@ -637,7 +725,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
               <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setShowBetModal(false)}>
                 <Text style={styles.modalBtnCancelText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnSave]} onPress={handlePlaceBet}>
+              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnSave]} onPress={handlePlaceBet} disabled={placingBet}>
                 <Text style={styles.modalBtnSaveText}>Apostar</Text>
               </TouchableOpacity>
             </View>
@@ -818,6 +906,10 @@ const styles = StyleSheet.create({
   modalCancelBtn: { flex: 1, padding: theme.spacing.m, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: theme.borderRadius.full, alignItems: 'center' },
   modalBtnCancelText: { color: theme.colors.text, fontWeight: 'bold' },
   modalBtnSaveText: { color: '#fff', fontWeight: 'bold' },
+  betTopUpNote: { color: theme.colors.accent, fontSize: 12, marginBottom: 10, alignSelf: 'flex-start' },
+  betQuickRow: { flexDirection: 'row', gap: 8, width: '100%', marginBottom: 10 },
+  betQuickBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.cardBorder, alignItems: 'center' },
+  betQuickText: { color: theme.colors.text, fontWeight: '700', fontSize: 13 },
   modalInput: { backgroundColor: theme.colors.background, width: '100%', borderRadius: 8, padding: 12, color: theme.colors.text, fontSize: 16, marginBottom: 24, borderWidth: 1, borderColor: theme.colors.cardBorder },
   
   bettingContainer: { marginHorizontal: 16, marginBottom: 16, backgroundColor: theme.colors.card, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.cardBorder },

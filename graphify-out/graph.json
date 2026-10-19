@@ -1,0 +1,2516 @@
+{
+  "metadata": {
+    "project": "Domino VIP (PeSiMistas)",
+    "version": "3.0.0-full-system",
+    "generatedAt": "2026-10-19T22:01:05.413Z",
+    "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
+    "summary": {
+      "totalCommunities": 8,
+      "totalNodes": 92,
+      "totalEdges": 80,
+      "totalHyperedges": 6,
+      "totalScreens": 13,
+      "totalComponents": 5,
+      "totalServices": 7,
+      "totalDatabaseTables": 14,
+      "totalDatabaseRpcs": 15,
+      "totalQaSuites": 14
+    }
+  },
+  "communities": [
+    {
+      "id": "core_router",
+      "name": "1. Core Router, State Machine & Design System",
+      "color": "#3b82f6",
+      "description": "Entry point, 13-route SPA/PWA screen router (App.tsx), global toast & 30s urgent waitlist call modal, offline banner, TypeScript domain models, and dark-slate theme tokens."
+    },
+    {
+      "id": "backend_services",
+      "name": "2. Backend, Offline Outbox, Realtime & Graphify Services",
+      "color": "#10b981",
+      "description": "7 core services in src/lib/: Supabase client, Offline-First Outbox & SWR profile cache, WebSocket Broadcast + Postgres Changes manager, Atomic Betting & Wager Settlement, Waitlist Queue manager, Sound synthesizer, and Claude Code Graphify Bridge."
+    },
+    {
+      "id": "onboarding_auth_screens",
+      "name": "3. Onboarding, Sponsored Ads & Authentication Screens",
+      "color": "#a855f7",
+      "description": "First-run 5-slide onboarding & PWA install guide, 5s sponsored splash ad with 30m cooldown, and full authentication screen (Login, Invite-Code/QR Register, Password Recovery, Guest Mode)."
+    },
+    {
+      "id": "gameplay_live_screens",
+      "name": "4. Lobby, Match Setup, Scorepad Gameplay & Spectator Live Screens",
+      "color": "#f59e0b",
+      "description": "Main HomeScreen dashboard (daily streak bonus, rankings, Pedir Mesa queue, active matches), SetupScreen (2v2/individual, Salida/Mano, VIP Wager), GameScreen (2-column scorepad, substitutions, Zapato, shareable receipt), and LiveMatchScreen (spectator odds betting & live chat)."
+    },
+    {
+      "id": "social_economy_screens",
+      "name": "5. Social Profiles, Store, 50 Achievements, Leaderboards & Tournaments",
+      "color": "#ec4899",
+      "description": "ProfileScreen (stats, VAR MatchGraph, rivals, duos, QR pass, secret admin PIN via verify_admin_pin), StoreScreen (14 cosmetics + 250k custom title), AchievementsScreen (50 achievements), LeaderboardScreen (Ricos/Ganadores/Zapateros), TournamentsScreen (VIP Cash/Brackets/Leaderboard + Admin), and GlobalChatScreen."
+    },
+    {
+      "id": "ui_components",
+      "name": "6. Reusable Visual, Chart, Camera QR & Legal Components",
+      "color": "#06b6d4",
+      "description": "5 shared components: ProgressChart (animated race bars), MatchGraph (\"El VAR del Dominó\" polyline chart), QRScannerModal (Web camera + jsQR + image upload), RainbowText (animated VIP gradient), and LegalModal (5 compliance tabs)."
+    },
+    {
+      "id": "database_sql",
+      "name": "7. Supabase Database Schema, 11 Tables, 4 RPCs & Maintenance SQL",
+      "color": "#ef4444",
+      "description": "PostgreSQL schema, RLS policies, 8 performance indexes, Realtime publication, 11 database tables, and 4 SECURITY DEFINER / maintenance RPCs."
+    },
+    {
+      "id": "pwa_build_config",
+      "name": "8. PWA Service Worker, Build Pipeline & Deployment Config",
+      "color": "#64748b",
+      "description": "Offline-First Service Worker (public/sw.js v3), Web App Manifest, postbuild HTML/CSS injector, Vercel SPA routing config, Expo app.json, and Graphify CLI analyzer."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "index.ts",
+      "label": "index.ts (Expo Root Entry)",
+      "type": "code_file",
+      "community": "core_router",
+      "file": "index.ts",
+      "role": "Registers root App component with Expo registerRootComponent.",
+      "uiElements": [],
+      "exists": true,
+      "lines": 9,
+      "bytes": 307,
+      "exports": [],
+      "imports": [
+        "expo",
+        "./App"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "App.tsx",
+      "label": "App.tsx (13-Route State Machine & Global Overlays)",
+      "type": "code_file",
+      "community": "core_router",
+      "file": "App.tsx",
+      "role": "Central router managing 13 ScreenStates, session & password recovery, version gate (system_config.min_app_version), global chat toast, 30s urgent waitlist call modal, offline sync status banner, and Graphify controller registration.",
+      "routesManaged": [
+        "splash",
+        "ad",
+        "auth",
+        "home",
+        "setup",
+        "game",
+        "live",
+        "profile",
+        "store",
+        "achievements",
+        "leaderboard",
+        "global_chat",
+        "tournaments"
+      ],
+      "uiElements": [
+        "Offline Sync Banner (sincronizando / cola offline)",
+        "Global Chat & Bet Won Animated Toast",
+        "30s Urgent Waitlist Call Modal (¡A LA MESA!)",
+        "Outdated Version Gate Screen"
+      ],
+      "exists": true,
+      "lines": 1633,
+      "bytes": 62064,
+      "exports": [
+        "App"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "@react-native-async-storage/async-storage",
+        "expo-constants",
+        "./src/screens/OnboardingScreen",
+        "./src/screens/SplashAdScreen",
+        "./src/screens/SetupScreen",
+        "./src/screens/GameScreen",
+        "./src/screens/AuthScreen",
+        "./src/screens/HomeScreen",
+        "./src/screens/LiveMatchScreen",
+        "./src/screens/ProfileScreen",
+        "./src/screens/StoreScreen",
+        "./src/screens/AchievementsScreen",
+        "./src/screens/LeaderboardScreen",
+        "./src/screens/GlobalChatScreen",
+        "./src/screens/TournamentsScreen",
+        "./src/types",
+        "./src/lib/supabase",
+        "./src/lib/sounds",
+        "./src/lib/offlineSync",
+        "./src/lib/realtimeManager",
+        "./src/lib/bettingService",
+        "./src/lib/waitlistService",
+        "./src/lib/graphifyBridge"
+      ],
+      "supabaseTables": [
+        "profiles",
+        "system_config",
+        "waitlist",
+        "matches",
+        "tournament_brackets",
+        "tournaments"
+      ],
+      "supabaseRpcs": [
+        "update_player_streaks_for_match",
+        "award_tournament_prize"
+      ],
+      "realtimeChannels": [
+        "app_global_toast_${Date.now()}"
+      ],
+      "storageKeys": [
+        "@domino_last_ad_timestamp",
+        "@domino_onboarding_seen",
+        "@domino_admin_override",
+        "@domino_match"
+      ],
+      "soundsPlayed": [
+        "chaching",
+        "slap",
+        "pop"
+      ]
+    },
+    {
+      "id": "src/types.ts",
+      "label": "src/types.ts (Domain Type Definitions)",
+      "type": "code_file",
+      "community": "core_router",
+      "file": "src/types.ts",
+      "role": "Defines Team, GameMode, Player, Round, Substitution, Match, and Profile interfaces.",
+      "uiElements": [],
+      "exists": true,
+      "lines": 129,
+      "bytes": 2923,
+      "exports": [
+        "GameMode",
+        "Profile",
+        "Player",
+        "Round",
+        "Substitution",
+        "Match",
+        "Tournament",
+        "TournamentParticipant",
+        "TournamentBracket",
+        "BracketMatch",
+        "PlayerStats",
+        "DuoStats"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/theme.ts",
+      "label": "src/theme.ts (Dark-Slate UI Theme Tokens)",
+      "type": "code_file",
+      "community": "core_router",
+      "file": "src/theme.ts",
+      "role": "Centralizes colors (#0f172a background, #1e293b card, #3b82f6 team1, #10b981 team2, #f59e0b accent), spacing, typography, and borderRadius.",
+      "uiElements": [],
+      "exists": true,
+      "lines": 31,
+      "bytes": 604,
+      "exports": [
+        "theme"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/supabase.ts",
+      "label": "supabase.ts (Supabase Auth & PostgREST Client)",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/supabase.ts",
+      "role": "Initializes @supabase/supabase-js client with AsyncStorage session persistence and URL token detection on Web.",
+      "exists": true,
+      "lines": 21,
+      "bytes": 837,
+      "exports": [
+        "isSupabaseConfigured",
+        "supabase"
+      ],
+      "imports": [
+        "@react-native-async-storage/async-storage",
+        "@supabase/supabase-js",
+        "react-native"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/offlineSync.ts",
+      "label": "offlineSync.ts (Offline-First Outbox & SWR Cache)",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/offlineSync.ts",
+      "role": "Provides Stale-While-Revalidate profile & match caching, UUIDv4 generation, online/offline detection, and a persistent FIFO Outbox Queue (@domino_offline_queue_v1) that syncs offline matches to Supabase upon reconnection.",
+      "exists": true,
+      "lines": 577,
+      "bytes": 18075,
+      "exports": [
+        "OfflineOperationType",
+        "OfflineQueueItem",
+        "SyncStatus",
+        "generateUUID",
+        "isValidUUID",
+        "offlineSync"
+      ],
+      "imports": [
+        "@react-native-async-storage/async-storage",
+        "react-native",
+        "./supabase",
+        "../types"
+      ],
+      "supabaseTables": [
+        "profiles",
+        "matches"
+      ],
+      "supabaseRpcs": [
+        "update_player_streaks_for_match"
+      ],
+      "realtimeChannels": [],
+      "storageKeys": [
+        "@domino_offline_queue_v1",
+        "@domino_cache_profiles_v1",
+        "@domino_cache_matches_v1",
+        "@domino_cache_waitlist_v1",
+        "@domino_cache_user_profile_v1"
+      ],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/realtimeManager.ts",
+      "label": "realtimeManager.ts (Multiplexed Broadcast & Postgres Realtime)",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/realtimeManager.ts",
+      "role": "Manages singleton waitlist channel (domino_waitlist_calls) and per-match channels (sync_match_<id>) combining <100ms WebSocket Broadcast with Postgres Changes.",
+      "exists": true,
+      "lines": 203,
+      "bytes": 6121,
+      "exports": [
+        "realtimeManager"
+      ],
+      "imports": [
+        "@supabase/supabase-js",
+        "./supabase"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "domino_waitlist_calls"
+      ],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/bettingService.ts",
+      "label": "bettingService.ts (Atomic Betting, Wager Settlement & Self-Healing)",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/bettingService.ts",
+      "role": "Handles placeMatchBet (with rollback on error), settleMatchBetsAndWagers (invoking SECURITY DEFINER RPCs resolve_match_bets & resolve_match_wagers + client fallback), and reconcileUserPendingBets (self-healing payout credit on login/mount).",
+      "exists": true,
+      "lines": 162,
+      "bytes": 4927,
+      "exports": [
+        "PlaceBetResult",
+        "placeMatchBet",
+        "settleMatchBetsAndWagers",
+        "reconcileUserPendingBets"
+      ],
+      "imports": [
+        "./supabase",
+        "./offlineSync"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [
+        "place_bet",
+        "settle_completed_match",
+        "settle_my_pending_bets"
+      ],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/waitlistService.ts",
+      "label": "waitlistService.ts (Pedir Mesa Queue & 30s Call Service)",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/waitlistService.ts",
+      "role": "Fetches active waitlist enriched with cached profiles (avoiding PostgREST FK join errors), validates duplicate entries, inserts/updates/cancels queue turns, and broadcasts 30s urgent calls.",
+      "exists": true,
+      "lines": 204,
+      "bytes": 6283,
+      "exports": [
+        "WaitlistEntry",
+        "fetchActiveWaitlist",
+        "joinOrUpdateWaitlist",
+        "removeWaitlistEntry",
+        "callWaitlistDuo"
+      ],
+      "imports": [
+        "./supabase",
+        "./offlineSync",
+        "./realtimeManager",
+        "../types"
+      ],
+      "supabaseTables": [
+        "waitlist"
+      ],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/sounds.ts",
+      "label": "sounds.ts (Audio Effects & Mute Manager)",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/sounds.ts",
+      "role": "Plays 4 sound effects (pop.mp3, slap.mp3, clap.mp3, chaching.mp3) via expo-av with persistent mute toggle.",
+      "exists": true,
+      "lines": 149,
+      "bytes": 5068,
+      "exports": [
+        "sounds"
+      ],
+      "imports": [
+        "expo-av"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/graphifyBridge.ts",
+      "label": "graphifyBridge.ts (Claude Code Runtime QA & Navigation Bridge)",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/graphifyBridge.ts",
+      "role": "Exposes window.__DOMINO_GRAPHIFY__ with FULL_SYSTEM_GRAPH_MANIFEST, programmatic navigate(screen, opts), uiTestHelpers (toast/waitlist modal triggers), direct service hooks, and runDiagnostics().",
+      "exists": true,
+      "lines": 353,
+      "bytes": 14679,
+      "exports": [
+        "GraphifyRuntimeState",
+        "GraphifyNavigateOptions",
+        "registerGraphifyControllers",
+        "updateGraphifyState",
+        "updateGraphifyRuntimeState",
+        "FULL_SYSTEM_GRAPH_MANIFEST",
+        "initGraphifyBridge"
+      ],
+      "imports": [
+        "react-native",
+        "./offlineSync",
+        "./realtimeManager",
+        "./waitlistService",
+        "./bettingService",
+        "./supabase",
+        "./sounds"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [
+        "@domino_active_match",
+        "@domino_offline_queue_v1",
+        "@domino_cached_profiles_v1",
+        "@domino_cached_matches_v1",
+        "@domino_onboarding_seen",
+        "@domino_last_ad_timestamp",
+        "@domino_admin_override"
+      ],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/screens/OnboardingScreen.tsx",
+      "label": "OnboardingScreen.tsx (5-Slide Tutorial & PWA Install Guide)",
+      "type": "screen",
+      "route": "splash",
+      "community": "onboarding_auth_screens",
+      "file": "src/screens/OnboardingScreen.tsx",
+      "role": "Interactive 5-slide onboarding covering Welcome, VAR MatchGraph, VIP Tournaments, Store & 50 Medals, and Push Notification permission + iOS/Android PWA install modals.",
+      "propsContract": [
+        "onFinish: () => void"
+      ],
+      "uiElements": [
+        "Slide 1-5 Carousel & Dot Indicators",
+        "Activar Alertas (Notification.requestPermission)",
+        "Guía iPhone (Safari Compartir -> Agregar a Inicio)",
+        "Guía Android (Chrome ⋮ -> Instalar aplicación)",
+        "Saltar / ¡Entrar a la Mesa! CTA"
+      ],
+      "exists": true,
+      "lines": 528,
+      "bytes": 15769,
+      "exports": [
+        "OnboardingScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "@react-native-async-storage/async-storage",
+        "../theme",
+        "../lib/sounds",
+        "expo-haptics"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [
+        "@domino_onboarding_seen"
+      ],
+      "soundsPlayed": [
+        "chaching",
+        "clap",
+        "pop"
+      ]
+    },
+    {
+      "id": "src/screens/SplashAdScreen.tsx",
+      "label": "SplashAdScreen.tsx (Sponsored Ad Interstitial)",
+      "type": "screen",
+      "route": "ad",
+      "community": "onboarding_auth_screens",
+      "file": "src/screens/SplashAdScreen.tsx",
+      "role": "5-second countdown interstitial pulling active ads from Supabase ads table (with fallback ads) and external link opener, gated by a 30-minute cooldown.",
+      "propsContract": [
+        "onFinish: () => void"
+      ],
+      "uiElements": [
+        "Sponsored Badge & 5s Countdown Pill",
+        "Full-bleed Ad Image & Clickable Link Banner",
+        "Saltar Publicidad ➔ Button"
+      ],
+      "exists": true,
+      "lines": 317,
+      "bytes": 8294,
+      "exports": [
+        "SplashAdScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase",
+        "../lib/sounds",
+        "expo-haptics"
+      ],
+      "supabaseTables": [
+        "ads"
+      ],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": [
+        "pop"
+      ]
+    },
+    {
+      "id": "src/screens/AuthScreen.tsx",
+      "label": "AuthScreen.tsx (Login, Invite/QR Register, Recovery & Guest)",
+      "type": "screen",
+      "route": "auth",
+      "community": "onboarding_auth_screens",
+      "file": "src/screens/AuthScreen.tsx",
+      "role": "Handles email/password login, registration gated by Club Invite Codes (CAFETIN, PESIMISTAS, DOMINO, 0509, VIP) or QR scan, password reset email & new password update, Guest Mode, and LegalModal.",
+      "propsContract": [
+        "onSuccess: () => void",
+        "onGuestEnter: () => void",
+        "initialInviteCode?: string | null",
+        "isRecoveryMode?: boolean",
+        "onRecoveryComplete?: () => void"
+      ],
+      "uiElements": [
+        "Login / Register / Forgot Password / Update Password Forms",
+        "Invite Code Input + 📷 Escanear QR Button (QRScannerModal)",
+        "Entrar como Invitado (Solo Anotar) Button",
+        "Legal Links Footer (Términos, Privacidad, Reglas, Contacto)"
+      ],
+      "exists": true,
+      "lines": 932,
+      "bytes": 36191,
+      "exports": [
+        "AuthScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "lucide-react-native",
+        "../theme",
+        "../lib/supabase",
+        "../components/QRScannerModal",
+        "../components/LegalModal"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/screens/HomeScreen.tsx",
+      "label": "HomeScreen.tsx (Main Club Dashboard, Waitlist & Rankings)",
+      "type": "screen",
+      "route": "home",
+      "community": "gameplay_live_screens",
+      "file": "src/screens/HomeScreen.tsx",
+      "role": "Main club hub: displays user balance, daily streak 🔥 (+10 pts daily bonus after 7:00 AM), active match rejoin banner, quick navigation grid, live matches carousel, Pedir Mesa waitlist queue, and Individual/Duo rankings (today/week/all) with dynamic medals.",
+      "propsContract": [
+        "currentUserId: string | null",
+        "onNewMatch: () => void",
+        "onContinueMatch: () => void",
+        "onSelectLiveMatch: (matchId: string) => void",
+        "onSelectWaitlistMatch: (waitlistId: string, team1: Profile[], team2: Profile[]) => void",
+        "onViewProfile: (profileId: string) => void",
+        "onOpenStore: () => void",
+        "onOpenAchievements: () => void",
+        "onOpenLeaderboard: () => void",
+        "onOpenGlobalChat: () => void",
+        "onOpenTournaments: () => void",
+        "hasActiveMatch: boolean",
+        "onLogout: () => void"
+      ],
+      "uiElements": [
+        "Header: Avatar, Greeting, Streak Badge 🔥, Sound Mute Toggle, Profile & Logout",
+        "Quick Actions Grid: Tienda, Logros, Top Ricos, Torneos VIP, Lobby Global",
+        "Active Match Rejoin Banner & Live Matches Spectator List",
+        "📋 Lista de Espera (\"✋ Pedir Mesa\" Modal, \"🎲 Pasar\", \"📢 Llamar\", Remove \"✕\")",
+        "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
+      ],
+      "exists": true,
+      "lines": 1500,
+      "bytes": 55016,
+      "exports": [
+        "HomeScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "@react-native-async-storage/async-storage",
+        "../theme",
+        "../types",
+        "../lib/supabase",
+        "../lib/sounds",
+        "../lib/offlineSync",
+        "../lib/realtimeManager",
+        "../lib/waitlistService",
+        "../lib/bettingService"
+      ],
+      "supabaseTables": [
+        "matches",
+        "profiles"
+      ],
+      "supabaseRpcs": [
+        "claim_daily_bonus"
+      ],
+      "realtimeChannels": [
+        "home-live-matches-${Date.now()}",
+        "home-waitlist-${Date.now()}"
+      ],
+      "storageKeys": [
+        "@domino_admin_override"
+      ],
+      "soundsPlayed": [
+        "slap",
+        "chaching",
+        "pop"
+      ]
+    },
+    {
+      "id": "src/screens/SetupScreen.tsx",
+      "label": "SetupScreen.tsx (Match Configuration, Salida & VIP Wager)",
+      "type": "screen",
+      "route": "setup",
+      "community": "gameplay_live_screens",
+      "file": "src/screens/SetupScreen.tsx",
+      "role": "Configures a new domino match: Team (2v2) or Individual mode, 4 player slots with search & on-the-fly guest profile creation, target score (100/200), 2-step Salida/Mano rotation selector, and VIP Wager match toggle (is_wager_match, wager_amount).",
+      "propsContract": [
+        "onStartMatch: (mode, t1Name, t2Name, limitScore, players, t1Profiles, t2Profiles, isWagerMatch, wagerAmount) => void",
+        "onCancel?: () => void",
+        "initialTeam1?: Profile[]",
+        "initialTeam2?: Profile[]",
+        "currentUserId?: string | null"
+      ],
+      "uiElements": [
+        "Mode Selector (Equipos 2 vs 2 / Individual)",
+        "4 Player Slots with Searchable Player Picker Modal + Add Guest Input",
+        "2-Step Salida & Derecha Order Configurator (sets turn sequence)",
+        "Target Score Selector (100 pts / 200 pts)",
+        "💰 Apuesta de Puntos VIP Toggle & Amount Input (50 / 100 / 250 / Custom)"
+      ],
+      "exists": true,
+      "lines": 708,
+      "bytes": 30227,
+      "exports": [
+        "SetupScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../types",
+        "../lib/supabase",
+        "../lib/offlineSync"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/screens/GameScreen.tsx",
+      "label": "GameScreen.tsx (Live Scorepad, Substitutions, Winner & Share)",
+      "type": "screen",
+      "route": "game",
+      "community": "gameplay_live_screens",
+      "file": "src/screens/GameScreen.tsx",
+      "role": "Active match scorepad: tracks rounds (normal, trancado, tie), dynamic Mano/Salida indicator, ProgressChart, undo last round, mid-game player substitution (teamScoreAtSub >= 50 rule), proximity alert at limit-10, Winner Modal with Zapato 👟 badge, view-shot receipt sharing, duo registration prompt, and \"🚨 Llamar Siguiente Dúo\".",
+      "propsContract": [
+        "match: Match",
+        "onAddRound: (team1Points, team2Points, type, reason?) => void",
+        "onUndoRound: () => void",
+        "onResetMatch: () => void",
+        "onSubstitutePlayer?: (team, oldProfile, newProfile) => void",
+        "currentUserId?: string | null"
+      ],
+      "uiElements": [
+        "Two-Column Scorepad with Mano ✋ Indicator & Equipped Table Color",
+        "Add Points Modal (Normal / Trancado 🔒 / Empate 🤝)",
+        "Mid-Game Substitution Modal (🔄 Cambio de Jugador)",
+        "Winner Celebration Modal (Confetti, Zapato 👟, Share Image 📸, Duo Prompt 🤝)",
+        "🚨 Llamar Siguiente Dúo Waitlist Trigger Button"
+      ],
+      "exists": true,
+      "lines": 887,
+      "bytes": 40931,
+      "exports": [
+        "GameScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../types",
+        "expo-sharing",
+        "../components/ProgressChart",
+        "../lib/supabase",
+        "expo-haptics",
+        "../lib/sounds",
+        "../lib/offlineSync",
+        "../lib/realtimeManager",
+        "../lib/waitlistService"
+      ],
+      "supabaseTables": [
+        "profiles",
+        "duos"
+      ],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": [
+        "slap",
+        "clap",
+        "pop"
+      ]
+    },
+    {
+      "id": "src/screens/LiveMatchScreen.tsx",
+      "label": "LiveMatchScreen.tsx (Spectator Scoreboard, Odds Betting & Chat)",
+      "type": "screen",
+      "route": "live",
+      "community": "gameplay_live_screens",
+      "file": "src/screens/LiveMatchScreen.tsx",
+      "role": "Real-time spectator screen receiving <100ms broadcast & Postgres updates, calculating dynamic win-rate multipliers (multiplierT1/multiplierT2), allowing spectators to place bets, auto-settling payouts on match end, joining the waitlist, and chatting in live_chat.",
+      "propsContract": [
+        "matchId: string",
+        "currentUserId: string | null",
+        "onBack: () => void"
+      ],
+      "uiElements": [
+        "Live Scoreboard Header & ProgressChart",
+        "💰 Apuestas en Vivo Panel (Dynamic Multipliers x1.20-x3.50, Quick Chips, Place Bet)",
+        "✋ Pedir Mesa Modal (Join Waitlist directly from Spectator view)",
+        "💬 Chat de la Mesa (Realtime live_chat with 2s anti-spam cooldown)"
+      ],
+      "exists": true,
+      "lines": 947,
+      "bytes": 46256,
+      "exports": [
+        "LiveMatchScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase",
+        "../components/ProgressChart",
+        "../components/RainbowText",
+        "../lib/sounds",
+        "../types",
+        "../lib/offlineSync",
+        "../lib/realtimeManager",
+        "../lib/bettingService",
+        "../lib/waitlistService"
+      ],
+      "supabaseTables": [
+        "bets",
+        "profiles",
+        "matches",
+        "live_chat"
+      ],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "match-live-aux-${matchId}-${Date.now()}",
+        "live-waitlist-${matchId}-${Date.now()}"
+      ],
+      "storageKeys": [],
+      "soundsPlayed": [
+        "pop"
+      ]
+    },
+    {
+      "id": "src/screens/ProfileScreen.tsx",
+      "label": "ProfileScreen.tsx (Player Profile, VAR Graph, Rivals, QR & Admin PIN)",
+      "type": "screen",
+      "route": "profile",
+      "community": "social_economy_screens",
+      "file": "src/screens/ProfileScreen.tsx",
+      "role": "Displays player avatar (with upload to avatars bucket), equipped RainbowText/borders/titles, win-rate stats, expandable last 5 matches with MatchGraph (\"El VAR del Dominó\"), Rivals (Papá / Hijo), Active/Inactive Duos, last 10 Bets history, QR Invite Pass, and secret Admin unlock (7 taps on avatar -> PIN verified server-side by RPC verify_admin_pin).",
+      "propsContract": [
+        "profileId: string",
+        "currentUserId: string | null",
+        "onBack: () => void",
+        "onAdminUnlocked?: () => void"
+      ],
+      "uiElements": [
+        "Avatar Upload + 7-Tap Secret Admin PIN Modal (verified by RPC verify_admin_pin)",
+        "Stats Grid (Partidas, Victorias, Derrotas, Zapatos 🥾, Win Rate Bar)",
+        "🎟️ Pase de Invitación al Club (QR Modal)",
+        "Últimas 5 Partidas + Expandable \"📈 El VAR del Dominó\" (MatchGraph)",
+        "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
+      ],
+      "exists": true,
+      "lines": 1534,
+      "bytes": 63607,
+      "exports": [
+        "ProfileScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "@react-native-async-storage/async-storage",
+        "expo-image-picker",
+        "base64-arraybuffer",
+        "../theme",
+        "../lib/supabase",
+        "../lib/sounds",
+        "../types",
+        "../components/MatchGraph",
+        "../components/RainbowText",
+        "../components/LegalModal",
+        "../lib/offlineSync",
+        "../lib/bettingService"
+      ],
+      "supabaseTables": [
+        "profiles",
+        "duos",
+        "matches",
+        "bets",
+        "avatars"
+      ],
+      "supabaseRpcs": [
+        "verify_admin_pin",
+        "delete_user_account"
+      ],
+      "realtimeChannels": [],
+      "storageKeys": [
+        "@domino_admin_override",
+        "@domino_match"
+      ],
+      "soundsPlayed": [
+        "chaching"
+      ]
+    },
+    {
+      "id": "src/screens/StoreScreen.tsx",
+      "label": "StoreScreen.tsx (VIP Cosmetics Store & 250k Custom Title)",
+      "type": "screen",
+      "route": "store",
+      "community": "social_economy_screens",
+      "file": "src/screens/StoreScreen.tsx",
+      "role": "Cosmetic shop with 14 STORE_ITEMS across 4 categories (title, color, border, table_color) plus a 250,000-pt Custom Title creator (max 20 chars), updating profiles.betting_points, inventory, and equipped_items.",
+      "propsContract": [
+        "currentUserId: string",
+        "onBack: () => void"
+      ],
+      "uiElements": [
+        "User Points Balance Pill (💰 pts)",
+        "14 Store Item Cards (Comprar / Equipar / Equipado)",
+        "✍️ Custom Title Modal (20-char limit, 250,000 pts)"
+      ],
+      "exists": true,
+      "lines": 322,
+      "bytes": 14638,
+      "exports": [
+        "StoreScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase",
+        "../types",
+        "expo-haptics",
+        "../lib/sounds"
+      ],
+      "supabaseTables": [
+        "profiles"
+      ],
+      "supabaseRpcs": [
+        "buy_store_item"
+      ],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": [
+        "chaching"
+      ]
+    },
+    {
+      "id": "src/screens/AchievementsScreen.tsx",
+      "label": "AchievementsScreen.tsx (50 Unlockable Medals & Point Rewards)",
+      "type": "screen",
+      "route": "achievements",
+      "community": "social_economy_screens",
+      "file": "src/screens/AchievementsScreen.tsx",
+      "role": "Evaluates 50 achievements across matches played, wins, zapatos, bets won, streaks, wealth, time-of-day play, unique partners/opponents, close wins, fast/long matches, chat messages, and store items, allowing users to claim point rewards.",
+      "propsContract": [
+        "currentUserId: string",
+        "onBack: () => void"
+      ],
+      "uiElements": [
+        "Progress Header (X / 50 Logros Reclamados)",
+        "50 Achievement Cards with Progress Bars & \"¡Reclamar +Pts!\" CTA"
+      ],
+      "exists": true,
+      "lines": 366,
+      "bytes": 19918,
+      "exports": [
+        "AchievementsScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase",
+        "../types"
+      ],
+      "supabaseTables": [
+        "profiles",
+        "matches",
+        "bets",
+        "live_chat"
+      ],
+      "supabaseRpcs": [
+        "claim_achievement"
+      ],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/screens/LeaderboardScreen.tsx",
+      "label": "LeaderboardScreen.tsx (Top 100 Ricos, Ganadores & Zapateros)",
+      "type": "screen",
+      "route": "leaderboard",
+      "community": "social_economy_screens",
+      "file": "src/screens/LeaderboardScreen.tsx",
+      "role": "Hall of Fame ranking the top 100 players across 3 tabs: 💰 Ricos (by betting_points), 🏆 Ganadores (by wins & win rate), and 🥾 Zapateros (by zapatos inflicted).",
+      "propsContract": [
+        "onBack: () => void",
+        "onViewProfile: (profileId: string) => void"
+      ],
+      "uiElements": [
+        "3 Category Tabs (💰 Ricos / 🏆 Ganadores / 🥾 Zapateros)",
+        "Top 100 Ranked Player Rows with RainbowText, Equipped Titles & Borders"
+      ],
+      "exists": true,
+      "lines": 188,
+      "bytes": 8724,
+      "exports": [
+        "LeaderboardScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase",
+        "../types",
+        "../lib/offlineSync"
+      ],
+      "supabaseTables": [
+        "matches"
+      ],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/screens/TournamentsScreen.tsx",
+      "label": "TournamentsScreen.tsx (VIP Cash, Brackets & Leaderboard Tournaments)",
+      "type": "screen",
+      "route": "tournaments",
+      "community": "social_economy_screens",
+      "file": "src/screens/TournamentsScreen.tsx",
+      "role": "Full tournament management suite with 4 tabs (lobby, live, my_tourneys, admin) supporting 3 tournament types (vip_cash with Bs entry fee + receipt upload + Pago Móvil payout details, brackets with auto-bracket generation & live_match_id progression, and leaderboard).",
+      "propsContract": [
+        "currentUserId: string | null",
+        "isAdmin?: boolean",
+        "onBack: () => void",
+        "onStartTournamentMatch?: (bracketId: string, tourneyId: string, team1: Profile[], team2: Profile[], limitScore: number) => void"
+      ],
+      "uiElements": [
+        "4 Navigation Tabs (🏆 Torneos, 🔥 En Curso, 📋 Mis Inscripciones, ⚙️ Admin)",
+        "Registration Modal (Partner Picker, Receipt Image Upload to receipts bucket, Pago Móvil Data)",
+        "Interactive Elimination Brackets Tree & Points Leaderboard",
+        "Admin Panel: Create Tournament + Approve/Reject Participant Receipts"
+      ],
+      "exists": true,
+      "lines": 1837,
+      "bytes": 92481,
+      "exports": [
+        "TournamentsScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "@react-native-async-storage/async-storage",
+        "../theme",
+        "../lib/supabase",
+        "../types",
+        "expo-image-picker",
+        "base64-arraybuffer"
+      ],
+      "supabaseTables": [
+        "tournament_brackets",
+        "profiles",
+        "tournaments",
+        "matches",
+        "tournament_participants",
+        "receipts"
+      ],
+      "supabaseRpcs": [
+        "clean_old_tournaments",
+        "join_tournament_with_points",
+        "award_tournament_prize",
+        "cancel_tournament_and_refund"
+      ],
+      "realtimeChannels": [],
+      "storageKeys": [
+        "@domino_admin_override"
+      ],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/screens/GlobalChatScreen.tsx",
+      "label": "GlobalChatScreen.tsx (Realtime Community Lobby Chat)",
+      "type": "screen",
+      "route": "global_chat",
+      "community": "social_economy_screens",
+      "file": "src/screens/GlobalChatScreen.tsx",
+      "role": "Real-time community chat room subscribed to global_chat table (last 100 messages), rendering equipped cosmetic titles/colors/borders and enforcing a 3-second anti-spam cooldown.",
+      "propsContract": [
+        "currentUserId: string | null",
+        "onBack: () => void"
+      ],
+      "uiElements": [
+        "Realtime Message Stream with Equipped Cosmetics & RainbowText",
+        "Message Input Bar with 3s Anti-Spam Cooldown"
+      ],
+      "exists": true,
+      "lines": 297,
+      "bytes": 11043,
+      "exports": [
+        "GlobalChatScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase"
+      ],
+      "supabaseTables": [
+        "profiles",
+        "global_chat"
+      ],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "global_chat_channel_${Date.now()}"
+      ],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/ProgressChart.tsx",
+      "label": "ProgressChart.tsx (Animated Score Race Bars)",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/ProgressChart.tsx",
+      "role": "Displays animated horizontal progress bars comparing Team 1 and Team 2 totals against the target limitScore (100/200).",
+      "exists": true,
+      "lines": 96,
+      "bytes": 3075,
+      "exports": [
+        "ProgressChart"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "react-native-svg",
+        "../theme",
+        "../types"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/MatchGraph.tsx",
+      "label": "MatchGraph.tsx (\"El VAR del Dominó\" SVG Polyline Chart)",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/MatchGraph.tsx",
+      "role": "Renders an SVG round-by-round score progression chart with data points and team legends for match post-mortems in ProfileScreen.",
+      "exists": true,
+      "lines": 152,
+      "bytes": 4742,
+      "exports": [
+        "MatchGraph"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "react-native-svg",
+        "../theme"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/QRScannerModal.tsx",
+      "label": "QRScannerModal.tsx (Web Camera & Image QR Decoder)",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/QRScannerModal.tsx",
+      "role": "Uses navigator.mediaDevices.getUserMedia + HTML5 Canvas + jsQR (with photo upload fallback) to scan club invitation QR codes.",
+      "exists": true,
+      "lines": 471,
+      "bytes": 13593,
+      "exports": [
+        "QRScannerModal"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "jsqr",
+        "../theme",
+        "../lib/sounds",
+        "expo-image-picker"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": [
+        "pop"
+      ]
+    },
+    {
+      "id": "src/components/RainbowText.tsx",
+      "label": "RainbowText.tsx (Animated Rainbow Gradient Text)",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/RainbowText.tsx",
+      "role": "Renders animated CSS linear-gradient text on Web (and gold fallback on native) for players with color_rainbow equipped.",
+      "exists": true,
+      "lines": 40,
+      "bytes": 1010,
+      "exports": [
+        "RainbowText"
+      ],
+      "imports": [
+        "react",
+        "react-native"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/LegalModal.tsx",
+      "label": "LegalModal.tsx (Terms, Privacy, Rules, Cookies & Contact)",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/LegalModal.tsx",
+      "role": "5-tab legal and club regulations modal accessible from AuthScreen and ProfileScreen.",
+      "exists": true,
+      "lines": 588,
+      "bytes": 25112,
+      "exports": [
+        "LegalTab",
+        "LegalModal"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_schema.sql",
+      "label": "supabase_schema.sql (Base Database Schema)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_schema.sql",
+      "role": "Initial PostgreSQL table definitions for profiles, matches, waitlist, bets, duos, live_chat, global_chat, and tournaments.",
+      "exists": true,
+      "lines": 120,
+      "bytes": 4096,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_maintenance_fix.sql",
+      "label": "supabase_maintenance_fix.sql (Idempotent Maintenance, Indexes, RLS & RPCs)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_maintenance_fix.sql",
+      "role": "Production maintenance migration adding missing columns (creator_id, is_wager_match, wager_amount), permissive waitlist/bets RLS policies, 8 performance indexes, SECURITY DEFINER RPCs (resolve_match_bets, resolve_match_wagers), and supabase_realtime publication.",
+      "exists": true,
+      "lines": 292,
+      "bytes": 10499,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "clean_today.sql",
+      "label": "clean_today.sql (Daily Match Cleanup Utility)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "clean_today.sql",
+      "role": "Admin SQL script to purge matches created on the current day.",
+      "exists": true,
+      "lines": 41,
+      "bytes": 1836,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "clean_only_tests.sql",
+      "label": "clean_only_tests.sql (Test Data Cleanup Utility)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "clean_only_tests.sql",
+      "role": "Admin SQL script to remove test matches while preserving production records.",
+      "exists": true,
+      "lines": 51,
+      "bytes": 1963,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "db:profiles",
+      "label": "Table: public.profiles",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores user profiles, betting_points, inventory, equipped_items, achievements, streak_count, last_streak_date, and is_admin."
+    },
+    {
+      "id": "db:matches",
+      "label": "Table: public.matches",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores active and completed matches, team totals, rounds JSONB, players_json, substitutions, is_wager_match, wager_amount, and tournament_id."
+    },
+    {
+      "id": "db:waitlist",
+      "label": "Table: public.waitlist",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores Pedir Mesa queue entries (creator_id, player1_id, player2_id, status: waiting/playing/cancelled)."
+    },
+    {
+      "id": "db:bets",
+      "label": "Table: public.bets",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores spectator bets (user_id, match_id, bet_on_team, amount_wagered, multiplier, status: pending/won/lost)."
+    },
+    {
+      "id": "db:duos",
+      "label": "Table: public.duos",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores official player partnerships (player1_id, player2_id, is_active)."
+    },
+    {
+      "id": "db:live_chat",
+      "label": "Table: public.live_chat",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores per-match spectator chat messages."
+    },
+    {
+      "id": "db:global_chat",
+      "label": "Table: public.global_chat",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores global lobby chat messages."
+    },
+    {
+      "id": "db:tournaments",
+      "label": "Table: public.tournaments",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores VIP Cash, Brackets, and Leaderboard tournaments."
+    },
+    {
+      "id": "db:tournament_participants",
+      "label": "Table: public.tournament_participants",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores tournament registrations, payment receipts, partner_id, and Pago Móvil payout details."
+    },
+    {
+      "id": "db:tournament_brackets",
+      "label": "Table: public.tournament_brackets",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores tournament bracket pairings linked to live_match_id."
+    },
+    {
+      "id": "db:ads",
+      "label": "Table: public.ads",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Stores active splash screen advertisements."
+    },
+    {
+      "id": "db:system_config",
+      "label": "Table: public.system_config",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Single-row app config (id=1) read by App.tsx for the min_app_version update gate."
+    },
+    {
+      "id": "storage:avatars",
+      "label": "Storage Bucket: avatars",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Profile picture uploads from ProfileScreen."
+    },
+    {
+      "id": "storage:receipts",
+      "label": "Storage Bucket: receipts",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "VIP Cash tournament payment receipt uploads from TournamentsScreen."
+    },
+    {
+      "id": "rpc:verify_admin_pin",
+      "label": "RPC: verify_admin_pin (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Verifies the secret admin PIN server-side and persists is_admin (fix_admin_pin_rpc.sql)."
+    },
+    {
+      "id": "rpc:delete_user_account",
+      "label": "RPC: delete_user_account (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Deletes the caller account and its data (delete_account_rpc.sql), invoked from ProfileScreen."
+    },
+    {
+      "id": "rpc:cancel_tournament_and_refund",
+      "label": "RPC: cancel_tournament_and_refund",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Cancels a tournament and refunds participants, invoked from TournamentsScreen admin panel."
+    },
+    {
+      "id": "rpc:resolve_match_bets",
+      "label": "RPC: resolve_match_bets (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Atomically credits FLOOR(amount_wagered * multiplier) to winning bettors in profiles.betting_points and marks bets won/lost (or refunds cancelled matches). Server-only since fix_points_security.sql: run by the match-completion trigger and settle_completed_match."
+    },
+    {
+      "id": "rpc:resolve_match_wagers",
+      "label": "RPC: resolve_match_wagers (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Atomically transfers wager_amount between winning and losing players in VIP Wager matches."
+    },
+    {
+      "id": "rpc:update_player_streaks_for_match",
+      "label": "RPC: update_player_streaks_for_match",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Updates player streak counters when a match completes."
+    },
+    {
+      "id": "rpc:clean_old_tournaments",
+      "label": "RPC: clean_old_tournaments",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Purges expired tournaments older than 15 days."
+    },
+    {
+      "id": "rpc:place_bet",
+      "label": "RPC: place_bet (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Locks the balance, computes the 1.20x-3.50x multiplier, inserts the bet and deducts points in one transaction."
+    },
+    {
+      "id": "rpc:settle_completed_match",
+      "label": "RPC: settle_completed_match (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Settles bets and wagers of a completed match using the winner stored in the match row."
+    },
+    {
+      "id": "rpc:settle_my_pending_bets",
+      "label": "RPC: settle_my_pending_bets (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Settles the caller pending bets on completed matches and returns won_count, total_credited, new_balance."
+    },
+    {
+      "id": "rpc:buy_store_item",
+      "label": "RPC: buy_store_item (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Charges the server-side catalog price, adds the item to inventory and auto-equips it (custom titles 1-20 chars)."
+    },
+    {
+      "id": "rpc:claim_achievement",
+      "label": "RPC: claim_achievement (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Pays the server-side reward of one of the 50 achievements, once per user."
+    },
+    {
+      "id": "rpc:claim_daily_bonus",
+      "label": "RPC: claim_daily_bonus (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Credits the +10 daily bonus once per day (day starts 7 AM America/Caracas)."
+    },
+    {
+      "id": "rpc:join_tournament_with_points",
+      "label": "RPC: join_tournament_with_points (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Charges entry_points, registers the caller as approved and grows prize_pool."
+    },
+    {
+      "id": "rpc:award_tournament_prize",
+      "label": "RPC: award_tournament_prize (SECURITY DEFINER)",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Pays the prize pool once to the champions of the final bracket and marks the tournament completed."
+    },
+    {
+      "id": "public/sw.js",
+      "label": "public/sw.js (Offline-First Service Worker v3)",
+      "type": "config_file",
+      "community": "pwa_build_config",
+      "file": "public/sw.js",
+      "role": "Caches app shell & static bundles (Cache-First + Stale-While-Revalidate) so the web app boots and plays matches 100% offline.",
+      "exists": true,
+      "lines": 70,
+      "bytes": 2083,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "public/manifest.json",
+      "label": "public/manifest.json (PWA Web Manifest)",
+      "type": "config_file",
+      "community": "pwa_build_config",
+      "file": "public/manifest.json",
+      "role": "Configures standalone display mode, icons, and dark theme color (#0f172a) for iOS/Android home screen installation.",
+      "exists": true,
+      "lines": 30,
+      "bytes": 607,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "scripts/postbuild.js",
+      "label": "scripts/postbuild.js (PWA Meta & SW Registration Injector)",
+      "type": "config_file",
+      "community": "pwa_build_config",
+      "file": "scripts/postbuild.js",
+      "role": "Injects PWA meta tags, viewport rules, and Service Worker registration into dist/index.html after expo export.",
+      "exists": true,
+      "lines": 45,
+      "bytes": 1770,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "vercel.json",
+      "label": "vercel.json (Vercel SPA Rewrite & Cache Headers)",
+      "type": "config_file",
+      "community": "pwa_build_config",
+      "file": "vercel.json",
+      "role": "Configures expo export -p web build command, static asset caching, and SPA fallback rewrites.",
+      "exists": true,
+      "lines": 12,
+      "bytes": 181,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "package.json",
+      "label": "package.json (Dependencies & Build/Graphify Scripts)",
+      "type": "config_file",
+      "community": "pwa_build_config",
+      "file": "package.json",
+      "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
+      "exists": true,
+      "lines": 48,
+      "bytes": 1424,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "app.json",
+      "label": "app.json",
+      "type": "config_file",
+      "community": "pwa_build_config",
+      "file": "app.json",
+      "role": "Expo app config (name, icons, web/PWA settings).",
+      "exists": true,
+      "lines": 43,
+      "bytes": 1118,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "eas.json",
+      "label": "eas.json",
+      "type": "config_file",
+      "community": "pwa_build_config",
+      "file": "eas.json",
+      "role": "EAS Build profiles for native builds.",
+      "exists": true,
+      "lines": 22,
+      "bytes": 330,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "tsconfig.json",
+      "label": "tsconfig.json",
+      "type": "config_file",
+      "community": "pwa_build_config",
+      "file": "tsconfig.json",
+      "role": "TypeScript compiler config (npx tsc --noEmit).",
+      "exists": true,
+      "lines": 7,
+      "bytes": 85,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "scripts/graphify.js",
+      "label": "scripts/graphify.js",
+      "type": "config_file",
+      "community": "pwa_build_config",
+      "file": "scripts/graphify.js",
+      "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
+      "exists": true,
+      "lines": 1394,
+      "bytes": 64292,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "clean_invitados.sql",
+      "label": "clean_invitados.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "clean_invitados.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 18,
+      "bytes": 655,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "clean_tournaments.sql",
+      "label": "clean_tournaments.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "clean_tournaments.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 15,
+      "bytes": 550,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "delete_account_rpc.sql",
+      "label": "delete_account_rpc.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "delete_account_rpc.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 38,
+      "bytes": 1486,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "fix_admin_pin_rpc.sql",
+      "label": "fix_admin_pin_rpc.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "fix_admin_pin_rpc.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 74,
+      "bytes": 2377,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "fix_bets_rules.sql",
+      "label": "fix_bets_rules.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "fix_bets_rules.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 61,
+      "bytes": 2108,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "fix_duos_duplicates.sql",
+      "label": "fix_duos_duplicates.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "fix_duos_duplicates.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 53,
+      "bytes": 2125,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "fix_points_security.sql",
+      "label": "fix_points_security.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "fix_points_security.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 990,
+      "bytes": 33928,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "fix_realtime_global_chat.sql",
+      "label": "fix_realtime_global_chat.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "fix_realtime_global_chat.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 26,
+      "bytes": 926,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "inject_guests.sql",
+      "label": "inject_guests.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "inject_guests.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 123,
+      "bytes": 6141,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "pair_guests.sql",
+      "label": "pair_guests.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "pair_guests.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 24,
+      "bytes": 2443,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_admin_waitlist.sql",
+      "label": "supabase_admin_waitlist.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_admin_waitlist.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 10,
+      "bytes": 195,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_ads_schema.sql",
+      "label": "supabase_ads_schema.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_ads_schema.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 26,
+      "bytes": 910,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_clear_data.sql",
+      "label": "supabase_clear_data.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_clear_data.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 15,
+      "bytes": 564,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_live_schema.sql",
+      "label": "supabase_live_schema.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_live_schema.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 51,
+      "bytes": 2164,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_security_hardening.sql",
+      "label": "supabase_security_hardening.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_security_hardening.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 127,
+      "bytes": 5184,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_test_data.sql",
+      "label": "supabase_test_data.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_test_data.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 162,
+      "bytes": 7212,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_tournaments_schema.sql",
+      "label": "supabase_tournaments_schema.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_tournaments_schema.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 99,
+      "bytes": 4676,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_tournaments_types.sql",
+      "label": "supabase_tournaments_types.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_tournaments_types.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 7,
+      "bytes": 426,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_user_tournaments.sql",
+      "label": "supabase_user_tournaments.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_user_tournaments.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 45,
+      "bytes": 1536,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase_waitlist_schema.sql",
+      "label": "supabase_waitlist_schema.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase_waitlist_schema.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 63,
+      "bytes": 2332,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "update_duo_status.sql",
+      "label": "update_duo_status.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "update_duo_status.sql",
+      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
+      "exists": true,
+      "lines": 12,
+      "bytes": 618,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    }
+  ],
+  "edges": [
+    {
+      "source": "index.ts",
+      "target": "App.tsx",
+      "relation": "mounts_root"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/OnboardingScreen.tsx",
+      "relation": "routes_to (splash)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/SplashAdScreen.tsx",
+      "relation": "routes_to (ad)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/AuthScreen.tsx",
+      "relation": "routes_to (auth)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/HomeScreen.tsx",
+      "relation": "routes_to (home)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/SetupScreen.tsx",
+      "relation": "routes_to (setup)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/GameScreen.tsx",
+      "relation": "routes_to (game)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/LiveMatchScreen.tsx",
+      "relation": "routes_to (live)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/ProfileScreen.tsx",
+      "relation": "routes_to (profile)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/StoreScreen.tsx",
+      "relation": "routes_to (store)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/AchievementsScreen.tsx",
+      "relation": "routes_to (achievements)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/LeaderboardScreen.tsx",
+      "relation": "routes_to (leaderboard)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/TournamentsScreen.tsx",
+      "relation": "routes_to (tournaments)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/GlobalChatScreen.tsx",
+      "relation": "routes_to (global_chat)"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/lib/offlineSync.ts",
+      "relation": "manages_offline_outbox"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/lib/realtimeManager.ts",
+      "relation": "subscribes_waitlist_and_match"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/lib/bettingService.ts",
+      "relation": "settles_and_reconciles_bets"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/lib/waitlistService.ts",
+      "relation": "updates_waitlist_on_match_start"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/lib/graphifyBridge.ts",
+      "relation": "exposes_claude_code_bridge"
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/lib/sounds.ts",
+      "relation": "plays_audio_feedback"
+    },
+    {
+      "source": "src/screens/AuthScreen.tsx",
+      "target": "src/components/QRScannerModal.tsx",
+      "relation": "scans_invite_qr"
+    },
+    {
+      "source": "src/screens/AuthScreen.tsx",
+      "target": "src/components/LegalModal.tsx",
+      "relation": "opens_legal_terms"
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/components/RainbowText.tsx",
+      "relation": "renders_vip_names"
+    },
+    {
+      "source": "src/screens/GameScreen.tsx",
+      "target": "src/components/ProgressChart.tsx",
+      "relation": "renders_score_race"
+    },
+    {
+      "source": "src/screens/LiveMatchScreen.tsx",
+      "target": "src/components/ProgressChart.tsx",
+      "relation": "renders_live_score_race"
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/MatchGraph.tsx",
+      "relation": "renders_var_del_domino"
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/RainbowText.tsx",
+      "relation": "renders_vip_names"
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/LegalModal.tsx",
+      "relation": "opens_legal_terms"
+    },
+    {
+      "source": "src/screens/LeaderboardScreen.tsx",
+      "target": "src/components/RainbowText.tsx",
+      "relation": "renders_vip_names"
+    },
+    {
+      "source": "src/screens/GlobalChatScreen.tsx",
+      "target": "src/components/RainbowText.tsx",
+      "relation": "renders_vip_names"
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/offlineSync.ts",
+      "relation": "loads_cached_profiles_and_matches"
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/waitlistService.ts",
+      "relation": "manages_pedir_mesa_queue"
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/realtimeManager.ts",
+      "relation": "listens_waitlist_updates"
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/bettingService.ts",
+      "relation": "reconciles_user_bets"
+    },
+    {
+      "source": "src/screens/SetupScreen.tsx",
+      "target": "src/lib/offlineSync.ts",
+      "relation": "reads_and_creates_profiles"
+    },
+    {
+      "source": "src/screens/GameScreen.tsx",
+      "target": "src/lib/realtimeManager.ts",
+      "relation": "broadcasts_proximity_and_waitlist_calls"
+    },
+    {
+      "source": "src/screens/GameScreen.tsx",
+      "target": "src/lib/waitlistService.ts",
+      "relation": "calls_next_waiting_duo"
+    },
+    {
+      "source": "src/screens/GameScreen.tsx",
+      "target": "src/lib/bettingService.ts",
+      "relation": "settles_match_bets_on_win"
+    },
+    {
+      "source": "src/screens/LiveMatchScreen.tsx",
+      "target": "src/lib/realtimeManager.ts",
+      "relation": "subscribes_live_match_channel"
+    },
+    {
+      "source": "src/screens/LiveMatchScreen.tsx",
+      "target": "src/lib/bettingService.ts",
+      "relation": "places_and_settles_spectator_bets"
+    },
+    {
+      "source": "src/screens/LiveMatchScreen.tsx",
+      "target": "src/lib/waitlistService.ts",
+      "relation": "joins_waitlist_from_spectator"
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/lib/bettingService.ts",
+      "relation": "reconciles_pending_bets_before_history"
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/lib/offlineSync.ts",
+      "relation": "reads_cached_profiles"
+    },
+    {
+      "source": "src/screens/LeaderboardScreen.tsx",
+      "target": "src/lib/offlineSync.ts",
+      "relation": "reads_cached_profiles_and_matches"
+    },
+    {
+      "source": "src/screens/AchievementsScreen.tsx",
+      "target": "src/lib/offlineSync.ts",
+      "relation": "updates_cached_profile_points"
+    },
+    {
+      "source": "src/lib/offlineSync.ts",
+      "target": "db:profiles",
+      "relation": "caches_and_syncs"
+    },
+    {
+      "source": "src/lib/offlineSync.ts",
+      "target": "db:matches",
+      "relation": "flushes_offline_match_outbox"
+    },
+    {
+      "source": "src/lib/offlineSync.ts",
+      "target": "rpc:settle_completed_match",
+      "relation": "invokes_on_outbox_complete"
+    },
+    {
+      "source": "src/lib/bettingService.ts",
+      "target": "rpc:place_bet",
+      "relation": "places_bet_atomically"
+    },
+    {
+      "source": "src/lib/bettingService.ts",
+      "target": "rpc:settle_completed_match",
+      "relation": "settles_finished_match"
+    },
+    {
+      "source": "src/lib/bettingService.ts",
+      "target": "rpc:settle_my_pending_bets",
+      "relation": "reconciles_user_bets"
+    },
+    {
+      "source": "rpc:place_bet",
+      "target": "db:bets",
+      "relation": "inserts_bet"
+    },
+    {
+      "source": "rpc:place_bet",
+      "target": "db:profiles",
+      "relation": "deducts_betting_points"
+    },
+    {
+      "source": "rpc:settle_completed_match",
+      "target": "rpc:resolve_match_bets",
+      "relation": "invokes"
+    },
+    {
+      "source": "rpc:settle_completed_match",
+      "target": "rpc:resolve_match_wagers",
+      "relation": "invokes"
+    },
+    {
+      "source": "rpc:settle_my_pending_bets",
+      "target": "rpc:settle_completed_match",
+      "relation": "invokes"
+    },
+    {
+      "source": "rpc:resolve_match_bets",
+      "target": "db:profiles",
+      "relation": "credits_betting_points"
+    },
+    {
+      "source": "rpc:resolve_match_wagers",
+      "target": "db:profiles",
+      "relation": "transfers_betting_points"
+    },
+    {
+      "source": "src/screens/StoreScreen.tsx",
+      "target": "rpc:buy_store_item",
+      "relation": "buys_cosmetic"
+    },
+    {
+      "source": "src/screens/AchievementsScreen.tsx",
+      "target": "rpc:claim_achievement",
+      "relation": "claims_reward"
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "rpc:claim_daily_bonus",
+      "relation": "claims_daily_bonus"
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "rpc:join_tournament_with_points",
+      "relation": "joins_with_points"
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "rpc:award_tournament_prize",
+      "relation": "pays_champions"
+    },
+    {
+      "source": "App.tsx",
+      "target": "rpc:award_tournament_prize",
+      "relation": "pays_champions_after_final"
+    },
+    {
+      "source": "src/lib/waitlistService.ts",
+      "target": "db:waitlist",
+      "relation": "queries_and_mutates_queue"
+    },
+    {
+      "source": "App.tsx",
+      "target": "db:system_config",
+      "relation": "reads_min_app_version"
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "storage:avatars",
+      "relation": "uploads_avatar"
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "rpc:verify_admin_pin",
+      "relation": "unlocks_admin"
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "rpc:delete_user_account",
+      "relation": "deletes_account"
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "storage:receipts",
+      "relation": "uploads_payment_receipt"
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "rpc:cancel_tournament_and_refund",
+      "relation": "cancels_and_refunds"
+    },
+    {
+      "source": "src/screens/StoreScreen.tsx",
+      "target": "db:profiles",
+      "relation": "purchases_and_equips_cosmetics"
+    },
+    {
+      "source": "src/screens/AchievementsScreen.tsx",
+      "target": "db:profiles",
+      "relation": "claims_achievement_rewards"
+    },
+    {
+      "source": "src/screens/GameScreen.tsx",
+      "target": "db:duos",
+      "relation": "registers_official_duo"
+    },
+    {
+      "source": "src/screens/LiveMatchScreen.tsx",
+      "target": "db:live_chat",
+      "relation": "streams_match_chat"
+    },
+    {
+      "source": "src/screens/GlobalChatScreen.tsx",
+      "target": "db:global_chat",
+      "relation": "streams_lobby_chat"
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "db:tournaments",
+      "relation": "manages_tournaments"
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "db:tournament_participants",
+      "relation": "manages_registrations_and_receipts"
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "db:tournament_brackets",
+      "relation": "manages_elimination_brackets"
+    },
+    {
+      "source": "src/screens/SplashAdScreen.tsx",
+      "target": "db:ads",
+      "relation": "fetches_active_ads"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "hyperedge_offline_match_lifecycle",
+      "name": "Offline-First Match Creation, Scorepad Play & Outbox Flush Pipeline",
+      "nodes": [
+        "public/sw.js",
+        "App.tsx",
+        "src/screens/SetupScreen.tsx",
+        "src/screens/GameScreen.tsx",
+        "src/lib/offlineSync.ts",
+        "db:matches",
+        "rpc:resolve_match_bets"
+      ],
+      "description": "Allows players to configure and play an entire domino match with zero internet connection. Rounds are persisted to @domino_active_match and queued in @domino_offline_queue_v1, then automatically flushed to public.matches when connectivity returns."
+    },
+    {
+      "id": "hyperedge_realtime_score_and_spectator_sync",
+      "name": "Sub-100ms Hybrid Match Score Broadcast & Spectator Sync",
+      "nodes": [
+        "App.tsx",
+        "src/screens/GameScreen.tsx",
+        "src/screens/LiveMatchScreen.tsx",
+        "src/lib/realtimeManager.ts",
+        "db:matches"
+      ],
+      "description": "Dual-channel synchronization: every round scored in GameScreen immediately broadcasts over WebSocket channel sync_match_<id> (<100ms) while persisting to public.matches."
+    },
+    {
+      "id": "hyperedge_pedir_mesa_waitlist_flow",
+      "name": "Pedir Mesa Queue, 30s Urgent Call & Instant Table Setup",
+      "nodes": [
+        "src/screens/HomeScreen.tsx",
+        "src/screens/LiveMatchScreen.tsx",
+        "src/screens/GameScreen.tsx",
+        "src/screens/SetupScreen.tsx",
+        "src/lib/waitlistService.ts",
+        "src/lib/realtimeManager.ts",
+        "db:waitlist"
+      ],
+      "description": "End-to-end table queue: players join with a partner from HomeScreen or LiveMatchScreen, active tables trigger a 30s urgent call modal via domino_waitlist_calls, and clicking \"🎲 Pasar\" pre-fills SetupScreen with the waiting duo."
+    },
+    {
+      "id": "hyperedge_betting_and_wager_settlement",
+      "name": "Spectator Odds Betting, VIP Match Wagers & Triple-Redundant Payout Settlement",
+      "nodes": [
+        "src/screens/LiveMatchScreen.tsx",
+        "src/screens/SetupScreen.tsx",
+        "src/screens/GameScreen.tsx",
+        "src/screens/ProfileScreen.tsx",
+        "src/lib/bettingService.ts",
+        "db:bets",
+        "db:profiles",
+        "rpc:place_bet",
+        "rpc:settle_completed_match",
+        "rpc:settle_my_pending_bets",
+        "rpc:resolve_match_bets",
+        "rpc:resolve_match_wagers"
+      ],
+      "description": "All point movements happen on the server: place_bet deducts and records bets atomically, the match-completion trigger (and settle_completed_match as safety net) pays winners using the winner stored in the match, and reconcileUserPendingBets() calls settle_my_pending_bets on login/HomeScreen/ProfileScreen. A profiles trigger blocks direct client writes to betting_points."
+    },
+    {
+      "id": "hyperedge_economy_cosmetics_and_achievements",
+      "name": "Points Economy: Daily Streak, 50 Achievements, VIP Store & Leaderboards",
+      "nodes": [
+        "src/screens/HomeScreen.tsx",
+        "src/screens/AchievementsScreen.tsx",
+        "src/screens/StoreScreen.tsx",
+        "src/screens/LeaderboardScreen.tsx",
+        "src/screens/ProfileScreen.tsx",
+        "src/screens/GlobalChatScreen.tsx",
+        "src/components/RainbowText.tsx",
+        "db:profiles"
+      ],
+      "description": "Players earn betting_points from daily streaks (+10/day), match wins, bets, and 50 achievements, then spend them in StoreScreen on titles, RainbowText colors, borders, and table felt colors displayed across Rankings, Profiles, and GlobalChat."
+    },
+    {
+      "id": "hyperedge_tournaments_lifecycle",
+      "name": "VIP Cash, Elimination Brackets & Leaderboard Tournaments Lifecycle",
+      "nodes": [
+        "src/screens/TournamentsScreen.tsx",
+        "App.tsx",
+        "src/screens/GameScreen.tsx",
+        "db:tournaments",
+        "db:tournament_participants",
+        "db:tournament_brackets",
+        "db:matches"
+      ],
+      "description": "Handles tournament creation, partner registration, Bs payment receipt uploads, admin approval, automated bracket pairing, live match linking (live_match_id), and automatic winner advancement."
+    }
+  ]
+}

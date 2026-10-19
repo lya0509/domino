@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StatusBar, Alert, BackHandler, View, Text, Animated, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
+import { StatusBar, Alert, BackHandler, View, Text, Animated, TouchableOpacity, StyleSheet, Platform, Image, Modal } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
@@ -18,6 +18,11 @@ import { TournamentsScreen } from './src/screens/TournamentsScreen';
 import { Match, Profile } from './src/types';
 import { supabase } from './src/lib/supabase';
 import { sounds } from './src/lib/sounds';
+import { offlineSync, generateUUID, isValidUUID, SyncStatus } from './src/lib/offlineSync';
+import { realtimeManager } from './src/lib/realtimeManager';
+import { settleMatchBetsAndWagers, reconcileUserPendingBets } from './src/lib/bettingService';
+import { fetchActiveWaitlist } from './src/lib/waitlistService';
+import { initGraphifyBridge, updateGraphifyRuntimeState, registerGraphifyControllers } from './src/lib/graphifyBridge';
 
 const theme = {
   colors: {
@@ -112,9 +117,16 @@ export default function App() {
   const [waitlistSetup, setWaitlistSetup] = useState<{ waitlistId: string, team1: Profile[], team2: Profile[] } | null>(null);
   const [isVersionValid, setIsVersionValid] = useState<boolean | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(offlineSync.getStatus());
 
   // In-App Toast State
   const [toastMsg, setToastMsg] = useState<{name: string, text: string, color?: string} | null>(null);
+  // Global chat as an overlay during a match, so the game screen stays mounted
+  const [chatOverlayOpen, setChatOverlayOpen] = useState(false);
+  useEffect(() => {
+    // Leaving the game by any route (swipe/back button) must close the overlay, or toasts stay muted
+    if (currentScreen !== 'game') setChatOverlayOpen(false);
+  }, [currentScreen]);
   const [initialInviteCode, setInitialInviteCode] = useState<string | null>(null);
   const [waitlistCall, setWaitlistCall] = useState<{
     p1Name: string;
@@ -124,6 +136,44 @@ export default function App() {
   } | null>(null);
   const toastAnim = useRef(new Animated.Value(-100)).current;
   const toastTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = useCallback((name: string, text: string, color?: string, durationMs = 4500) => {
+    setToastMsg({ name, text, color: color || theme.colors.primary });
+    Animated.spring(toastAnim, {
+      toValue: Platform.OS === 'ios' ? 60 : 40,
+      useNativeDriver: true,
+      bounciness: 12,
+    }).start();
+
+    if (toastTimeout.current) clearTimeout(toastTimeout.current);
+    toastTimeout.current = setTimeout(() => {
+      Animated.timing(toastAnim, {
+        toValue: -150,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setToastMsg(null));
+    }, durationMs);
+  }, [toastAnim]);
+
+  useEffect(() => {
+    offlineSync.init();
+    initGraphifyBridge();
+    const unsub = offlineSync.subscribe(setSyncStatus);
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    updateGraphifyRuntimeState({
+      currentScreen,
+      currentUserProfileId,
+      currentUserDisplayName: currentUserProfile?.display_name || null,
+      isAdmin: Boolean(currentUserProfile?.is_admin),
+      isAuthenticated,
+      isGuestMode,
+      activeMatchId: match?.id || null,
+      liveMatchId,
+    });
+  }, [currentScreen, currentUserProfileId, currentUserProfile, isAuthenticated, isGuestMode, match?.id, liveMatchId]);
 
   const markOnboardingSeen = async () => {
     try {
@@ -141,21 +191,47 @@ export default function App() {
   const fetchCurrentUser = async (id: string) => {
     setCurrentUserProfileId(id);
     setIsAuthenticated(true);
-    const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
-    if (data) {
-      let isAdmin = (data as Profile).is_admin || false;
-      try {
-        let adminOverride = await AsyncStorage.getItem('@domino_admin_override');
-        if (!adminOverride && Platform.OS === 'web' && typeof window !== 'undefined') {
-          adminOverride = window.localStorage.getItem('@domino_admin_override');
-        }
-        if (adminOverride === 'true') {
-          isAdmin = true;
-        }
-      } catch (e) {
-        // ignore
+
+    // Self-healing: resolve any pending bets on completed matches for this user
+    reconcileUserPendingBets(id).then((res) => {
+      if (res.newlyWonBets > 0 && res.totalPointsCredited > 0) {
+        sounds.playSound('chaching');
+        showToast(
+          '🎉 ¡Apuesta Ganada!',
+          `Se acreditaron +${res.totalPointsCredited} pts a tu saldo por tus apuestas ganadas.`,
+          '#10b981',
+          6000
+        );
       }
-      setCurrentUserProfile({ ...(data as Profile), is_admin: isAdmin });
+    });
+
+    // Fast path: check cached profile first so UI renders immediately even offline
+    const cachedMap = offlineSync.getCachedProfileMapSync();
+    if (cachedMap[id]) {
+      setCurrentUserProfile(cachedMap[id]);
+    }
+
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
+      if (data) {
+        let isAdmin = (data as Profile).is_admin || false;
+        try {
+          let adminOverride = await AsyncStorage.getItem('@domino_admin_override');
+          if (!adminOverride && Platform.OS === 'web' && typeof window !== 'undefined') {
+            adminOverride = window.localStorage.getItem('@domino_admin_override');
+          }
+          if (adminOverride === 'true') {
+            isAdmin = true;
+          }
+        } catch (e) {
+          // ignore
+        }
+        const enriched = { ...(data as Profile), is_admin: isAdmin };
+        setCurrentUserProfile(enriched);
+        offlineSync.updateCachedProfile(enriched);
+      }
+    } catch (e) {
+      // Offline fallback: cached profile already set if available
     }
   };
 
@@ -188,6 +264,20 @@ export default function App() {
       }
     }
   }, [viewProfileId, liveMatchId]);
+
+  useEffect(() => {
+    registerGraphifyControllers({
+      navigate: (s: ScreenState, opts) => navigate(s, opts),
+      triggerToast: (msg) => showToast(msg.name, msg.text, msg.color),
+      triggerWaitlistCall: (callData) =>
+        setWaitlistCall({
+          p1Name: callData.p1Name,
+          p2Name: callData.p2Name,
+          callerName: callData.callerName,
+          timeLeft: callData.timeLeft,
+        }),
+    });
+  }, [navigate, showToast]);
 
   // Retroceso inteligente para botón Volver, gesto swipe-back y botón físico Atrás
   const navigateBack = useCallback(() => {
@@ -326,8 +416,9 @@ export default function App() {
       }
     });
 
-    // Preload sounds
+    // Preload sounds & warm up profile cache
     sounds.preloadSounds();
+    offlineSync.getProfiles(false);
 
     // Request Web Push Notification permissions on load
     if (Platform.OS === 'web' && 'Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
@@ -340,20 +431,24 @@ export default function App() {
     };
   }, []);
 
-  // Global Chat In-App Notification
+  // Global Chat In-App Notification & Realtime Profile Points Sync
   useEffect(() => {
     if (!session?.user) return;
 
-    const channel = supabase.channel('app_global_toast')
+    const channel = supabase.channel(`app_global_toast_${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_chat' }, async payload => {
         if (payload.new.user_id === session.user.id) return;
 
-        const { data: profile } = await supabase.from('profiles').select('display_name, equipped_items').eq('id', payload.new.user_id).single();
+        const cachedMap = offlineSync.getCachedProfileMapSync();
+        let profile: any = cachedMap[payload.new.user_id];
+        if (!profile) {
+          const { data } = await supabase.from('profiles').select('display_name, equipped_items').eq('id', payload.new.user_id).single();
+          profile = data;
+        }
         if (profile) {
           const color = profile.equipped_items?.color === 'rainbow' ? '#ec4899' : (profile.equipped_items?.color || theme.colors.primary);
-          setToastMsg({ name: profile.display_name, text: payload.new.message, color });
+          showToast(profile.display_name, payload.new.message, color, 4000);
           
-          // Notificación Push para la Web (PWA)
           if (Platform.OS === 'web' && 'Notification' in window) {
             if (Notification.permission === 'granted') {
               new Notification('Nuevo mensaje en Dominó', {
@@ -364,22 +459,12 @@ export default function App() {
               Notification.requestPermission();
             }
           }
-
-          Animated.spring(toastAnim, {
-            toValue: Platform.OS === 'ios' ? 60 : 40,
-            useNativeDriver: true,
-            bounciness: 12
-          }).start();
-
-          if (toastTimeout.current) clearTimeout(toastTimeout.current);
-
-          toastTimeout.current = setTimeout(() => {
-            Animated.timing(toastAnim, {
-              toValue: -150,
-              duration: 300,
-              useNativeDriver: true
-            }).start(() => setToastMsg(null));
-          }, 4000);
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` }, payload => {
+        if (payload.new) {
+          setCurrentUserProfile(prev => prev ? { ...prev, ...(payload.new as Profile), is_admin: prev.is_admin || (payload.new as Profile).is_admin } : (payload.new as Profile));
+          offlineSync.updateCachedProfile(payload.new as Profile);
         }
       })
       .subscribe();
@@ -387,96 +472,72 @@ export default function App() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session]);
+  }, [session, showToast]);
 
-  // Waitlist Call Realtime Broadcast & Countdown
+  // Waitlist Call Realtime Broadcast & Countdown via singleton realtimeManager
   useEffect(() => {
-    const channel = supabase.channel('domino_waitlist_calls')
-      .on('broadcast', { event: 'call_duo' }, payload => {
-        const data = payload.payload;
-        if (!data) return;
-
-        const isCalled = currentUserProfileId && (currentUserProfileId === data.p1Id || currentUserProfileId === data.p2Id);
-        if (isCalled) {
-          sounds.playSound('slap');
-          if (Platform.OS === 'web' && 'Notification' in window && Notification.permission === 'granted') {
-            try {
-              new Notification('🚨 ¡A LA MESA! Tu dúo ha sido llamado', {
-                body: `${data.callerName} te ha llamado a la mesa. ¡Tienes 30 segundos!`,
-                icon: '/favicon.ico'
-              });
-            } catch (e) {
-              console.warn('Notif error', e);
-            }
+    const unsubCall = realtimeManager.onCallDuo((data) => {
+      if (!data) return;
+      const isCalled = currentUserProfileId && (currentUserProfileId === data.p1Id || currentUserProfileId === data.p2Id);
+      if (isCalled) {
+        sounds.playSound('slap');
+        if (Platform.OS === 'web' && 'Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification('🚨 ¡A LA MESA! Tu dúo ha sido llamado', {
+              body: `${data.callerName} te ha llamado a la mesa. ¡Tienes 30 segundos!`,
+              icon: '/favicon.ico'
+            });
+          } catch (e) {
+            console.warn('Notif error', e);
           }
-
-          setWaitlistCall({
-            p1Name: data.p1Name,
-            p2Name: data.p2Name,
-            callerName: data.callerName,
-            timeLeft: 30
-          });
         }
-      })
-      .on('broadcast', { event: 'proximity_alert' }, async payload => {
-        const data = payload.payload;
-        if (!data || !currentUserProfileId) return;
 
-        try {
-          const { data: queue } = await supabase
-            .from('waitlist')
-            .select('player1_id, player2_id')
-            .eq('status', 'waiting')
-            .order('created_at', { ascending: true })
-            .limit(1);
+        setWaitlistCall({
+          p1Name: data.p1Name,
+          p2Name: data.p2Name,
+          callerName: data.callerName,
+          timeLeft: 30
+        });
+      }
+    });
 
-          if (queue && queue.length > 0) {
-            const nextDuo = queue[0];
-            if (currentUserProfileId === nextDuo.player1_id || currentUserProfileId === nextDuo.player2_id) {
-              sounds.playSound('pop');
-              setToastMsg({
-                name: '⏳ ¡Casi es su turno!',
-                text: `La partida actual va por ${data.highestScore}/${data.limitScore} pts. Quedan ~${data.pointsLeft} pts para que jueguen. ¡Vayan preparándose!`,
-                color: '#f59e0b'
-              });
+    const unsubProximity = realtimeManager.onProximityAlert(async (data) => {
+      if (!data || !currentUserProfileId) return;
+      try {
+        const queue = await fetchActiveWaitlist();
+        if (queue && queue.length > 0) {
+          const nextDuo = queue[0];
+          if (currentUserProfileId === nextDuo.player1_id || currentUserProfileId === nextDuo.player2_id) {
+            sounds.playSound('pop');
+            showToast(
+              '⏳ ¡Casi es su turno!',
+              `La partida actual va por ${data.highestScore}/${data.limitScore} pts. Quedan ~${data.pointsLeft} pts para que jueguen. ¡Vayan preparándose!`,
+              '#f59e0b',
+              6000
+            );
 
-              if (Platform.OS === 'web' && 'Notification' in window && Notification.permission === 'granted') {
-                try {
-                  new Notification('⏳ ¡Casi es su turno en Dominó!', {
-                    body: `La partida en la mesa va por ${data.highestScore}/${data.limitScore} pts. ¡Prepárense para entrar!`,
-                    icon: '/favicon.ico'
-                  });
-                } catch (e) {
-                  console.warn('Notif error', e);
-                }
+            if (Platform.OS === 'web' && 'Notification' in window && Notification.permission === 'granted') {
+              try {
+                new Notification('⏳ ¡Casi es su turno en Dominó!', {
+                  body: `La partida en la mesa va por ${data.highestScore}/${data.limitScore} pts. ¡Prepárense para entrar!`,
+                  icon: '/favicon.ico'
+                });
+              } catch (e) {
+                console.warn('Notif error', e);
               }
-
-              Animated.spring(toastAnim, {
-                toValue: Platform.OS === 'ios' ? 60 : 40,
-                useNativeDriver: true,
-                bounciness: 12
-              }).start();
-
-              if (toastTimeout.current) clearTimeout(toastTimeout.current);
-              toastTimeout.current = setTimeout(() => {
-                Animated.timing(toastAnim, {
-                  toValue: -150,
-                  duration: 300,
-                  useNativeDriver: true
-                }).start(() => setToastMsg(null));
-              }, 6000);
             }
           }
-        } catch (err) {
-          console.error('Error handling proximity alert:', err);
         }
-      })
-      .subscribe();
+      } catch (err) {
+        console.error('Error handling proximity alert:', err);
+      }
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubCall();
+      unsubProximity();
     };
-  }, [currentUserProfileId]);
+  }, [currentUserProfileId, showToast]);
 
   useEffect(() => {
     if (!waitlistCall) return;
@@ -629,45 +690,10 @@ export default function App() {
     );
   }
 
-  const isSupabaseId = (id: string) => id && id.includes('-') && id.length > 30;
+  const isSupabaseId = (id: string) => isValidUUID(id);
 
   const handleStartMatch = async (matchConfig: Omit<Match, 'id' | 'rounds' | 'status'>, waitlistId?: string) => {
-    let matchId = Math.random().toString(36).substring(7);
-
-    if (!matchConfig.isGuestMode && isAuthenticated) {
-      try {
-        const team1Players = matchConfig.players.filter(p => p.teamNumber === 1);
-        const team2Players = matchConfig.players.filter(p => p.teamNumber === 2);
-
-        const matchData: any = {
-          status: 'active',
-          game_mode: matchConfig.gameMode,
-          limit_score: matchConfig.limitScore,
-          rounds: [],
-          team1_total: 0,
-          team2_total: 0,
-          players_json: matchConfig.players,
-          wager_amount: matchConfig.wager_amount || 0,
-          is_wager_match: matchConfig.is_wager_match || false,
-          tournament_id: matchConfig.tournament_id || null,
-        };
-
-        const getValidId = (id?: string) => id && !id.startsWith('guest-') ? id : null;
-
-        if (getValidId(team1Players[0]?.profileId)) matchData.team1_player1 = team1Players[0].profileId;
-        if (getValidId(team1Players[1]?.profileId)) matchData.team1_player2 = team1Players[1].profileId;
-        if (getValidId(team2Players[0]?.profileId)) matchData.team2_player1 = team2Players[0].profileId;
-        if (getValidId(team2Players[1]?.profileId)) matchData.team2_player2 = team2Players[1].profileId;
-
-        const { data, error } = await supabase.from('matches').insert(matchData).select().single();
-
-        if (data && !error) {
-          matchId = data.id;
-        }
-      } catch (err) {
-        console.error('Failed to save active match to Supabase:', err);
-      }
-    }
+    let matchId = generateUUID();
 
     const newMatch: Match = {
       ...matchConfig,
@@ -675,11 +701,42 @@ export default function App() {
       rounds: [],
       status: 'active',
     };
-    
-    if (waitlistId && isAuthenticated) {
-      supabase.from('waitlist').update({ status: 'playing' }).eq('id', waitlistId).then();
+
+    if (!matchConfig.isGuestMode && isAuthenticated) {
+      const team1Players = matchConfig.players.filter(p => p.teamNumber === 1);
+      const team2Players = matchConfig.players.filter(p => p.teamNumber === 2);
+      const getValidId = (id?: string) => id && !id.startsWith('guest-') ? id : null;
+
+      await offlineSync.syncActiveMatch({
+        id: matchId,
+        status: 'active',
+        game_mode: matchConfig.gameMode,
+        limit_score: matchConfig.limitScore,
+        rounds: [],
+        team1_total: 0,
+        team2_total: 0,
+        winner_team: null,
+        is_zapato: false,
+        players_json: matchConfig.players,
+        substitutions: [],
+        team1_player1: getValidId(team1Players[0]?.profileId),
+        team1_player2: getValidId(team1Players[1]?.profileId),
+        team2_player1: getValidId(team2Players[0]?.profileId),
+        team2_player2: getValidId(team2Players[1]?.profileId),
+        wager_amount: matchConfig.wager_amount || 0,
+        is_wager_match: matchConfig.is_wager_match || false,
+        tournament_id: matchConfig.tournament_id || null,
+      });
     }
-    
+
+    if (waitlistId && isAuthenticated) {
+      if (offlineSync.getIsOnline()) {
+        supabase.from('waitlist').update({ status: 'playing' }).eq('id', waitlistId).then(() => {
+          realtimeManager.notifyWaitlistRefresh();
+        });
+      }
+    }
+
     setWaitlistSetup(null);
     setMatch(newMatch);
     navigate('game');
@@ -703,49 +760,89 @@ export default function App() {
     navigate('game');
   };
 
-  const handleUpdateMatch = async (updatedMatch: Match) => {
-    let matchToSave = updatedMatch;
+  const handleUpdateMatch = async (updatedMatch: Match, fromRemote: boolean = false) => {
+    const totals: Record<string, number> = { team1: 0, team2: 0 };
+    updatedMatch.rounds.forEach(r => {
+      if (r.scorerId === 'team1') totals.team1 += r.points;
+      else if (r.scorerId === 'team2') totals.team2 += r.points;
+    });
+
+    let newStatus = updatedMatch.status;
+    let winnerTeam: number | null = null;
+    let isZapato = false;
+
+    if (totals.team1 >= updatedMatch.limitScore) {
+      newStatus = 'completed';
+      winnerTeam = 1;
+      isZapato = totals.team2 === 0;
+    } else if (totals.team2 >= updatedMatch.limitScore) {
+      newStatus = 'completed';
+      winnerTeam = 2;
+      isZapato = totals.team1 === 0;
+    } else {
+      newStatus = 'active';
+    }
+
+    const matchToSave: Match = { ...updatedMatch, status: newStatus };
+    setMatch(matchToSave);
+
+    if (fromRemote) {
+      return;
+    }
 
     if (!updatedMatch.isGuestMode && isAuthenticated && isSupabaseId(updatedMatch.id)) {
-      try {
-        const totals: Record<string, number> = { team1: 0, team2: 0 };
-        updatedMatch.rounds.forEach(r => {
-          if (r.scorerId === 'team1') totals.team1 += r.points;
-          else if (r.scorerId === 'team2') totals.team2 += r.points;
-        });
+      const team1Players = matchToSave.players.filter(p => p.teamNumber === 1);
+      const team2Players = matchToSave.players.filter(p => p.teamNumber === 2);
+      const getValidId = (id?: string) => id && !id.startsWith('guest-') ? id : null;
 
-        let newStatus = updatedMatch.status;
-        let winnerTeam = null;
-        let isZapato = false;
+      // Broadcast instant update (<100ms) to spectators and other devices
+      realtimeManager.broadcastMatchUpdate(matchToSave.id, {
+        id: matchToSave.id,
+        status: newStatus,
+        winner_team: winnerTeam,
+        is_zapato: isZapato,
+        rounds: matchToSave.rounds,
+        players_json: matchToSave.players,
+        substitutions: matchToSave.substitutions || [],
+        team1_total: totals.team1,
+        team2_total: totals.team2,
+      });
 
-        if (totals.team1 >= updatedMatch.limitScore) {
-          newStatus = 'completed';
-          winnerTeam = 1;
-          isZapato = totals.team2 === 0;
-        } else if (totals.team2 >= updatedMatch.limitScore) {
-          newStatus = 'completed';
-          winnerTeam = 2;
-          isZapato = totals.team1 === 0;
-        } else {
-          newStatus = 'active';
-        }
+      await offlineSync.syncActiveMatch({
+        id: matchToSave.id,
+        status: newStatus,
+        game_mode: matchToSave.gameMode,
+        limit_score: matchToSave.limitScore,
+        winner_team: winnerTeam,
+        is_zapato: isZapato,
+        rounds: matchToSave.rounds,
+        players_json: matchToSave.players,
+        substitutions: matchToSave.substitutions || [],
+        team1_total: totals.team1,
+        team2_total: totals.team2,
+        team1_player1: getValidId(team1Players[0]?.profileId),
+        team1_player2: getValidId(team1Players[1]?.profileId),
+        team2_player1: getValidId(team2Players[0]?.profileId),
+        team2_player2: getValidId(team2Players[1]?.profileId),
+        wager_amount: matchToSave.wager_amount || 0,
+        is_wager_match: matchToSave.is_wager_match || false,
+        tournament_id: matchToSave.tournament_id || null,
+      });
 
-        matchToSave = { ...updatedMatch, status: newStatus };
-
-        await supabase.from('matches').update({
-          status: newStatus,
-          winner_team: winnerTeam,
-          is_zapato: isZapato,
-          rounds: matchToSave.rounds,
-          team1_total: totals.team1,
-          team2_total: totals.team2,
-        }).eq('id', matchToSave.id);
-      } catch (err) {
-        console.error('Failed to sync match update to Supabase:', err);
+      // If match reached limitScore automatically, settle bets & wagers immediately so winners get paid even if host closes tab
+      if (newStatus === 'completed' && winnerTeam !== null && offlineSync.getIsOnline()) {
+        settleMatchBetsAndWagers({
+          matchId: matchToSave.id,
+          winnerTeam,
+          isWagerMatch: matchToSave.is_wager_match,
+          wagerAmount: matchToSave.wager_amount,
+          team1Player1: getValidId(team1Players[0]?.profileId),
+          team1Player2: getValidId(team1Players[1]?.profileId),
+          team2Player1: getValidId(team2Players[0]?.profileId),
+          team2Player2: getValidId(team2Players[1]?.profileId),
+        }).catch(err => console.warn('[App] Background bet settlement warning:', err));
       }
     }
-    
-    setMatch(matchToSave);
   };
 
   const handleEndMatch = async (winnerId: string) => {
@@ -793,78 +890,73 @@ export default function App() {
           const team2P1 = getValidId(finalPlayers.find(p => p.teamNumber === 2)?.profileId);
           const team2P2 = getValidId(finalPlayers.filter(p => p.teamNumber === 2)[1]?.profileId);
 
-          let finalMatchId = updatedMatch.id;
+          let finalMatchId = isSupabaseId(updatedMatch.id) ? updatedMatch.id : generateUUID();
 
-          if (isSupabaseId(updatedMatch.id)) {
-            await supabase.from('matches').update({
-              status: 'completed',
-              winner_team: winnerTeam,
-              is_zapato: isZapato,
-              rounds: updatedMatch.rounds,
-              team1_total: totals['team1'] || 0,
-              team2_total: totals['team2'] || 0,
-              wager_amount: updatedMatch.wager_amount || 0,
-              is_wager_match: updatedMatch.is_wager_match || false,
-              tournament_id: updatedMatch.tournament_id || null,
-            }).eq('id', updatedMatch.id);
+          const completePayload = {
+            id: finalMatchId,
+            status: 'completed' as const,
+            game_mode: updatedMatch.gameMode,
+            limit_score: updatedMatch.limitScore,
+            rounds: updatedMatch.rounds,
+            team1_total: totals['team1'] || 0,
+            team2_total: totals['team2'] || 0,
+            winner_team: winnerTeam,
+            is_zapato: isZapato,
+            players_json: updatedMatch.players,
+            substitutions: updatedMatch.substitutions || [],
+            team1_player1: team1P1,
+            team1_player2: team1P2,
+            team2_player1: team2P1,
+            team2_player2: team2P2,
+            wager_amount: updatedMatch.wager_amount || 0,
+            is_wager_match: updatedMatch.is_wager_match || false,
+            tournament_id: updatedMatch.tournament_id || null,
+          };
+
+          if (!offlineSync.getIsOnline()) {
+            await offlineSync.enqueueMatchComplete(completePayload);
+            setMatch(null);
+            navigate('home', { replace: true });
+            return;
+          }
+
+          const { error: upsertErr } = await supabase.from('matches').upsert({
+            id: completePayload.id,
+            status: 'completed',
+            game_mode: completePayload.game_mode,
+            limit_score: completePayload.limit_score,
+            rounds: completePayload.rounds,
+            team1_total: completePayload.team1_total,
+            team2_total: completePayload.team2_total,
+            winner_team: completePayload.winner_team,
+            is_zapato: completePayload.is_zapato,
+            players_json: completePayload.players_json,
+            substitutions: completePayload.substitutions,
+            team1_player1: completePayload.team1_player1,
+            team1_player2: completePayload.team1_player2,
+            team2_player1: completePayload.team2_player1,
+            team2_player2: completePayload.team2_player2,
+            wager_amount: completePayload.wager_amount,
+            is_wager_match: completePayload.is_wager_match,
+            tournament_id: completePayload.tournament_id,
+          }, { onConflict: 'id' });
+
+          if (upsertErr) {
+            await offlineSync.enqueueMatchComplete(completePayload);
           } else {
-            const matchData: any = {
-              status: 'completed',
-              game_mode: updatedMatch.gameMode,
-              limit_score: updatedMatch.limitScore,
-              rounds: updatedMatch.rounds,
-              team1_total: totals['team1'] || 0,
-              team2_total: totals['team2'] || 0,
-              winner_team: winnerTeam,
-              is_zapato: isZapato,
-              players_json: updatedMatch.players,
-              team1_player1: team1P1,
-              team1_player2: team1P2,
-              team2_player1: team2P1,
-              team2_player2: team2P2,
-              wager_amount: updatedMatch.wager_amount || 0,
-              is_wager_match: updatedMatch.is_wager_match || false,
-              tournament_id: updatedMatch.tournament_id || null,
-            };
-
-            const { data: newMatchRec } = await supabase.from('matches').insert(matchData).select('id').single();
-            if (newMatchRec) finalMatchId = newMatchRec.id;
+            await settleMatchBetsAndWagers({
+              matchId: finalMatchId,
+              winnerTeam,
+              isWagerMatch: updatedMatch.is_wager_match,
+              wagerAmount: updatedMatch.wager_amount,
+              team1Player1: team1P1,
+              team1Player2: team1P2,
+              team2Player1: team2P1,
+              team2Player2: team2P2,
+            });
           }
 
-          // Wager resolution logic for players in match
-          if (updatedMatch.is_wager_match && updatedMatch.wager_amount && updatedMatch.wager_amount > 0 && winnerTeam !== null) {
-            const wager = updatedMatch.wager_amount;
-            const winners = winnerTeam === 1 ? [team1P1, team1P2] : [team2P1, team2P2];
-            const losers = winnerTeam === 1 ? [team2P1, team2P2] : [team1P1, team1P2];
-            
-            // Add wager to winners
-            for (const wid of winners) {
-              if (!wid) continue;
-              const { data: prof } = await supabase.from('profiles').select('betting_points').eq('id', wid).single();
-              if (prof) {
-                await supabase.from('profiles').update({ betting_points: (prof.betting_points || 0) + wager }).eq('id', wid);
-              }
-            }
-            // Subtract wager from losers
-            for (const lid of losers) {
-              if (!lid) continue;
-              const { data: prof } = await supabase.from('profiles').select('betting_points').eq('id', lid).single();
-              if (prof) {
-                await supabase.from('profiles').update({ betting_points: Math.max(0, (prof.betting_points || 0) - wager) }).eq('id', lid);
-              }
-            }
-          }
-          
           if (isSupabaseId(finalMatchId)) {
-            try {
-              await supabase.rpc('resolve_match_bets', { 
-                p_match_id: finalMatchId, 
-                p_winner_team: winnerTeam 
-              });
-            } catch (rpcErr) {
-              console.error('Error resolving bets via RPC:', rpcErr);
-            }
-
             try {
               await supabase.rpc('update_player_streaks_for_match', { 
                 p_match_id: finalMatchId 
@@ -895,26 +987,17 @@ export default function App() {
                     if (winners.length === 1) {
                       await supabase.from('tournaments').update({ status: 'completed' }).eq('id', bracket.tournament_id);
 
-                      // Si es un torneo de puntos y hay un pozo acumulado, repartir a los campeones
+                      // Si es un torneo de puntos, el servidor paga el pozo a los campeones de la final (una sola vez)
+                      let prizeMsg = 'El torneo ha concluido exitosamente.';
                       try {
-                        const { data: tInfo } = await supabase.from('tournaments').select('*').eq('id', bracket.tournament_id).single();
-                        if (tInfo && tInfo.tournament_type !== 'vip_cash' && Number(tInfo.prize_pool) > 0) {
-                          const championIds = [winners[0].p1, winners[0].p2].filter(Boolean);
-                          if (championIds.length > 0) {
-                            const pointsPerChamp = Math.floor(Number(tInfo.prize_pool) / championIds.length);
-                            for (const champId of championIds) {
-                              const { data: cProf } = await supabase.from('profiles').select('betting_points').eq('id', champId).single();
-                              await supabase.from('profiles').update({
-                                betting_points: (cProf?.betting_points || 0) + pointsPerChamp
-                              }).eq('id', champId);
-                            }
-                          }
-                        }
+                        const { data: prize, error: prizeErr } = await supabase.rpc('award_tournament_prize', { p_tournament_id: bracket.tournament_id });
+                        if (prizeErr) throw prizeErr;
+                        if (prize?.paid) prizeMsg += ` Cada campeón recibió ${prize.per_champion} pts.`;
                       } catch (payoutErr) {
                         console.error('Error awarding tournament prize points:', payoutErr);
                       }
 
-                      Alert.alert('🏆 ¡Torneo Finalizado!', 'El torneo ha concluido exitosamente y se han entregado los premios a los campeones.');
+                      Alert.alert('🏆 ¡Torneo Finalizado!', prizeMsg);
                     } else {
                       const nextRoundMatches = [];
                       let matchCount = 1;
@@ -983,26 +1066,11 @@ export default function App() {
 
           if (isZapato) {
             const winners = winnerTeam === 1 ? [team1P1, team1P2] : [team2P1, team2P2];
+            // The server counts zapatos given and grants the badge (clients can't write achievements)
             for (const wid of winners) {
               if (!wid) continue;
-              const { data: prof } = await supabase.from('profiles').select('achievements').eq('id', wid).single();
-              if (prof) {
-                const achs = prof.achievements || [];
-                if (!achs.includes('zapatero_maestro')) {
-                  const { data: playerMatches } = await supabase.from('matches').select('winner_team, team1_player1, team1_player2, team2_player1, team2_player2').eq('is_zapato', true).eq('status', 'completed');
-                  let count = 0;
-                  playerMatches?.forEach(m => {
-                    const inT1 = m.team1_player1 === wid || m.team1_player2 === wid;
-                    const inT2 = m.team2_player1 === wid || m.team2_player2 === wid;
-                    if ((inT1 && m.winner_team === 1) || (inT2 && m.winner_team === 2)) count++;
-                  });
-                  if (count >= 3) {
-                    achs.push('zapatero_maestro');
-                    await supabase.from('profiles').update({ achievements: achs }).eq('id', wid);
-                    if (wid === currentUserProfileId) Alert.alert('🏆 Logro Desbloqueado', 'Zapatero Maestro: ¡Has dado 3 zapatos!');
-                  }
-                }
-              }
+              const { data: awarded } = await supabase.rpc('award_zapatero_maestro', { p_user_id: wid });
+              if (awarded && wid === currentUserProfileId) Alert.alert('🏆 Logro Desbloqueado', 'Zapatero Maestro: ¡Has dado 3 zapatos!');
             }
           }
 
@@ -1015,7 +1083,7 @@ export default function App() {
           const winnerPlayers = updatedMatch.players.filter(p => p.teamNumber === winnerTeamNumber);
           const winnerProfileIds = winnerPlayers.map(p => p.profileId).filter(Boolean) as string[];
 
-          if (winnerProfileIds.length === 2) {
+          if (winnerProfileIds.length === 2 && offlineSync.getIsOnline()) {
             try {
               const { data: waitlistData } = await supabase
                 .from('waitlist')
@@ -1026,10 +1094,8 @@ export default function App() {
 
               if (waitlistData && waitlistData.length > 0) {
                 const nextDuo = waitlistData[0];
-                const { data: profilesData } = await supabase.from('profiles').select('*')
-                    .in('id', [...winnerProfileIds, nextDuo.player1_id, nextDuo.player2_id]);
-                
-                if (profilesData) {
+                const profilesData = await offlineSync.getProfiles();
+                if (profilesData && profilesData.length > 0) {
                   const pMap = Object.fromEntries(profilesData.map(p => [p.id, p]));
                   setWaitlistSetup({
                     waitlistId: nextDuo.id,
@@ -1057,6 +1123,19 @@ export default function App() {
         navigate('home', { replace: true });
       }
     }
+  };
+
+  const handleSeatWaitlistDuo = async (waitlistEntry: any) => {
+    const profiles = await offlineSync.getProfiles();
+    const pMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+    const p1 = waitlistEntry.player1 || pMap[waitlistEntry.player1_id];
+    const p2 = waitlistEntry.player2 || pMap[waitlistEntry.player2_id];
+    setWaitlistSetup({
+      waitlistId: waitlistEntry.id,
+      team1: [p1, p2].filter(Boolean),
+      team2: [],
+    });
+    navigate('setup');
   };
 
   const handleLogout = async () => {
@@ -1104,6 +1183,37 @@ export default function App() {
     <View style={styles.appWrapper}>
       <View style={styles.appContainer}>
         <StatusBar barStyle="light-content" backgroundColor="#000" />
+
+        {/* Offline / Outbox Sync Banner */}
+        {(!syncStatus.isOnline || syncStatus.pendingCount > 0) && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              if (syncStatus.isOnline && syncStatus.pendingCount > 0) {
+                offlineSync.flushQueue();
+              }
+            }}
+            style={{
+              backgroundColor: !syncStatus.isOnline ? '#b45309' : '#1d4ed8',
+              paddingVertical: 6,
+              paddingHorizontal: 14,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              zIndex: 9998,
+              borderBottomWidth: 1,
+              borderBottomColor: 'rgba(255,255,255,0.18)',
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800', flex: 1 }}>
+              {!syncStatus.isOnline
+                ? `📡 Modo Offline activo — Las partidas se guardan localmente (${syncStatus.pendingCount} en cola)`
+                : syncStatus.isSyncing
+                ? `🔄 Sincronizando ${syncStatus.pendingCount} cambio(s) con la base de datos...`
+                : `☁️ ${syncStatus.pendingCount} partida(s) pendiente(s) por subir (Toca para sincronizar)`}
+            </Text>
+          </TouchableOpacity>
+        )}
 
       {currentScreen === 'splash' && (
         <OnboardingScreen
@@ -1167,6 +1277,7 @@ export default function App() {
           onOpenGlobalChat={() => navigate('global_chat')}
           onRejoinMatch={handleRejoinMatch}
           onOpenTournaments={() => navigate('tournaments')}
+          onSeatWaitlistDuo={handleSeatWaitlistDuo}
         />
       )}
 
@@ -1260,15 +1371,43 @@ export default function App() {
         />
       )}
 
+      {/* Floating Global Chat button while playing */}
+      {currentScreen === 'game' && currentUserProfileId && !chatOverlayOpen && (
+        <TouchableOpacity
+          style={styles.chatFab}
+          onPress={() => setChatOverlayOpen(true)}
+          accessibilityLabel="Abrir chat global"
+        >
+          <Text style={styles.chatFabIcon}>💬</Text>
+        </TouchableOpacity>
+      )}
+
+      <Modal
+        visible={chatOverlayOpen && currentScreen === 'game' && !!currentUserProfileId}
+        animationType="slide"
+        onRequestClose={() => setChatOverlayOpen(false)}
+      >
+        {currentUserProfileId && (
+          <GlobalChatScreen
+            currentUserProfileId={currentUserProfileId}
+            onBack={() => setChatOverlayOpen(false)}
+          />
+        )}
+      </Modal>
+
       {/* Global In-App Toast */}
-      {toastMsg && currentScreen !== 'global_chat' && (
+      {toastMsg && currentScreen !== 'global_chat' && !chatOverlayOpen && (
         <Animated.View style={[styles.toastContainer, { transform: [{ translateY: toastAnim }] }]}>
           <TouchableOpacity 
             style={styles.toastContent} 
             activeOpacity={0.9} 
             onPress={() => {
               Animated.timing(toastAnim, { toValue: -150, duration: 200, useNativeDriver: true }).start(() => setToastMsg(null));
-              navigate('global_chat');
+              if (currentScreen === 'game') {
+                setChatOverlayOpen(true);
+              } else {
+                navigate('global_chat');
+              }
             }}
           >
             <View style={styles.toastIconBg}>
@@ -1415,6 +1554,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.6,
     shadowRadius: 20,
     elevation: 8,
+  },
+  chatFab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9998,
+    elevation: 8,
+  },
+  chatFabIcon: {
+    fontSize: 24,
   },
   toastContainer: {
     position: 'absolute',

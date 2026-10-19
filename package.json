@@ -40,7 +40,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build": "expo export --platform web && node scripts/postbuild.js",
-    "export": "expo export --platform web && node scripts/postbuild.js"
+    "export": "expo export --platform web && node scripts/postbuild.js",
+    "graphify": "node scripts/graphify.js"
   },
   "private": true
 }

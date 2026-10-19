@@ -32,7 +32,7 @@ export const GlobalChatScreen: React.FC<Props> = ({ onBack, currentUserProfileId
     fetchMessages();
 
     // Subscribe to realtime changes
-    const channel = supabase.channel('global_chat_channel')
+    const channel = supabase.channel(`global_chat_channel_${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_chat' }, async payload => {
         // Fetch the profile for the new message
         const { data: profile } = await supabase.from('profiles').select('display_name, initials, equipped_items').eq('id', payload.new.user_id).single();

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicat
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
+import { offlineSync } from '../lib/offlineSync';
 
 interface LeaderboardScreenProps {
   onBack: () => void;
@@ -26,28 +27,32 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onBack, cu
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
-      // 1. Ricos (from profiles directly)
-      const { data: rich } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('betting_points', { ascending: false })
-        .limit(100);
-      setRichList(rich || []);
+      const [allProfiles, matches] = await Promise.all([
+        offlineSync.getProfiles(offlineSync.getIsOnline()),
+        (async () => {
+          if (!offlineSync.getIsOnline()) {
+            const cached = await offlineSync.getCachedMatches();
+            return cached.filter((m: any) => m.status === 'completed');
+          }
+          const { data } = await supabase
+            .from('matches')
+            .select('winner_team, is_zapato, team1_player1, team1_player2, team2_player1, team2_player2, team1_total, team2_total, limit_score')
+            .eq('status', 'completed');
+          return data || [];
+        })(),
+      ]);
 
-      // 2. Fetch matches to compute wins & zapatos
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('status', 'completed');
+      const sortedRich = [...(allProfiles || [])]
+        .sort((a, b) => (b.betting_points || 0) - (a.betting_points || 0))
+        .slice(0, 100);
+      setRichList(sortedRich);
 
       const stats: Record<string, { id: string; wins: number; zapatos: number; total: number; profile: any }> = {};
-
-      const { data: allProfiles } = await supabase.from('profiles').select('id, display_name, avatar_url, initials');
       const profileMap: Record<string, any> = {};
       allProfiles?.forEach(p => { profileMap[p.id] = p; });
 
       matches?.forEach((m: any) => {
-        if (!m.winner_team) return; // Ignorar partidas sin ganador
+        if (!m.winner_team) return;
 
         const p1 = m.team1_player1;
         const p2 = m.team1_player2;
@@ -62,8 +67,8 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onBack, cu
           if (isWin && isZapato) stats[pid].zapatos++;
         };
 
-        const t1Zapato = m.team1_total >= (m.limit_score || 100) && m.team2_total === 0;
-        const t2Zapato = m.team2_total >= (m.limit_score || 100) && m.team1_total === 0;
+        const t1Zapato = m.is_zapato && m.winner_team === 1 ? true : (m.team1_total >= (m.limit_score || 100) && m.team2_total === 0);
+        const t2Zapato = m.is_zapato && m.winner_team === 2 ? true : (m.team2_total >= (m.limit_score || 100) && m.team1_total === 0);
 
         updateStat(p1, m.winner_team === 1, t1Zapato);
         updateStat(p2, m.winner_team === 1, t1Zapato);

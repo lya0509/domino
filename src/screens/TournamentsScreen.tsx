@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Act
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
+import { offlineSync } from '../lib/offlineSync';
 import { Match, Profile, Tournament, TournamentParticipant, TournamentBracket, BracketMatch } from '../types';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
@@ -304,38 +305,18 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
           fetchData();
         }
       } else {
-        // Brackets / Leaderboard: Paga con puntos
-        if (showJoinModal.entry_points > 0) {
-          const { data: prof } = await supabase.from('profiles').select('betting_points').eq('id', profileId).single();
-          if (!prof || prof.betting_points < showJoinModal.entry_points) {
-            Alert.alert('Saldo Insuficiente', 'No tienes suficientes puntos para entrar a este torneo.');
-            setLoading(false);
-            return;
-          }
-          await supabase.from('profiles').update({ betting_points: prof.betting_points - showJoinModal.entry_points }).eq('id', profileId);
-        }
+        // Brackets / Leaderboard: the server charges the entry points, registers
+        // the user as approved and grows the prize pool in one transaction
+        const { error: joinError } = await supabase.rpc('join_tournament_with_points', {
+          p_tournament_id: showJoinModal.id,
+        });
 
-        const { error: insertError } = await supabase
-          .from('tournament_participants')
-          .insert({
-            tournament_id: showJoinModal.id,
-            user_id: profileId,
-            payment_status: 'approved' // Auto aprueba porque pagó con puntos del sistema
-          });
-
-        if (insertError) {
-          if (insertError.code === '23505') {
-            Alert.alert('Error', 'Ya estás registrado en este torneo.');
-          } else throw insertError;
+        if (joinError) {
+          Alert.alert('No se pudo inscribir', joinError.message || 'No se pudo procesar la inscripción.');
         } else {
           Alert.alert('¡Estás dentro!', 'Te has inscrito exitosamente en el torneo.');
-          
-          // Actualizar el prize pool (botes de puntos) si no es vip_cash
-          if (showJoinModal.entry_points > 0) {
-             const newPool = (showJoinModal.prize_pool || 0) + showJoinModal.entry_points;
-             await supabase.from('tournaments').update({ prize_pool: newPool }).eq('id', showJoinModal.id);
-          }
-          
+          const { data: freshProf } = await supabase.from('profiles').select('*').eq('id', profileId).single();
+          if (freshProf) offlineSync.updateCachedProfile(freshProf);
           setShowJoinModal(null);
           fetchData();
         }
@@ -846,26 +827,17 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
           // Tournament is over!
           await supabase.from('tournaments').update({ status: 'completed' }).eq('id', match.tournament_id);
 
-          // Si es un torneo de puntos y hay un pozo acumulado, repartir a los campeones
+          // Si es un torneo de puntos, el servidor paga el pozo a los campeones de la final (una sola vez)
+          let prizeMsg = 'El torneo ha concluido exitosamente.';
           try {
-            const { data: tInfo } = await supabase.from('tournaments').select('*').eq('id', match.tournament_id).single();
-            if (tInfo && tInfo.tournament_type !== 'vip_cash' && Number(tInfo.prize_pool) > 0) {
-              const championIds = [winners[0].p1, winners[0].p2].filter(Boolean);
-              if (championIds.length > 0) {
-                const pointsPerChamp = Math.floor(Number(tInfo.prize_pool) / championIds.length);
-                for (const champId of championIds) {
-                  const { data: cProf } = await supabase.from('profiles').select('betting_points').eq('id', champId).single();
-                  await supabase.from('profiles').update({
-                    betting_points: (cProf?.betting_points || 0) + pointsPerChamp
-                  }).eq('id', champId);
-                }
-              }
-            }
+            const { data: prize, error: prizeErr } = await supabase.rpc('award_tournament_prize', { p_tournament_id: match.tournament_id });
+            if (prizeErr) throw prizeErr;
+            if (prize?.paid) prizeMsg += ` Cada campeón recibió ${prize.per_champion} pts.`;
           } catch (payoutErr) {
             console.error('Error awarding tournament prize points:', payoutErr);
           }
 
-          Alert.alert('🏆 ¡Torneo Finalizado!', 'El torneo ha concluido exitosamente y se han entregado los premios a los campeones.');
+          Alert.alert('🏆 ¡Torneo Finalizado!', prizeMsg);
           fetchData();
         } else {
           // Generate next round with live matches

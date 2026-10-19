@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal, TextInput, Platform, StatusBar } from 'react-native';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
+import { offlineSync } from '../lib/offlineSync';
 import { Profile } from '../types';
 
 import * as Haptics from 'expo-haptics';
@@ -85,26 +86,8 @@ export const StoreScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) =
                 return;
               }
 
-              const newPoints = (profile.betting_points || 0) - item.price;
-              const newInventory = [...inventory, item.id];
-              const equipped = { ...(profile.equipped_items || {}) };
-              
-              // Auto-equip
-              if (item.type === 'title') equipped.title = item.name;
-              if (item.type === 'color') equipped.color = item.value;
-              if (item.type === 'border') equipped.border = item.value;
-              if (item.type === 'table_color') equipped.table_color = item.value;
-
-              const { data, error } = await supabase
-                .from('profiles')
-                .update({ 
-                  betting_points: newPoints, 
-                  inventory: newInventory,
-                  equipped_items: equipped
-                })
-                .eq('id', profile.id)
-                .select()
-                .single();
+              // Server charges the catalog price, adds to inventory and auto-equips
+              const { data, error } = await supabase.rpc('buy_store_item', { p_item_id: item.id });
 
               if (error) throw error;
               if (Platform.OS !== 'web') {
@@ -112,9 +95,10 @@ export const StoreScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) =
               }
               sounds.playSound('chaching');
               setProfile(data as Profile);
+              offlineSync.updateCachedProfile(data as Profile);
               Alert.alert('¡Compra Exitosa!', `Has adquirido y equipado: ${item.name}`);
-            } catch (err) {
-              Alert.alert('Error', 'Hubo un problema al procesar la compra.');
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'Hubo un problema al procesar la compra.');
             } finally {
               setBuyingId(null);
             }
@@ -136,26 +120,11 @@ export const StoreScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) =
     setShowCustomModal(false);
     
     try {
-      const inventory = profile.inventory || [];
-      const newPoints = (profile.betting_points || 0) - customItemPending.price;
-      
-      // Allow buying multiple custom titles, so we don't check inventory.includes()
-      // But we still add it so it registers
-      const newInventory = [...inventory, customItemPending.id];
-      const equipped = { ...(profile.equipped_items || {}) };
-      
-      equipped.title = customText.trim();
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({ 
-          betting_points: newPoints, 
-          inventory: newInventory,
-          equipped_items: equipped
-        })
-        .eq('id', profile.id)
-        .select()
-        .single();
+      // Custom titles can be bought repeatedly; the server validates length and price
+      const { data, error } = await supabase.rpc('buy_store_item', {
+        p_item_id: customItemPending.id,
+        p_custom_title: customText.trim(),
+      });
 
       if (error) throw error;
       if (Platform.OS !== 'web') {
@@ -163,9 +132,10 @@ export const StoreScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) =
       }
       sounds.playSound('chaching');
       setProfile(data as Profile);
+      offlineSync.updateCachedProfile(data as Profile);
       Alert.alert('¡Compra Exitosa!', `Has adquirido tu etiqueta personalizada: "${customText.trim()}"`);
-    } catch (err) {
-      Alert.alert('Error', 'Hubo un problema al procesar la compra.');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Hubo un problema al procesar la compra.');
     } finally {
       setBuyingId(null);
       setCustomItemPending(null);

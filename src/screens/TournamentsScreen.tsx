@@ -15,6 +15,18 @@ interface Props {
   onWatchLiveMatch?: (matchId: string) => void;
 }
 
+// payout_details is a TEXT column holding JSON ({ bank, id, phone, paid? })
+type PayoutDetails = { bank?: string; id?: string; phone?: string; paid?: boolean };
+const parsePayout = (raw: unknown): PayoutDetails | null => {
+  if (raw == null) return null;
+  if (typeof raw === 'object') return raw as PayoutDetails;
+  try {
+    return JSON.parse(String(raw));
+  } catch {
+    return null;
+  }
+};
+
 export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack, onRejoinMatch, onWatchLiveMatch }) => {
   const [localIsAdmin, setLocalIsAdmin] = useState(isAdmin);
   const [activeTab, setActiveTab] = useState<'lobby' | 'live' | 'my_tourneys' | 'admin'>('lobby');
@@ -352,7 +364,7 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       
       const { error } = await supabase
         .from('tournament_participants')
-        .update({ payout_details })
+        .update({ payout_details: JSON.stringify(payout_details) })
         .eq('tournament_id', showPayoutModal.id)
         .eq('user_id', profileId);
         
@@ -441,6 +453,10 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       Alert.alert('Error', 'Los torneos de llaves (dominó) requieren un mínimo de 4 jugadores (2 parejas).');
       return;
     }
+    if (tType === 'vip_cash' && maxP % 8 !== 0) {
+      Alert.alert('Error', 'Los torneos VIP (Bs) son de 8, 16, 24 o 32 jugadores.');
+      return;
+    }
     
     setLoading(true);
     try {
@@ -490,6 +506,28 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       console.error(e);
       Alert.alert('Error', 'No se pudo aprobar.');
     }
+  };
+
+  const handleRejectPayment = (participantId: string) => {
+    Alert.alert('Rechazar Pago', '¿El pago no llegó o el capture no es válido? El jugador no entrará al torneo.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Rechazar',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase
+            .from('tournament_participants')
+            .update({ payment_status: 'rejected' })
+            .eq('id', participantId);
+          if (error) {
+            Alert.alert('Error', 'No se pudo rechazar.');
+            return;
+          }
+          Alert.alert('Rechazado', 'El pago fue rechazado.');
+          fetchData();
+        },
+      },
+    ]);
   };
 
   const openPartnerSelection = async (t: Tournament) => {
@@ -1170,8 +1208,8 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
                         </Text>
                         
                         {hasSubmittedPayout ? (
-                           <Text style={{ color: (myParticipant?.payout_details as any)?.paid ? theme.colors.success : theme.colors.textDim, textAlign: 'center', fontStyle: 'italic', fontWeight: 'bold' }}>
-                             {(myParticipant?.payout_details as any)?.paid 
+                           <Text style={{ color: parsePayout(myParticipant?.payout_details)?.paid ? theme.colors.success : theme.colors.textDim, textAlign: 'center', fontStyle: 'italic', fontWeight: 'bold' }}>
+                             {parsePayout(myParticipant?.payout_details)?.paid
                                ? '✅ Pago recibido y completado. ¡Disfruta tu premio!' 
                                : '⏳ Tus datos han sido enviados al administrador. Pronto recibirás tu pago.'}
                            </Text>
@@ -1254,16 +1292,16 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
             >
               <Text style={styles.joinBtnText}>Aprobar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.joinBtn, { flex: 1, backgroundColor: theme.colors.danger }]}>
+            <TouchableOpacity style={[styles.joinBtn, { flex: 1, backgroundColor: theme.colors.danger }]} onPress={() => handleRejectPayment(p.id)}>
               <Text style={styles.joinBtnText}>Rechazar</Text>
             </TouchableOpacity>
           </View>
         </View>
       ))}
 
-      <Text style={[styles.tName, { marginTop: 24, marginBottom: 12, color: theme.colors.success }]}>Premios por Pagar (VIP) ({participants.filter(p => p.payout_details != null && !(p.payout_details as any).paid).length})</Text>
-      {participants.filter(p => p.payout_details != null && !(p.payout_details as any).paid).map(p => {
-        const details = p.payout_details as any;
+      <Text style={[styles.tName, { marginTop: 24, marginBottom: 12, color: theme.colors.success }]}>Premios por Pagar (VIP) ({participants.filter(p => { const d = parsePayout(p.payout_details); return d && !d.paid; }).length})</Text>
+      {participants.filter(p => { const d = parsePayout(p.payout_details); return d && !d.paid; }).map(p => {
+        const details = parsePayout(p.payout_details)!;
         const tournament = tournaments.find(t => t.id === p.tournament_id);
         return (
           <View key={`payout-${p.id}`} style={[styles.tournamentCard, { borderColor: theme.colors.success }]}>
@@ -1281,13 +1319,15 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
             <TouchableOpacity 
               style={[styles.joinBtn, { backgroundColor: theme.colors.success, marginTop: 12 }]} 
               onPress={async () => {
-                try {
-                   await supabase.from('tournament_participants')
-                     .update({ payout_details: { ...details, paid: true } })
-                     .eq('id', p.id);
-                   fetchData();
-                   Alert.alert('Éxito', 'Marcado como pagado exitosamente.');
-                } catch(e) {}
+                const { error } = await supabase.from('tournament_participants')
+                  .update({ payout_details: JSON.stringify({ ...details, paid: true }) })
+                  .eq('id', p.id);
+                if (error) {
+                  Alert.alert('Error', 'No se pudo marcar como pagado.');
+                  return;
+                }
+                fetchData();
+                Alert.alert('Éxito', 'Marcado como pagado exitosamente.');
               }}
             >
               <Text style={styles.joinBtnText}>✅ Marcar como Pagado</Text>
@@ -1423,7 +1463,8 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
             <View style={{ marginBottom: 16, width: '100%' }}>
               <Text style={{ color: theme.colors.textDim, marginBottom: 8, marginLeft: 4 }}>Cantidad de Jugadores:</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {[4, 8, 16, 24, 32].map(num => (
+                {/* VIP (Bs) tournaments start only with a multiple of 8 players (handleGenerateBrackets) */}
+                {(tType === 'vip_cash' ? [8, 16, 24, 32] : [4, 8, 16, 24, 32]).map(num => (
                   <TouchableOpacity
                     key={num}
                     style={{

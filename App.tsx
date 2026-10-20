@@ -161,6 +161,12 @@ export default function App() {
     }, durationMs);
   }, [toastAnim]);
 
+  // The waitlist duo pre-filled in Setup only applies to that visit: leaving Setup any
+  // other way than Volver (back gesture, menu) must not seat them in a later match
+  useEffect(() => {
+    if (currentScreen !== 'setup') setWaitlistSetup(null);
+  }, [currentScreen]);
+
   useEffect(() => {
     offlineSync.init();
     initGraphifyBridge();
@@ -1026,8 +1032,9 @@ export default function App() {
           console.error('Failed to save match to Supabase:', err);
         }
 
-        // Tournament matches go back to the bracket, not to the club's waitlist
-        if (updatedMatch.gameMode === 'teams' && !updatedMatch.tournament_id) {
+        // Tournament matches go back to the bracket, not to the club's waitlist;
+        // an annulled match has no winner, so nobody stays and nobody is called
+        if (updatedMatch.gameMode === 'teams' && !updatedMatch.tournament_id && winnerId !== 'null') {
           const winnerTeamNumber = winnerId === 'team1' ? 1 : 2;
           const winnerPlayers = updatedMatch.players.filter(p => p.teamNumber === winnerTeamNumber);
           const winnerProfileIds = winnerPlayers.map(p => p.profileId).filter(Boolean) as string[];

@@ -82,7 +82,8 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       if (t.status === 'registration' && t.tournament_type === 'brackets') {
         const tParts = participants.filter(p => p.tournament_id === t.id && p.payment_status === 'approved');
         if (tParts.length > 0 && tParts.length >= t.max_participants) {
-          const allHavePartner = tParts.every(p => p.partner_id != null);
+          // Only confirmed duos: a pending invitation must not trigger the start (it would pair at random)
+          const allHavePartner = tParts.every(p => p.partner_id != null && p.partner_status === 'confirmed');
           if (allHavePartner) {
             // Permitimos que el creador o un admin ejecute la auto-generación para evitar duplicados masivos
             if (t.created_by === profileId || localIsAdmin) {

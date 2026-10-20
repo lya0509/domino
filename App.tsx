@@ -1010,7 +1010,8 @@ export default function App() {
           console.error('Failed to save match to Supabase:', err);
         }
 
-        if (updatedMatch.gameMode === 'teams') {
+        // Tournament matches go back to the bracket, not to the club's waitlist
+        if (updatedMatch.gameMode === 'teams' && !updatedMatch.tournament_id) {
           const winnerTeamNumber = winnerId === 'team1' ? 1 : 2;
           const winnerPlayers = updatedMatch.players.filter(p => p.teamNumber === winnerTeamNumber);
           const winnerProfileIds = winnerPlayers.map(p => p.profileId).filter(Boolean) as string[];

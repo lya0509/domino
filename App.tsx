@@ -6,6 +6,7 @@ import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { SplashAdScreen } from './src/screens/SplashAdScreen';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { GameScreen } from './src/screens/GameScreen';
+import { WagerConsentPrompt } from './src/components/WagerConsent';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LiveMatchScreen } from './src/screens/LiveMatchScreen';
@@ -703,11 +704,17 @@ export default function App() {
   const handleStartMatch = async (matchConfig: Omit<Match, 'id' | 'rounds' | 'status'>, waitlistId?: string) => {
     let matchId = generateUUID();
 
+    // The VIP wager is only a proposal: the match starts without it and the server
+    // activates it when all 4 players accept on their phones (propose_wager / respond_wager)
+    const proposedWager = matchConfig.is_wager_match ? matchConfig.wager_amount || 0 : 0;
+
     const newMatch: Match = {
       ...matchConfig,
       id: matchId,
       rounds: [],
       status: 'active',
+      is_wager_match: false,
+      wager_amount: 0,
     };
 
     if (!matchConfig.isGuestMode && isAuthenticated) {
@@ -715,7 +722,7 @@ export default function App() {
       const team2Players = matchConfig.players.filter(p => p.teamNumber === 2);
       const getValidId = (id?: string) => id && !id.startsWith('guest-') ? id : null;
 
-      await offlineSync.syncActiveMatch({
+      const synced = await offlineSync.syncActiveMatch({
         id: matchId,
         status: 'active',
         game_mode: matchConfig.gameMode,
@@ -731,10 +738,19 @@ export default function App() {
         team1_player2: getValidId(team1Players[1]?.profileId),
         team2_player1: getValidId(team2Players[0]?.profileId),
         team2_player2: getValidId(team2Players[1]?.profileId),
-        wager_amount: matchConfig.wager_amount || 0,
-        is_wager_match: matchConfig.is_wager_match || false,
+        wager_amount: 0,
+        is_wager_match: false,
         tournament_id: matchConfig.tournament_id || null,
       });
+
+      if (proposedWager > 0 && matchConfig.gameMode === 'teams') {
+        if (!synced) {
+          Alert.alert('Sin conexión', 'La partida empezó sin apuesta VIP: proponerla necesita internet.');
+        } else {
+          const { error: wagerErr } = await supabase.rpc('propose_wager', { p_match_id: matchId, p_amount: proposedWager });
+          if (wagerErr) Alert.alert('Apuesta VIP no enviada', `${wagerErr.message}\n\nLa partida sigue sin apuesta.`);
+        }
+      }
     }
 
     if (waitlistId && isAuthenticated) {
@@ -1355,6 +1371,9 @@ export default function App() {
           </TouchableOpacity>
         </Animated.View>
       )}
+
+      {/* VIP wager proposal for this player (accept / decline within 60s) */}
+      {isAuthenticated && !isGuestMode && <WagerConsentPrompt currentUserProfileId={currentUserProfileId} />}
 
       {/* Urgent Waitlist Call Modal */}
       {waitlistCall && (

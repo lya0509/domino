@@ -332,7 +332,7 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
                     Duelo VIP (Apuestas)
                   </Text>
                   <Text style={{ color: theme.colors.textDim, fontSize: 12 }}>
-                    Juega por puntos (Pozo = Apuesta × 4)
+                    Pozo = Apuesta × 4 · los 4 deben aceptar en su teléfono
                   </Text>
                 </View>
                 <TouchableOpacity 

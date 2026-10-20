@@ -4,6 +4,7 @@ import { theme } from '../theme';
 import { Match, Round, Player } from '../types';
 import * as Sharing from 'expo-sharing';
 import { ProgressChart } from '../components/ProgressChart';
+import { WagerStatusBanner } from '../components/WagerConsent';
 import { supabase } from '../lib/supabase';
 import * as Haptics from 'expo-haptics';
 import { sounds } from '../lib/sounds';
@@ -414,6 +415,12 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
         {hasOrder && currentManoPlayer && (
           <View style={{ backgroundColor: theme.colors.card, marginHorizontal: 16, marginTop: 8, padding: 8, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.cardBorder }}>
             <Text style={{ color: theme.colors.text, fontWeight: 'bold' }}>🎲 Salida actual: <Text style={{ color: theme.colors.primary }}>{currentManoPlayer.name}</Text></Text>
+          </View>
+        )}
+
+        {!match.isGuestMode && match.gameMode === 'teams' && !match.tournament_id && (
+          <View style={{ marginHorizontal: 16, marginTop: 8 }}>
+            <WagerStatusBanner matchId={match.id} />
           </View>
         )}
 

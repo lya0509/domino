@@ -175,7 +175,9 @@ export const WagerStatusBanner: React.FC<{ matchId: string }> = ({ matchId }) =>
   const remaining = secondsLeft(consents[0].expires_at);
 
   if (decliner || !pending || remaining === 0) {
-    const reason = decliner ? `${nameOf(decliner.user_id)} rechazó` : 'no todos aceptaron a tiempo';
+    const reason = decliner
+      ? `${nameOf(decliner.user_id)} rechazó`
+      : 'no todos aceptaron antes de los 60 s o de la primera mano';
     return (
       <View style={[styles.banner, { borderColor: theme.colors.cardBorder }]}>
         <Text style={[styles.bannerText, { color: theme.colors.textDim }]}>Sin apuesta VIP: {reason}</Text>

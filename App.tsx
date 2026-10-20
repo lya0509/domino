@@ -1209,7 +1209,8 @@ export default function App() {
           }}
           onGuestMode={() => {
             setIsGuestMode(true);
-            setCurrentScreen('setup');
+            // Resume the guest scoresheet left open when the page was reloaded or closed
+            setCurrentScreen(match?.isGuestMode && match.status === 'active' ? 'game' : 'setup');
           }}
           inviteCode={initialInviteCode}
           initialRecoveryMode={isPasswordRecovery}

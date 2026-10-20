@@ -226,21 +226,9 @@ export default function App() {
     try {
       const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
       if (data) {
-        let isAdmin = (data as Profile).is_admin || false;
-        try {
-          let adminOverride = await AsyncStorage.getItem('@domino_admin_override');
-          if (!adminOverride && Platform.OS === 'web' && typeof window !== 'undefined') {
-            adminOverride = window.localStorage.getItem('@domino_admin_override');
-          }
-          if (adminOverride === 'true') {
-            isAdmin = true;
-          }
-        } catch (e) {
-          // ignore
-        }
-        const enriched = { ...(data as Profile), is_admin: isAdmin };
-        setCurrentUserProfile(enriched);
-        offlineSync.updateCachedProfile(enriched);
+        // Admin comes only from the server (verify_admin_pin), never from a local flag
+        setCurrentUserProfile(data as Profile);
+        offlineSync.updateCachedProfile(data as Profile);
       }
     } catch (e) {
       // Offline fallback: cached profile already set if available

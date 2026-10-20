@@ -120,23 +120,9 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       ]);
 
       if (profileData) {
-        let isAdmin = (profileData as Profile).is_admin || false;
-        if (isOwnProfile) {
-          try {
-            let adminOverride = await AsyncStorage.getItem('@domino_admin_override');
-            if (!adminOverride && Platform.OS === 'web' && typeof window !== 'undefined') {
-              adminOverride = window.localStorage.getItem('@domino_admin_override');
-            }
-            if (adminOverride === 'true') {
-              isAdmin = true;
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
-        const finalProf = { ...(profileData as Profile), is_admin: isAdmin };
-        setProfile(finalProf);
-        offlineSync.updateProfileInCache(finalProf);
+        // Admin comes only from the server (verify_admin_pin), never from a local flag
+        setProfile(profileData as Profile);
+        offlineSync.updateProfileInCache(profileData as Profile);
       }
 
       const pMap: Record<string, Profile> = {};
@@ -362,46 +348,28 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
 
   const handlePinSubmit = async () => {
     const cleanPin = pinInput.trim();
-    if (cleanPin === '05090105') {
-      try {
-        // 1. Guardar permanentemente en almacenamiento local del dispositivo
-        await AsyncStorage.setItem('@domino_admin_override', 'true');
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.localStorage.setItem('@domino_admin_override', 'true');
-        }
-
-        // 2. Actualizar estado reactivo inmediatamente
-        setProfile(prev => prev ? { ...prev, is_admin: true } : null);
-        if (onAdminChanged) onAdminChanged(true);
-        sounds.playSound('chaching');
-        Alert.alert(
-          '¡Admin Activado! 👑',
-          'Modo Administrador activado permanentemente en este dispositivo.'
-        );
-
-        // 3. Sincronizar con Supabase en segundo plano
-        (async () => {
-          try {
-            const { error: rpcErr } = await supabase.rpc('verify_admin_pin', {
-              p_pin: cleanPin,
-              p_enable: true,
-            });
-            if (rpcErr && profileId) {
-              await supabase.from('profiles').update({ is_admin: true }).eq('id', profileId);
-            }
-          } catch (err) {
-            // ignore
-          }
-        })();
-      } catch (e: any) {
-        console.error('Error activating admin:', e);
-        Alert.alert('Error', e.message || 'No se pudo activar el modo');
-      }
-    } else {
-      Alert.alert('Error', 'PIN Incorrecto (Usa: 05090105)');
-    }
     setShowSecretPin(false);
     setPinInput('');
+    if (!cleanPin) return;
+    // Only the server knows the PIN: the app never compares it or shows it
+    try {
+      const { data: ok, error } = await supabase.rpc('verify_admin_pin', {
+        p_pin: cleanPin,
+        p_enable: true,
+      });
+      if (error) throw error;
+      if (ok !== true) {
+        Alert.alert('Error', 'PIN incorrecto.');
+        return;
+      }
+      setProfile(prev => prev ? { ...prev, is_admin: true } : null);
+      if (onAdminChanged) onAdminChanged(true);
+      sounds.playSound('chaching');
+      Alert.alert('¡Admin Activado! 👑', 'Modo Administrador activado en tu cuenta.');
+    } catch (e: any) {
+      console.error('Error activating admin:', e);
+      Alert.alert('Error', e.message || 'No se pudo activar el modo');
+    }
   };
 
   const handleDisableAdmin = () => {
@@ -415,30 +383,16 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           style: 'destructive',
           onPress: async () => {
             try {
-              // 1. Quitar del almacenamiento local
+              // Old builds kept a local admin flag; drop it
               await AsyncStorage.removeItem('@domino_admin_override');
-              if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                window.localStorage.removeItem('@domino_admin_override');
-              }
 
-              // 2. Actualizar estado local
+              // An admin may clear their own is_admin (protect_profile_sensitive_fields)
+              if (profileId) {
+                const { error } = await supabase.from('profiles').update({ is_admin: false }).eq('id', profileId);
+                if (error) throw error;
+              }
               setProfile(prev => prev ? { ...prev, is_admin: false } : null);
               if (onAdminChanged) onAdminChanged(false);
-
-              // 3. Sincronizar en segundo plano con Supabase
-              (async () => {
-                try {
-                  const { error: rpcErr } = await supabase.rpc('verify_admin_pin', {
-                    p_pin: '05090105',
-                    p_enable: false,
-                  });
-                  if (rpcErr && profileId) {
-                    await supabase.from('profiles').update({ is_admin: false }).eq('id', profileId);
-                  }
-                } catch (err) {
-                  // ignore
-                }
-              })();
 
               Alert.alert('✅ Desactivado', 'El Modo Administrador ha sido desactivado correctamente.');
             } catch (e: any) {

@@ -1,4 +1,5 @@
 import { registerRootComponent } from 'expo';
+import './src/lib/webAlert';
 
 import App from './App';
 

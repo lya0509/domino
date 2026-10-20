@@ -278,16 +278,6 @@ export const HomeScreen: React.FC<Props> = ({
         }
 
         if (profile) {
-          try {
-            let override = await AsyncStorage.getItem('@domino_admin_override');
-            if (!override && Platform.OS === 'web' && typeof window !== 'undefined') {
-              override = window.localStorage.getItem('@domino_admin_override');
-            }
-            if (override === 'true') {
-              profile.is_admin = true;
-            }
-          } catch {}
-
           // Reconcile any pending winning bets in background
           if (offlineSync.getIsOnline()) {
             reconcileUserPendingBets(profile.id).then((res) => {

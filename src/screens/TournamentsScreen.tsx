@@ -57,6 +57,23 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
 
   useEffect(() => {
     fetchData();
+
+    // Realtime: invitations, sign-ups, bracket results and tournament start show up without leaving the screen
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => fetchData(true), 400);
+    };
+    const channel = supabase.channel(`tournaments_live_${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_participants' }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_brackets' }, scheduleRefresh)
+      .subscribe();
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      supabase.removeChannel(channel);
+    };
   }, [activeTab]);
 
   useEffect(() => {
@@ -105,8 +122,8 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
     }
   };
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       let adminOverride = false;
       try {
@@ -508,17 +525,23 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
     if (!showPartnerModal || !profileId) return;
     try {
       setLoading(true);
-      // Actualizar mi registro a 'sent'
-      await supabase.from('tournament_participants').update({ partner_id: partnerId, partner_status: 'sent' }).eq('tournament_id', showPartnerModal.id).eq('user_id', profileId);
-      // Actualizar el registro del compañero a 'pending'
-      await supabase.from('tournament_participants').update({ partner_id: profileId, partner_status: 'pending' }).eq('tournament_id', showPartnerModal.id).eq('user_id', partnerId);
-      
-      Alert.alert('¡Invitación Enviada!', 'Espera a que el jugador acepte tu solicitud.');
+      // The server updates both entries (the app may only edit its own row)
+      const { data: result, error } = await supabase.rpc('invite_tournament_partner', {
+        p_tournament_id: showPartnerModal.id,
+        p_partner_id: partnerId,
+      });
+      if (error) throw error;
+
+      if (result === 'confirmed') {
+        Alert.alert('¡Dúo Confirmado!', 'Ese jugador ya te había invitado. Ya están listos para jugar.');
+      } else {
+        Alert.alert('¡Invitación Enviada!', 'Espera a que el jugador acepte tu solicitud.');
+      }
       setShowPartnerModal(null);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo formar el equipo.');
+      Alert.alert('Error', error?.message || 'No se pudo formar el equipo.');
     } finally {
       setLoading(false);
     }
@@ -529,15 +552,15 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       setLoading(true);
       const myJoin = participants.find(p => p.tournament_id === tournamentId && p.user_id === profileId);
       if (!myJoin || !myJoin.partner_id) return;
-      
-      await supabase.from('tournament_participants').update({ partner_status: 'confirmed' }).eq('tournament_id', tournamentId).eq('user_id', profileId);
-      await supabase.from('tournament_participants').update({ partner_status: 'confirmed' }).eq('tournament_id', tournamentId).eq('user_id', myJoin.partner_id);
-      
+
+      const { error } = await supabase.rpc('respond_tournament_partner', { p_tournament_id: tournamentId, p_accept: true });
+      if (error) throw error;
+
       Alert.alert('¡Dúo Confirmado!', 'Ya están listos para jugar.');
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo confirmar el dúo.');
+      Alert.alert('Error', error?.message || 'No se pudo confirmar el dúo.');
     } finally {
       setLoading(false);
     }
@@ -549,9 +572,9 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       const myJoin = participants.find(p => p.tournament_id === tournamentId && p.user_id === profileId);
       if (!myJoin || !myJoin.partner_id) return;
       
-      await supabase.from('tournament_participants').update({ partner_id: null, partner_status: 'none' }).eq('tournament_id', tournamentId).eq('user_id', profileId);
-      await supabase.from('tournament_participants').update({ partner_id: null, partner_status: 'none' }).eq('tournament_id', tournamentId).eq('user_id', myJoin.partner_id);
-      
+      const { error } = await supabase.rpc('respond_tournament_partner', { p_tournament_id: tournamentId, p_accept: false });
+      if (error) throw error;
+
       Alert.alert('Rechazado', 'Has rechazado la solicitud de dúo.');
       fetchData();
     } catch (error) {
@@ -563,143 +586,24 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
 
   const handleGenerateBrackets = async (t: Tournament) => {
     try {
-      // Evitar que genere si ya está en progreso (por el useEffect)
-      const { data: checkT } = await supabase.from('tournaments').select('status').eq('id', t.id).single();
-      if (checkT?.status !== 'registration') return;
-
       setLoading(true);
-      // 1. Fetch participants
-      let fetchQuery = supabase
-        .from('tournament_participants')
-        .select('*, profiles!tournament_participants_user_id_fkey(display_name, initials), partner_profile:profiles!tournament_participants_partner_id_fkey(display_name, initials)')
-        .eq('tournament_id', t.id)
-        .eq('payment_status', 'approved');
+      // The server builds teams (confirmed duos + random pairs), round 1 and the live matches
+      const { data: res, error } = await supabase.rpc('start_tournament', { p_tournament_id: t.id });
+      if (error) throw error;
 
-      const { data: participants, error: pErr } = await fetchQuery;
-      if (pErr) throw pErr;
-
-      if (!participants || participants.length === 0) {
-        Alert.alert('Error', 'No hay jugadores aprobados.');
-        setLoading(false);
-        return;
-      }
-      
-      if (t.tournament_type === 'vip_cash' && participants.length % 8 !== 0) {
+      if (res?.started) {
+        Alert.alert('Éxito', res.left_out
+          ? 'Llaves generadas. Un jugador quedó sin pareja y se le devolvió su inscripción.'
+          : 'Llaves generadas correctamente. El torneo ha comenzado.');
+      } else if (res?.reason === 'not_enough_players') {
+        Alert.alert('Faltan jugadores', 'Se necesitan al menos 4 jugadores aprobados para iniciar.');
+      } else if (res?.reason === 'vip_needs_multiple_of_8') {
         Alert.alert('Error', 'El torneo VIP requiere un múltiplo de 8 jugadores para iniciar.');
-        setLoading(false);
-        return;
       }
-
-      // 2. Group into unique teams and find single players
-      const teams: { p1: string, p2: string, p1_name: string, p1_init: string, p2_name: string, p2_init: string }[] = [];
-      const processed = new Set<string>();
-      const singlePlayers: any[] = [];
-
-      participants.forEach(p => {
-        if (processed.has(p.user_id)) return;
-
-        if (p.partner_id && p.partner_status === 'confirmed' && participants.find(part => part.user_id === p.partner_id)) {
-          // Both partners are approved and confirmed
-          teams.push({ 
-            p1: p.user_id, 
-            p2: p.partner_id,
-            p1_name: (p as any).profiles?.display_name || 'Player 1',
-            p1_init: (p as any).profiles?.initials || 'P1',
-            p2_name: (p as any).partner_profile?.display_name || 'Player 2',
-            p2_init: (p as any).partner_profile?.initials || 'P2'
-          });
-          processed.add(p.user_id);
-          processed.add(p.partner_id);
-        } else {
-          singlePlayers.push(p);
-        }
-      });
-
-      // 3. Auto-pair single players
-      const shuffledSingles = [...singlePlayers].sort(() => Math.random() - 0.5);
-      for (let i = 0; i < shuffledSingles.length; i += 2) {
-        if (i + 1 < shuffledSingles.length) {
-          const p1 = shuffledSingles[i];
-          const p2 = shuffledSingles[i + 1];
-          teams.push({
-            p1: p1.user_id,
-            p2: p2.user_id,
-            p1_name: (p1 as any).profiles?.display_name || 'Player 1',
-            p1_init: (p1 as any).profiles?.initials || 'P1',
-            p2_name: (p2 as any).profiles?.display_name || 'Player 2',
-            p2_init: (p2 as any).profiles?.initials || 'P2'
-          });
-          // Update DB for these auto-paired partners
-          await supabase.from('tournament_participants').update({ partner_id: p2.user_id, partner_status: 'confirmed' }).eq('id', p1.id);
-          await supabase.from('tournament_participants').update({ partner_id: p1.user_id, partner_status: 'confirmed' }).eq('id', p2.id);
-        }
-      }
-
-      if (teams.length < 2) {
-        Alert.alert('Error', 'Se necesitan al menos 2 equipos (4 jugadores) con pareja para generar las llaves.');
-        setLoading(false);
-        return;
-      }
-
-      // 3. Shuffle teams
-      const shuffled = teams.sort(() => Math.random() - 0.5);
-      
-      // 4. Generate Round 1 matches
-      const matches = [];
-      let matchCount = 1;
-      for (let i = 0; i < shuffled.length; i += 2) {
-        if (i + 1 < shuffled.length) {
-          // Generate Live Match
-          const players_json = [
-            { id: '1', profileId: shuffled[i].p1, name: shuffled[i].p1_name, initials: shuffled[i].p1_init, teamNumber: 1, position: 'bottom' },
-            { id: '2', profileId: shuffled[i+1].p1, name: shuffled[i+1].p1_name, initials: shuffled[i+1].p1_init, teamNumber: 2, position: 'right' },
-            { id: '3', profileId: shuffled[i].p2, name: shuffled[i].p2_name, initials: shuffled[i].p2_init, teamNumber: 1, position: 'top' },
-            { id: '4', profileId: shuffled[i+1].p2, name: shuffled[i+1].p2_name, initials: shuffled[i+1].p2_init, teamNumber: 2, position: 'left' },
-          ];
-
-          const { data: liveMatchData, error: matchErr } = await supabase.from('matches').insert({
-            tournament_id: t.id,
-            status: 'active',
-            game_mode: 'teams',
-            limit_score: 100, // Torneo default
-            team1_total: 0,
-            team2_total: 0,
-            team1_player1: shuffled[i].p1,
-            team1_player2: shuffled[i].p2,
-            team2_player1: shuffled[i+1].p1,
-            team2_player2: shuffled[i+1].p2,
-            rounds: [],
-            players_json: players_json
-          }).select('id').single();
-
-          matches.push({
-            tournament_id: t.id,
-            round_number: 1,
-            match_number: matchCount++,
-            team1_player1: shuffled[i].p1,
-            team1_player2: shuffled[i].p2,
-            team2_player1: shuffled[i + 1].p1,
-            team2_player2: shuffled[i + 1].p2,
-            live_match_id: liveMatchData?.id || null
-          });
-        }
-      }
-
-      // 5. Insert brackets
-      if (matches.length > 0) {
-        const { error: bErr } = await supabase.from('tournament_brackets').insert(matches);
-        if (bErr) throw bErr;
-      }
-
-      // 6. Update tournament status
-      const { error: tErr } = await supabase.from('tournaments').update({ status: 'in_progress' }).eq('id', t.id);
-      if (tErr) throw tErr;
-
-      Alert.alert('Éxito', 'Llaves generadas correctamente. El torneo ha comenzado.');
       fetchData();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      Alert.alert('Error', 'No se pudieron generar las llaves.');
+      Alert.alert('Error', e?.message || 'No se pudieron generar las llaves.');
     } finally {
       setLoading(false);
     }
@@ -905,7 +809,8 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
 
   const handleTournamentExpire = async (tId: string) => {
     try {
-      await supabase.rpc('cancel_tournament_and_refund', { t_id: tId });
+      // Server decides: 4+ players → start with random pairs; fewer → cancel and refund
+      await supabase.rpc('expire_tournament_registration', { p_tournament_id: tId });
       fetchData();
     } catch (e) {
       console.error(e);

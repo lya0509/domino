@@ -973,102 +973,26 @@ export default function App() {
               console.error('Error updating streaks via RPC:', rpcErr);
             }
             
-            // Tournament Bracket Progression
-            try {
-              const { data: bracket } = await supabase.from('tournament_brackets').select('*').eq('live_match_id', finalMatchId).single();
-              if (bracket && !bracket.winner_team) {
-                await supabase.from('tournament_brackets').update({ winner_team: winnerTeam }).eq('id', bracket.id);
-                
-                const { data: allMatches } = await supabase.from('tournament_brackets').select('*').eq('tournament_id', bracket.tournament_id).eq('round_number', bracket.round_number);
-                
-                if (allMatches) {
-                  const updatedMatches = allMatches.map((m: any) => m.id === bracket.id ? { ...m, winner_team: winnerTeam } : m);
-                  const allFinished = updatedMatches.every((m: any) => m.winner_team !== null);
-                  
-                  if (allFinished) {
-                    const winners = updatedMatches.map((m: any) => {
-                      return m.winner_team === 1 
-                        ? { p1: m.team1_player1, p2: m.team1_player2 } 
-                        : { p1: m.team2_player1, p2: m.team2_player2 };
-                    });
-
-                    if (winners.length === 1) {
-                      await supabase.from('tournaments').update({ status: 'completed' }).eq('id', bracket.tournament_id);
-
-                      // Si es un torneo de puntos, el servidor paga el pozo a los campeones de la final (una sola vez)
-                      let prizeMsg = 'El torneo ha concluido exitosamente.';
-                      try {
-                        const { data: prize, error: prizeErr } = await supabase.rpc('award_tournament_prize', { p_tournament_id: bracket.tournament_id });
-                        if (prizeErr) throw prizeErr;
-                        if (prize?.paid) prizeMsg += ` Cada campeón recibió ${prize.per_champion} pts.`;
-                      } catch (payoutErr) {
-                        console.error('Error awarding tournament prize points:', payoutErr);
-                      }
-
-                      Alert.alert('🏆 ¡Torneo Finalizado!', prizeMsg);
-                    } else {
-                      const nextRoundMatches = [];
-                      let matchCount = 1;
-                      for (let i = 0; i < winners.length; i += 2) {
-                        if (i + 1 < winners.length) {
-                           const { data: prof1 } = await supabase.from('profiles').select('display_name, initials').eq('id', winners[i].p1).single();
-                           const { data: prof2 } = await supabase.from('profiles').select('display_name, initials').eq('id', winners[i].p2).single();
-                           const { data: prof3 } = await supabase.from('profiles').select('display_name, initials').eq('id', winners[i+1].p1).single();
-                           const { data: prof4 } = await supabase.from('profiles').select('display_name, initials').eq('id', winners[i+1].p2).single();
-                           
-                           const players_json = [
-                              { id: '1', profileId: winners[i].p1, name: prof1?.display_name, initials: prof1?.initials, teamNumber: 1, position: 'bottom' },
-                              { id: '2', profileId: winners[i+1].p1, name: prof3?.display_name, initials: prof3?.initials, teamNumber: 2, position: 'right' },
-                              { id: '3', profileId: winners[i].p2, name: prof2?.display_name, initials: prof2?.initials, teamNumber: 1, position: 'top' },
-                              { id: '4', profileId: winners[i+1].p2, name: prof4?.display_name, initials: prof4?.initials, teamNumber: 2, position: 'left' }
-                           ];
-
-                           const { data: liveMatchData, error: matchInsertError } = await supabase.from('matches').insert({
-                              status: 'active',
-                              game_mode: 'teams',
-                              limit_score: 100,
-                              team1_total: 0,
-                              team2_total: 0,
-                              team1_player1: winners[i].p1,
-                              team1_player2: winners[i].p2,
-                              team2_player1: winners[i+1].p1,
-                              team2_player2: winners[i+1].p2,
-                              rounds: [],
-                              players_json: players_json,
-                              tournament_id: bracket.tournament_id
-                           }).select('id').single();
-
-                           if (matchInsertError) {
-                             console.error("Match Insert Error:", matchInsertError);
-                           }
-
-                           nextRoundMatches.push({
-                              tournament_id: bracket.tournament_id,
-                              round_number: bracket.round_number + 1,
-                              match_number: matchCount++,
-                              team1_player1: winners[i].p1,
-                              team1_player2: winners[i].p2,
-                              team2_player1: winners[i+1].p1,
-                              team2_player2: winners[i+1].p2,
-                              live_match_id: liveMatchData?.id || null
-                           });
-                        }
-                      }
-                      if (nextRoundMatches.length > 0) {
-                        const { error: bracketInsertErr } = await supabase.from('tournament_brackets').insert(nextRoundMatches);
-                        if (bracketInsertErr) {
-                          console.error("Bracket Insert Error:", bracketInsertErr);
-                          Alert.alert('Error', 'No se pudo generar la siguiente ronda: ' + bracketInsertErr.message);
-                        } else {
-                          Alert.alert('¡Siguiente Ronda!', `La Ronda ${bracket.round_number + 1} del torneo ha sido generada automáticamente.`);
-                        }
-                      }
-                    }
+            // Tournament brackets advance on the server (tr_advance_tournament) when the match is saved
+            // as completed; here we only tell the players what happened
+            if (completePayload.tournament_id && !upsertErr) {
+              try {
+                const { data: t } = await supabase.from('tournaments').select('status, prize_paid, prize_pool, tournament_type').eq('id', completePayload.tournament_id).single();
+                const { data: bracket } = await supabase.from('tournament_brackets').select('round_number').eq('live_match_id', finalMatchId).maybeSingle();
+                if (t?.status === 'completed') {
+                  let prizeMsg = 'El torneo ha concluido exitosamente.';
+                  if (t.prize_paid && Number(t.prize_pool) > 0 && t.tournament_type !== 'vip_cash') prizeMsg += ' El premio ya se pagó a los campeones.';
+                  Alert.alert('🏆 ¡Torneo Finalizado!', prizeMsg);
+                } else if (bracket) {
+                  const { count } = await supabase.from('tournament_brackets').select('id', { count: 'exact', head: true })
+                    .eq('tournament_id', completePayload.tournament_id).eq('round_number', bracket.round_number + 1);
+                  if (count && count > 0) {
+                    Alert.alert('¡Siguiente Ronda!', `La Ronda ${bracket.round_number + 1} del torneo ha sido generada automáticamente.`);
                   }
                 }
+              } catch (err) {
+                console.error('Error reading tournament progress:', err);
               }
-            } catch (err) {
-              console.error('Error advancing bracket:', err);
             }
           }
 

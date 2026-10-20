@@ -1,4 +1,7 @@
 -- ==============================================================================
+-- ⚠️ OBSOLETO — NO EJECUTAR. Pisaría la protección de fix_points_security.sql.
+-- Usa fix_admin_pin.sql.
+-- ==============================================================================
 -- FIX MODO ADMINISTRADOR: RPC CON SECURITY DEFINER Y BYPASS DE SEGURIDAD
 -- Ejecuta este script en Supabase Cloud -> SQL Editor
 -- ==============================================================================

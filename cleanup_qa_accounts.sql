@@ -1,6 +1,6 @@
 -- ==============================================================================
--- LIMPIEZA DE LAS CUENTAS DE PRUEBA (QA Prueba 1–4)
--- Borra las 4 cuentas y TODO lo que generaron: partidas, apuestas, chats,
+-- LIMPIEZA DE LAS CUENTAS DE PRUEBA (QA Prueba 1–8)
+-- Borra las 8 cuentas y TODO lo que generaron: partidas, apuestas, chats,
 -- fila de espera, dúos, torneos de prueba e inscripciones.
 -- No toca a ningún usuario real (ningún usuario real jugó ni apostó con ellas).
 --
@@ -17,7 +17,9 @@ BEGIN
   SELECT array_agg(id) INTO v_ids
   FROM auth.users
   WHERE email IN ('juanluislaya+qa1@gmail.com', 'juanluislaya+qa2@gmail.com',
-                  'juanluislaya+qa3@gmail.com', 'juanluislaya+qa4@gmail.com');
+                  'juanluislaya+qa3@gmail.com', 'juanluislaya+qa4@gmail.com',
+                  'juanluislaya+qa5@gmail.com', 'juanluislaya+qa6@gmail.com',
+                  'juanluislaya+qa7@gmail.com', 'juanluislaya+qa8@gmail.com');
 
   IF v_ids IS NULL THEN
     RAISE NOTICE 'No hay cuentas QA: nada que borrar.';

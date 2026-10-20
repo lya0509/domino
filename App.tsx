@@ -553,6 +553,21 @@ export default function App() {
 
 
 
+  // An expired or already used email link (password recovery, confirmation) lands here with
+  // #error=...; without this the person just sees the login screen and doesn't know why
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (!params.get('error') && !params.get('error_code')) return;
+    window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+    Alert.alert(
+      'Enlace no válido',
+      params.get('error_code') === 'otp_expired'
+        ? 'El enlace venció o ya se usó. Pide uno nuevo en "¿Olvidaste tu contraseña?" y ábrelo una sola vez.'
+        : 'No se pudo abrir el enlace. Pide uno nuevo e inténtalo otra vez.'
+    );
+  }, []);
+
   // Version Check
   useEffect(() => {
     const checkVersion = async () => {

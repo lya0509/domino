@@ -581,9 +581,10 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
               <Text style={styles.shareBtnText}>📸 Compartir Resultado</Text>
             </TouchableOpacity>
 
-            {!match.isGuestMode && (
-              <TouchableOpacity 
-                style={[styles.shareBtn, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#f59e0b', marginBottom: theme.spacing.m }]} 
+            {/* Tournament matches continue in the bracket, not with the club's waitlist */}
+            {!match.isGuestMode && !match.tournament_id && (
+              <TouchableOpacity
+                style={[styles.shareBtn, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#f59e0b', marginBottom: theme.spacing.m }]}
                 onPress={handleCallNextWaitlistDuo}
               >
                 <Text style={[styles.shareBtnText, { color: '#f59e0b', fontWeight: 'bold' }]}>

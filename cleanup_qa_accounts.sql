@@ -19,7 +19,9 @@ BEGIN
   WHERE email IN ('juanluislaya+qa1@gmail.com', 'juanluislaya+qa2@gmail.com',
                   'juanluislaya+qa3@gmail.com', 'juanluislaya+qa4@gmail.com',
                   'juanluislaya+qa5@gmail.com', 'juanluislaya+qa6@gmail.com',
-                  'juanluislaya+qa7@gmail.com', 'juanluislaya+qa8@gmail.com');
+                  'juanluislaya+qa7@gmail.com', 'juanluislaya+qa8@gmail.com')
+     -- QA4 se probó con "Eliminar cuenta": su correo quedó anonimizado
+     OR id = 'caced523-17f6-4e75-b8a7-cc0175be2a99';
 
   IF v_ids IS NULL THEN
     RAISE NOTICE 'No hay cuentas QA: nada que borrar.';

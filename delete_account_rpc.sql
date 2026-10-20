@@ -1,3 +1,4 @@
+-- ⚠️ OBSOLETO — NO EJECUTAR. Falla con quien ya jugó partidas. Usa fix_delete_account.sql.
 -- ==============================================================================
 -- ELIMINACIÓN DE CUENTA DE USUARIO (DERECHO AL OLVIDO / COMPLIANCE DE TIENDAS)
 -- Ejecuta este script en Supabase Dashboard -> SQL Editor

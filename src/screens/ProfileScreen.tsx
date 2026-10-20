@@ -417,19 +417,13 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           onPress: async () => {
             setLoading(true);
             try {
-              // 1. Invocar función RPC segura si está instalada en Supabase
-              try {
-                await supabase.rpc('delete_user_account');
-              } catch (rpcErr) {
-                console.warn('RPC delete_user_account fallback:', rpcErr);
-              }
+              // 1. The server deletes the data (or anonymizes it when match history needs the profile)
+              //    and closes the login; only report success when it confirms
+              const { data, error } = await supabase.rpc('delete_user_account');
+              if (error) throw error;
+              if (!data?.deleted) throw new Error('El servidor no confirmó el borrado.');
 
-              // 2. Fallback: eliminar perfil de usuario directamente
-              if (profileId) {
-                await supabase.from('profiles').delete().eq('id', profileId);
-              }
-
-              // 3. Limpiar almacenamiento local del dispositivo
+              // 2. Limpiar almacenamiento local del dispositivo
               await AsyncStorage.removeItem('@domino_admin_override');
               await AsyncStorage.removeItem('@domino_match');
               if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -437,7 +431,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                 window.localStorage.removeItem('@domino_match');
               }
 
-              // 4. Cerrar sesión en Supabase Auth
+              // 3. Cerrar sesión en Supabase Auth
               await supabase.auth.signOut();
 
               Alert.alert('Cuenta Eliminada', 'Tu cuenta y todos tus datos personales han sido eliminados.');

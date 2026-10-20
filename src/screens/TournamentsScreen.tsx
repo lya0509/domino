@@ -380,60 +380,6 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       setLoading(false);
     }
   };
-  const [fakeTournamentError, setFakeTournamentError] = useState<string | null>(null);
-
-  const handleGenerateFakeTournament = async () => {
-    setLoading(true);
-    setFakeTournamentError(null);
-    try {
-      const { data: tData, error: tErr } = await supabase.from('tournaments').insert({
-        name: 'Torneo Falso de Prueba',
-        entry_points: 1000,
-        entry_fee: 0,
-        prize_pool: 8000,
-        max_participants: 8,
-        status: 'registration',
-        tournament_type: 'brackets',
-        created_by: profileId
-      }).select().single();
-      
-      if (tErr) throw new Error('Error al crear torneo: ' + tErr.message);
-      if (!tData) throw new Error('Error al crear torneo: Sin datos');
-
-      // 2. Fetch 7 users that are explicitly our Guests (Invitados)
-      const { data: otherUsers, error: uErr } = await supabase.from('profiles').select('id').ilike('display_name', 'Invitado %').limit(7);
-      if (uErr) throw new Error('Error al buscar usuarios: ' + uErr.message);
-      if (!otherUsers || otherUsers.length < 7) {
-        throw new Error(`Solo tienes ${otherUsers?.length || 0} usuarios extra en tu base de datos. ¡Necesitas crear al menos 7 cuentas más para generar este torneo de prueba!`);
-      }
-
-      const users = [{ id: profileId }, ...otherUsers];
-
-      // 3. Insert participants
-      const participantsToInsert = users.map(u => ({
-        tournament_id: tData.id,
-        user_id: u.id,
-        payment_status: 'approved'
-      }));
-      const { error: pErr } = await supabase.from('tournament_participants').insert(participantsToInsert);
-      if (pErr) throw new Error('Error al insertar participantes: ' + pErr.message);
-
-      // 4. Pair them up (0-1, 2-3, 4-5, 6-7)
-      for (let i = 0; i < 8; i += 2) {
-        await supabase.from('tournament_participants').update({ partner_id: users[i+1].id }).eq('tournament_id', tData.id).eq('user_id', users[i].id);
-        await supabase.from('tournament_participants').update({ partner_id: users[i].id }).eq('tournament_id', tData.id).eq('user_id', users[i+1].id);
-      }
-
-      setFakeTournamentError('✅ Éxito: Torneo falso creado con 8 jugadores emparejados. Por favor presiona "Generar Llaves al Azar" abajo.');
-      fetchData();
-    } catch (e: any) {
-      console.error(e);
-      setFakeTournamentError('❌ Fallo de Prueba: ' + (e.message || 'Error desconocido'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCreateTournament = async () => {
     if (!tName.trim()) {
       Alert.alert('Nombre Requerido', 'Por favor ingresa el nombre del torneo.');
@@ -1243,18 +1189,6 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
 
   const renderAdmin = () => (
     <ScrollView contentContainerStyle={styles.scroll}>
-      <TouchableOpacity style={[styles.joinBtn, { backgroundColor: theme.colors.warning, marginBottom: 8 }]} onPress={handleGenerateFakeTournament}>
-        <Text style={[styles.joinBtnText, { color: '#000' }]}>🧪 Crear Torneo Falso de Prueba (8 Jugadores)</Text>
-      </TouchableOpacity>
-      
-      {fakeTournamentError && (
-        <View style={{ backgroundColor: 'rgba(0,0,0,0.5)', padding: 12, borderRadius: 8, marginBottom: 24, borderWidth: 1, borderColor: fakeTournamentError.startsWith('✅') ? theme.colors.success : theme.colors.danger }}>
-          <Text style={{ color: fakeTournamentError.startsWith('✅') ? theme.colors.success : theme.colors.danger, fontWeight: 'bold' }}>
-            {fakeTournamentError}
-          </Text>
-        </View>
-      )}
-
       <Text style={[styles.tName, { marginTop: 12, marginBottom: 12 }]}>Torneos en Registro</Text>
       {tournaments.filter(t => t.status === 'registration' && t.tournament_type === 'brackets').map(t => (
         <View key={t.id} style={styles.tournamentCard}>

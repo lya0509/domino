@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
-import { confirmMatchResult, disputeMatchResult } from '../lib/bettingService';
+import { confirmMatchResult, disputeMatchResult, finishExpiredMatch } from '../lib/bettingService';
 import { CONFIRMATION_COLUMNS, isMatchRival, matchTeamLabel, secondsUntil } from '../lib/matchRivals';
 import { sounds } from '../lib/sounds';
 
 const RELOAD_MS = 20000;
+const FINISH_RETRY_MS = 3000;
 
 const formatClock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 
@@ -53,6 +54,25 @@ export const ResultConfirmationPrompt: React.FC<{ currentUserProfileId: string |
     const tick = setInterval(() => setTick((n) => n + 1), 1000);
     return () => clearInterval(tick);
   }, [match?.id]);
+
+  // At zero the phone closes it right away; the server's minute job is only the backup.
+  // A phone clock ahead of the server just gets false and tries again.
+  const countdownEnded = secondsLeft === 0;
+  useEffect(() => {
+    if (!countdownEnded || !match) return;
+    let active = true;
+    const finish = async () => {
+      if (await finishExpiredMatch(match.id)) {
+        if (active) setQueue((q) => q.filter((m) => m.id !== match.id));
+      }
+    };
+    finish();
+    const retry = setInterval(finish, FINISH_RETRY_MS);
+    return () => {
+      active = false;
+      clearInterval(retry);
+    };
+  }, [countdownEnded, match?.id]);
 
   useEffect(() => {
     if (!match || announced.current.has(match.id)) return;

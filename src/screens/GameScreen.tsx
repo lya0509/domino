@@ -10,7 +10,6 @@ import * as Haptics from 'expo-haptics';
 import { sounds } from '../lib/sounds';
 import { offlineSync } from '../lib/offlineSync';
 import { realtimeManager } from '../lib/realtimeManager';
-import { fetchActiveWaitlist, callWaitlistDuo } from '../lib/waitlistService';
 
 let captureRef: any;
 let ConfettiCannon: any;
@@ -361,30 +360,6 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
     onEndMatch(winnerId);
   };
 
-  const handleCallNextWaitlistDuo = async () => {
-    try {
-      const queue = await fetchActiveWaitlist();
-
-      if (!queue || queue.length === 0) {
-        Alert.alert('Lista de Espera Vacía', 'No hay ningún dúo esperando en la lista en este momento.');
-        return;
-      }
-
-      const nextDuo = queue[0];
-      const p1Name = nextDuo.player1?.display_name || 'Jugador 1';
-      const p2Name = nextDuo.player2?.display_name || 'Jugador 2';
-
-      await callWaitlistDuo(nextDuo);
-      sounds.playSound('pop');
-      Alert.alert(
-        '🚨 ¡Dúo Llamado a la Mesa!',
-        `Se ha activado la alarma para ${p1Name} & ${p2Name}. Tienen 30 segundos para sentarse a jugar.`
-      );
-    } catch (e: any) {
-      console.error('Error calling waitlist duo:', e);
-      Alert.alert('Error', 'No se pudo enviar la llamada al dúo.');
-    }
-  };
 
   // Build two-column history data
   const buildColumnData = () => {
@@ -602,18 +577,6 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
             <TouchableOpacity style={styles.shareBtn} onPress={() => captureAndShare(winnerRef)}>
               <Text style={styles.shareBtnText}>📸 Compartir Resultado</Text>
             </TouchableOpacity>
-
-            {/* Tournament matches continue in the bracket, not with the club's waitlist */}
-            {!match.isGuestMode && !match.tournament_id && (
-              <TouchableOpacity
-                style={[styles.shareBtn, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#f59e0b', marginBottom: theme.spacing.m }]}
-                onPress={handleCallNextWaitlistDuo}
-              >
-                <Text style={[styles.shareBtnText, { color: '#f59e0b', fontWeight: 'bold' }]}>
-                  🚨 Llamar al Siguiente Dúo a la Mesa
-                </Text>
-              </TouchableOpacity>
-            )}
 
             <TouchableOpacity style={styles.finishBtn} onPress={() => handleFinishMatch(winnerData?.id || '')}>
               <Text style={styles.finishBtnText}>Terminar Partida</Text>

@@ -47,7 +47,7 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 ### Community 4: Gameplay & Spectator Live Screens
 - [`src/screens/HomeScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/HomeScreen.tsx) (`route: 'home'`) — Club dashboard, daily streak (`+10 pts` at 7am), Pedir Mesa queue, and Individual/Duo rankings (`Hoy`/`Semana`/`Histórico`).
 - [`src/screens/SetupScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/SetupScreen.tsx) (`route: 'setup'`) — 2v2 setup (Individual stays off), 2-step Salida/Mano turn order, and VIP Wager toggle.
-- [`src/screens/GameScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/GameScreen.tsx) (`route: 'game'`) — Two-column scorepad, Mano indicator, substitutions (50-pt rule), Winner modal, Zapato `👟`, view-shot share, and "Llamar Siguiente Dúo".
+- [`src/screens/GameScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/GameScreen.tsx) (`route: 'game'`) — Two-column scorepad, Mano indicator, substitutions (50-pt rule), Winner modal, Zapato `👟`, and view-shot share. The next duo is offered after "Terminar Partida" (App.tsx), only when someone is waiting.
 - [`src/screens/LiveMatchScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/LiveMatchScreen.tsx) (`route: 'live'`) — Real-time spectator scoreboard, dynamic odds betting (`1.20x - 3.50x`), Pedir Mesa modal, and `live_chat`.
 
 ### Community 5: Social, Economy, Achievements, Leaderboards & Tournaments

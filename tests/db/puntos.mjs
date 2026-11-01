@@ -142,6 +142,22 @@ ok('nadie lo borra', !!r.err, JSON.stringify(r));
 r = await as('authenticated', A, `SELECT * FROM public.match_prizes`);
 ok('la tabla de premios no se toca desde la app', !!r.err, JSON.stringify(r));
 
+// Multiplicadores: dependen del historial de la pareja, entre x1,20 y x3,50
+const cuota = async (ganadas, total) => {
+  await db.exec(`DELETE FROM public.bets; DELETE FROM public.match_prizes; DELETE FROM public.matches; UPDATE public.profiles SET betting_points=1000;`);
+  for (let i = 0; i < total; i++) {
+    await db.query(`INSERT INTO public.matches(status,team1_player1,team1_player2,team2_player1,team2_player2,winner_team,rounds) VALUES('completed','${A}','${B}','${C}','${D}',${i < ganadas ? 1 : 2},'[]'::jsonb)`);
+  }
+  const id = await partida();
+  const res = await as('authenticated', X, `SELECT public.place_bet('${id}',1,10) r`);
+  return Number(res.rows?.[0]?.r?.multiplier);
+};
+ok('sin historial la cuota es x2,00', (await cuota(0, 0)) === 2, String(await cuota(0, 0)));
+ok('quien gana la mitad paga x2,00', (await cuota(5, 10)) === 2, String(await cuota(5, 10)));
+ok('quien gana 3 de 4 paga x1,33', (await cuota(3, 4)) === 1.33, String(await cuota(3, 4)));
+ok('la cuota nunca baja de x1,20', (await cuota(9, 10)) === 1.2, String(await cuota(9, 10)));
+ok('la cuota nunca sube de x3,50', (await cuota(1, 10)) === 3.5, String(await cuota(1, 10)));
+
 // Tienda, y un usuario nuevo
 await db.exec(`UPDATE public.profiles SET betting_points=100000 WHERE id='${X}';`);
 r = await as('authenticated', X, `SELECT public.buy_store_item('title_rey') r`);

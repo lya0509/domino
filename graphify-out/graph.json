@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T18:29:20.398Z",
+    "generatedAt": "2026-11-01T19:54:46.793Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,14 +10,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 131,
-      "totalEdges": 209,
+      "totalNodes": 134,
+      "totalEdges": 217,
       "totalHyperedges": 7,
       "totalScreens": 13,
-      "totalComponents": 9,
+      "totalComponents": 10,
       "totalServices": 10,
       "totalDatabaseTables": 17,
-      "totalDatabaseRpcs": 27,
+      "totalDatabaseRpcs": 28,
       "totalQaSuites": 16
     }
   },
@@ -123,8 +123,8 @@
         "Outdated Version Gate Screen"
       ],
       "exists": true,
-      "lines": 1574,
-      "bytes": 60001,
+      "lines": 1582,
+      "bytes": 60357,
       "exports": [
         "App"
       ],
@@ -139,6 +139,7 @@
         "./src/screens/GameScreen",
         "./src/components/WagerConsent",
         "./src/components/ResultConfirmationPrompt",
+        "./src/components/ClubNotices",
         "./src/screens/AuthScreen",
         "./src/screens/HomeScreen",
         "./src/screens/LiveMatchScreen",
@@ -162,8 +163,7 @@
         "system_config",
         "matches",
         "tournaments",
-        "tournament_brackets",
-        "waitlist"
+        "tournament_brackets"
       ],
       "supabaseRpcs": [
         "propose_wager",
@@ -335,14 +335,15 @@
       "file": "src/lib/bettingService.ts",
       "role": "Handles placeMatchBet (with rollback on error), settleMatchBetsAndWagers (invoking SECURITY DEFINER RPCs resolve_match_bets & resolve_match_wagers + client fallback), and reconcileUserPendingBets (self-healing payout credit on login/mount).",
       "exists": true,
-      "lines": 182,
-      "bytes": 5861,
+      "lines": 192,
+      "bytes": 6218,
       "exports": [
         "PlaceBetResult",
         "placeMatchBet",
         "settleMatchBetsAndWagers",
         "confirmMatchResult",
         "disputeMatchResult",
+        "finishExpiredMatch",
         "reconcileUserPendingBets"
       ],
       "imports": [
@@ -355,6 +356,7 @@
         "settle_completed_match",
         "confirm_match_result",
         "dispute_match_result",
+        "finish_expired_match",
         "settle_my_pending_bets"
       ],
       "realtimeChannels": [],
@@ -715,8 +717,8 @@
         "🚨 Llamar Siguiente Dúo Waitlist Trigger Button"
       ],
       "exists": true,
-      "lines": 917,
-      "bytes": 42368,
+      "lines": 880,
+      "bytes": 40807,
       "exports": [
         "GameScreen"
       ],
@@ -732,8 +734,7 @@
         "expo-haptics",
         "../lib/sounds",
         "../lib/offlineSync",
-        "../lib/realtimeManager",
-        "../lib/waitlistService"
+        "../lib/realtimeManager"
       ],
       "supabaseTables": [
         "profiles",
@@ -1653,8 +1654,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1640,
-      "bytes": 78575,
+      "lines": 1643,
+      "bytes": 78861,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2358,6 +2359,59 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261101_09_confirmacion_1_minuto.sql",
+      "label": "20261101_09_confirmacion_1_minuto.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261101_09_confirmacion_1_minuto.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 104,
+      "bytes": 3942,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/ClubNotices.tsx",
+      "label": "ClubNotices.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/ClubNotices.tsx",
+      "role": "Global, no UI: toasts while the app is open when a match starts, someone bets, or your duo becomes first in line.",
+      "exists": true,
+      "lines": 80,
+      "bytes": 3154,
+      "exports": [
+        "ClubNotices"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../lib/supabase",
+        "../lib/realtimeManager",
+        "../lib/waitlistService",
+        "../lib/sounds",
+        "../lib/matchRivals"
+      ],
+      "supabaseTables": [
+        "matches",
+        "bets"
+      ],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "club-notices-${Date.now()}"
+      ],
+      "storageKeys": [],
+      "soundsPlayed": [
+        "pop"
+      ]
+    },
+    {
       "id": "src/components/PendingConfirmations.tsx",
       "label": "PendingConfirmations.tsx",
       "type": "component",
@@ -2421,10 +2475,10 @@
       "type": "component",
       "community": "ui_components",
       "file": "src/components/ResultConfirmationPrompt.tsx",
-      "role": "Full-screen window mounted in App.tsx: asks the rival team to confirm or reject a finished match, with the 2-minute countdown on normal matches.",
+      "role": "Full-screen window mounted in App.tsx: asks the rival team to confirm or reject a finished match, with the 1-minute countdown on normal matches.",
       "exists": true,
-      "lines": 183,
-      "bytes": 7343,
+      "lines": 203,
+      "bytes": 8035,
       "exports": [
         "ResultConfirmationPrompt"
       ],
@@ -2493,8 +2547,8 @@
       "file": "src/lib/matchRivals.ts",
       "role": "Pure rule mirroring _match_rivals: who answers for a closed match, used only to choose which buttons to show. Covered by tests/matchRivals.test.mjs.",
       "exists": true,
-      "lines": 54,
-      "bytes": 2415,
+      "lines": 81,
+      "bytes": 3375,
       "exports": [
         "RivalMatchRow",
         "matchRivalIds",
@@ -2503,7 +2557,11 @@
         "isMatchRival",
         "CONFIRMATION_COLUMNS",
         "matchTeamLabel",
-        "secondsUntil"
+        "secondsUntil",
+        "Notice",
+        "matchStartedNotice",
+        "betPlacedNotice",
+        "firstInLineNotice"
       ],
       "imports": [],
       "supabaseTables": [],
@@ -2615,6 +2673,13 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "A rival or admin rejects a pending result; removes the last hand and reopens the match."
+    },
+    {
+      "id": "rpc:finish_expired_match",
+      "label": "finish_expired_match",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Closes a normal match whose countdown ended; the server checks the time and that nothing is at stake."
     },
     {
       "id": "rpc:call_waitlist_duo",
@@ -3086,12 +3151,6 @@
     },
     {
       "source": "App.tsx",
-      "target": "db:waitlist",
-      "relation": "uses_table",
-      "derived": true
-    },
-    {
-      "source": "App.tsx",
       "target": "rpc:propose_wager",
       "relation": "calls_rpc",
       "derived": true
@@ -3117,6 +3176,12 @@
     {
       "source": "App.tsx",
       "target": "src/components/ResultConfirmationPrompt.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/components/ClubNotices.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -3165,6 +3230,12 @@
     {
       "source": "src/lib/bettingService.ts",
       "target": "rpc:dispute_match_result",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/bettingService.ts",
+      "target": "rpc:finish_expired_match",
       "relation": "calls_rpc",
       "derived": true
     },
@@ -3711,6 +3782,48 @@
     {
       "source": "src/components/LegalModal.tsx",
       "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ClubNotices.tsx",
+      "target": "db:matches",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/components/ClubNotices.tsx",
+      "target": "db:bets",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/components/ClubNotices.tsx",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ClubNotices.tsx",
+      "target": "src/lib/realtimeManager.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ClubNotices.tsx",
+      "target": "src/lib/waitlistService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ClubNotices.tsx",
+      "target": "src/lib/sounds.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ClubNotices.tsx",
+      "target": "src/lib/matchRivals.ts",
       "relation": "imports",
       "derived": true
     },

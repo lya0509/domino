@@ -922,10 +922,12 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/components/ClubNotices.tsx':
+    'Global, no UI: toasts while the app is open when a match starts, someone bets, or your duo becomes first in line.',
   'src/components/PointsHistory.tsx':
     'Own-profile list of the last 30 point movements from points_ledger.',
   'src/components/ResultConfirmationPrompt.tsx':
-    'Full-screen window mounted in App.tsx: asks the rival team to confirm or reject a finished match, with the 2-minute countdown on normal matches.',
+    'Full-screen window mounted in App.tsx: asks the rival team to confirm or reject a finished match, with the 1-minute countdown on normal matches.',
   'src/components/PendingConfirmations.tsx':
     'Home cards: results an admin can still resolve, and the notice for matches a rival reopened. The server decides who may answer.',
   'src/lib/matchRivals.ts':
@@ -965,6 +967,7 @@ CODE_FILES.forEach((f) => {
 codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
 
 const RPC_ROLES = {
+  finish_expired_match: 'Closes a normal match whose countdown ended; the server checks the time and that nothing is at stake.',
   call_waitlist_duo: 'Someone at a table or an admin calls a duo; the phones listen to the waitlist row the server writes.',
   notify_near_turn: 'A table warns the first duo in line when it is 10 points from the end, using the score stored on the server.',
   seat_waitlist_entry: 'Marks a duo as playing: the duo, an admin, or the creator of the match they sit at.',

@@ -51,3 +51,30 @@ export const matchTeamLabel = (m: { players_json?: any[] | null }, team: number)
 
 export const secondsUntil = (iso: string, now: number = Date.now()): number =>
   Math.max(0, Math.ceil((new Date(iso).getTime() - now) / 1000));
+
+// Club notices: who hears what, and in what words
+export interface Notice {
+  title: string;
+  text: string;
+}
+
+type NoticeMatch = RivalMatchRow & { players_json?: any[] | null };
+
+/** People at the table already know: only the rest of the club gets told. */
+export const matchStartedNotice = (m: NoticeMatch, userId: string): Notice | null => {
+  if (isInMatch(m, userId)) return null;
+  return {
+    title: '🎲 Ya están jugando',
+    text: `${matchTeamLabel(m, 1)} contra ${matchTeamLabel(m, 2)}. Entra a verla en vivo.`,
+  };
+};
+
+export const betPlacedNotice = (m: NoticeMatch, team: number, totalOnTeam: number): Notice => ({
+  title: '💰 Apuestas en la mesa',
+  text: `Hay ${totalOnTeam} puntos apostados por ${matchTeamLabel(m, team)}. ¡Entra rápido y apuesta tú también!`,
+});
+
+export const firstInLineNotice: Notice = {
+  title: '🥇 Quedaste de primero',
+  text: 'Tu dúo es el siguiente en la lista de espera. ¡Vayan preparándose!',
+};

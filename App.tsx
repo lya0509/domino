@@ -8,6 +8,7 @@ import { SetupScreen } from './src/screens/SetupScreen';
 import { GameScreen } from './src/screens/GameScreen';
 import { WagerConsentPrompt } from './src/components/WagerConsent';
 import { ResultConfirmationPrompt } from './src/components/ResultConfirmationPrompt';
+import { ClubNotices } from './src/components/ClubNotices';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LiveMatchScreen } from './src/screens/LiveMatchScreen';
@@ -23,7 +24,7 @@ import { sounds } from './src/lib/sounds';
 import { offlineSync, generateUUID, isValidUUID, SyncStatus } from './src/lib/offlineSync';
 import { realtimeManager } from './src/lib/realtimeManager';
 import { settleMatchBetsAndWagers, reconcileUserPendingBets } from './src/lib/bettingService';
-import { fetchActiveWaitlist } from './src/lib/waitlistService';
+import { callWaitlistDuo, fetchActiveWaitlist, WaitlistEntry } from './src/lib/waitlistService';
 import { initGraphifyBridge, updateGraphifyRuntimeState, registerGraphifyControllers } from './src/lib/graphifyBridge';
 
 const theme = {
@@ -854,8 +855,36 @@ export default function App() {
     }
   };
 
+  // Only offered when someone is really waiting. The server takes the call only from an
+  // active table, so this has to run before the match is saved as finished.
+  const offerNextDuoCall = async (finished: Match, winnerId: string): Promise<WaitlistEntry | null> => {
+    if (isGuestMode || !isAuthenticated || !offlineSync.getIsOnline()) return null;
+    if (finished.gameMode !== 'teams' || finished.tournament_id || winnerId === 'null') return null;
+
+    const [nextDuo] = await fetchActiveWaitlist();
+    if (!nextDuo) return null;
+
+    const names = `${nextDuo.player1?.display_name || 'Jugador 1'} y ${nextDuo.player2?.display_name || 'Jugador 2'}`;
+    const wantsToCall = await new Promise<boolean>((resolve) => {
+      Alert.alert('🚨 Siguiente dúo', `En la lista de espera están ${names}. ¿Quieres llamarlos a la mesa?`, [
+        { text: 'Ahora no', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Llamarlos', onPress: () => resolve(true) },
+      ]);
+    });
+    if (!wantsToCall) return null;
+
+    try {
+      await callWaitlistDuo(nextDuo);
+      return nextDuo;
+    } catch (err: any) {
+      Alert.alert('No se pudo llamar al dúo', err?.message || 'Inténtalo de nuevo desde el inicio.');
+      return null;
+    }
+  };
+
   const handleEndMatch = async (winnerId: string) => {
     if (match) {
+      const calledDuo = await offerNextDuoCall(match, winnerId);
       const updatedMatch: Match = { ...match, status: 'completed' };
       setMatch(updatedMatch);
 
@@ -959,7 +988,7 @@ export default function App() {
             Alert.alert(
               '⏳ Por confirmar',
               savedRow?.auto_confirm_at
-                ? 'Le apareció la confirmación al equipo rival. Si nadie responde en 2 minutos, se confirma sola.'
+                ? 'Le apareció la confirmación al equipo rival. Si nadie responde en 1 minuto, se confirma sola.'
                 : 'Hay puntos en juego: un jugador rival debe confirmar el resultado desde su teléfono. Hasta entonces no se paga nada.'
             );
           } else {
@@ -1020,41 +1049,19 @@ export default function App() {
           const winnerPlayers = updatedMatch.players.filter(p => p.teamNumber === winnerTeamNumber);
           const winnerProfileIds = winnerPlayers.map(p => p.profileId).filter(Boolean) as string[];
 
-          if (winnerProfileIds.length === 2 && offlineSync.getIsOnline()) {
+          if (calledDuo && winnerProfileIds.length === 2) {
             try {
-              const { data: waitlistData } = await supabase
-                .from('waitlist')
-                .select('*')
-                .eq('status', 'waiting')
-                .order('created_at', { ascending: true })
-                .limit(1);
-
-              if (waitlistData && waitlistData.length > 0) {
-                const nextDuo = waitlistData[0];
-                const profilesData = await offlineSync.getProfiles();
-                if (profilesData && profilesData.length > 0) {
-                  const pMap = Object.fromEntries(profilesData.map(p => [p.id, p]));
-                  const nextNames = [pMap[nextDuo.player1_id], pMap[nextDuo.player2_id]]
-                    .map(p => p?.display_name || 'Jugador')
-                    .join(' y ');
-                  // Winners stay at the table, but only if the scorer wants to set that up now
-                  const setUpNext = await new Promise<boolean>((resolve) => {
-                    Alert.alert('🎲 Sigue la mesa', `En la cola están ${nextNames}. ¿Preparar la partida contra ellos?`, [
-                      { text: 'Ir al inicio', style: 'cancel', onPress: () => resolve(false) },
-                      { text: 'Preparar partida', onPress: () => resolve(true) },
-                    ]);
-                  });
-                  if (setUpNext) {
-                    setWaitlistSetup({
-                      waitlistId: nextDuo.id,
-                      team1: [pMap[winnerProfileIds[0]], pMap[winnerProfileIds[1]]].filter(Boolean),
-                      team2: [pMap[nextDuo.player1_id], pMap[nextDuo.player2_id]].filter(Boolean),
-                    });
-                    setMatch(null);
-                    setCurrentScreen('setup');
-                    return;
-                  }
-                }
+              const profilesData = await offlineSync.getProfiles();
+              if (profilesData && profilesData.length > 0) {
+                const pMap = Object.fromEntries(profilesData.map(p => [p.id, p]));
+                setWaitlistSetup({
+                  waitlistId: calledDuo.id,
+                  team1: [pMap[winnerProfileIds[0]], pMap[winnerProfileIds[1]]].filter(Boolean),
+                  team2: [pMap[calledDuo.player1_id], pMap[calledDuo.player2_id]].filter(Boolean),
+                });
+                setMatch(null);
+                setCurrentScreen('setup');
+                return;
               }
             } catch (err) {
               console.error('Error fetching waitlist transition', err);
@@ -1376,6 +1383,7 @@ export default function App() {
       {/* VIP wager proposal for this player (accept / decline within 60s) */}
       {isAuthenticated && !isGuestMode && <WagerConsentPrompt currentUserProfileId={currentUserProfileId} />}
       {isAuthenticated && !isGuestMode && <ResultConfirmationPrompt currentUserProfileId={currentUserProfileId} />}
+      {isAuthenticated && !isGuestMode && <ClubNotices currentUserProfileId={currentUserProfileId} showToast={showToast} />}
 
       {/* Urgent Waitlist Call Modal */}
       {waitlistCall && (

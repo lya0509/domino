@@ -135,6 +135,16 @@ export const disputeMatchResult = async (matchId: string): Promise<{ ok: boolean
   }
 };
 
+/** Asks the server to close a normal match whose countdown ended. It checks the time itself. */
+export const finishExpiredMatch = async (matchId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('finish_expired_match', { p_match_id: matchId });
+    return !error && data === true;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Settles the current user's pending bets whose matches already finished
  * (`settle_my_pending_bets` RPC) and returns what was credited.

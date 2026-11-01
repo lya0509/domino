@@ -156,10 +156,9 @@ Se define con el dueño al llegar aquí. Debe darle a la gente más en qué gast
 ## 8. Cómo se comprueba lo que hoy no se pudo probar
 
 - **Permisos reales de la base de datos:** el dueño corre en el SQL Editor una consulta de solo lectura y entrega el resultado.
-- **Proyecto de pruebas:** un segundo proyecto de Supabase, gratis, creado por el dueño. La autorización para crear cuentas de prueba ahí es una sola y cubre todas las pruebas. Las pruebas de abajo corren ahí, nunca en producción.
-- **Pantallas con sesión:** con cuentas de prueba en ese proyecto.
-- **Eliminar cuenta:** los dos caminos, con y sin historial.
-- **Trampas del servidor:** cada una se prueba antes y después del arreglo.
+- **Sin proyecto de pruebas:** el dueño decidió no crear una segunda base. Los permisos y funciones del servidor se prueban en el Postgres local de `npm run test:db`, que copia las reglas de producción.
+- **Trampas del servidor:** cada una se reproduce y se prueba cerrada en ese Postgres local antes de pasar el SQL al dueño.
+- **Pantallas con sesión y eliminar cuenta:** las prueba el dueño con los muchachos en la app real, con una lista corta de pasos, porque requieren cuentas reales.
 - **Notificaciones:** en teléfonos reales de los muchachos, Android e iPhone.
 - **Cola offline:** con el modo sin conexión del navegador y con wifi sin internet simulado.
 

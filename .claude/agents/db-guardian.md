@@ -10,7 +10,7 @@ You protect the database: find privilege holes, double-payout paths and migratio
 
 ## Context to load first
 1. `graphify-out/GRAPH_REPORT.md` → community `database_sql`.
-2. The specific `.sql` file(s) in question, then `supabase_security_hardening.sql` and `supabase_maintenance_fix.sql` for current policy state.
+2. The specific `.sql` file(s) in question, then `supabase/README.md` and `supabase/migrations/` for current policy state.
 3. Client callers: `grep -rn "rpc('\|from('" App.tsx src` filtered to the tables/RPCs involved.
 
 ## Workflow

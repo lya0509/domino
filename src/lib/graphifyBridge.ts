@@ -151,10 +151,9 @@ export const FULL_SYSTEM_GRAPH_MANIFEST = {
       id: 'database_sql',
       name: '7. Supabase Database Schema, Triggers & RPCs',
       files: [
-        'supabase_schema.sql',
-        'supabase_maintenance_fix.sql',
-        'clean_today.sql',
-        'clean_only_tests.sql',
+        'supabase/migrations',
+        'supabase/audit',
+        'supabase/archive',
       ],
     },
     {

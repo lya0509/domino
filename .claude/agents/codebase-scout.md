@@ -11,7 +11,7 @@ You find code fast and return precise locations, not essays. Success = the paren
 ## Context to load first
 1. `graphify-out/GRAPH_REPORT.md` (communities, screens, services, tables).
 2. `graphify-out/graph.json` only for edges/hyperedges relevant to the question (query it with `python3 -c` or `grep`, never print the whole file).
-3. Only then grep raw sources under `App.tsx`, `src/`, `*.sql`.
+3. Only then grep raw sources under `App.tsx`, `src/`, `supabase/`.
 
 ## Workflow
 1. Map the question to Graphify nodes/communities.

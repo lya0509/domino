@@ -584,7 +584,7 @@ const RAW_NODES = [
     label: 'supabase_schema.sql (Base Database Schema)',
     type: 'sql_script',
     community: 'database_sql',
-    file: 'supabase_schema.sql',
+    file: 'supabase/archive/peligrosos/supabase_schema.sql',
     role: 'Initial PostgreSQL table definitions for profiles, matches, waitlist, bets, duos, live_chat, global_chat, and tournaments.',
   },
   {
@@ -592,7 +592,7 @@ const RAW_NODES = [
     label: 'supabase_maintenance_fix.sql (Idempotent Maintenance, Indexes, RLS & RPCs)',
     type: 'sql_script',
     community: 'database_sql',
-    file: 'supabase_maintenance_fix.sql',
+    file: 'supabase/archive/peligrosos/supabase_maintenance_fix.sql',
     role: 'Production maintenance migration adding missing columns (creator_id, is_wager_match, wager_amount), permissive waitlist/bets RLS policies, 8 performance indexes, SECURITY DEFINER RPCs (resolve_match_bets, resolve_match_wagers), and supabase_realtime publication.',
   },
   {
@@ -600,7 +600,7 @@ const RAW_NODES = [
     label: 'clean_today.sql (Daily Match Cleanup Utility)',
     type: 'sql_script',
     community: 'database_sql',
-    file: 'clean_today.sql',
+    file: 'supabase/archive/peligrosos/clean_today.sql',
     role: 'Admin SQL script to purge matches created on the current day.',
   },
   {
@@ -608,7 +608,7 @@ const RAW_NODES = [
     label: 'clean_only_tests.sql (Test Data Cleanup Utility)',
     type: 'sql_script',
     community: 'database_sql',
-    file: 'clean_only_tests.sql',
+    file: 'supabase/archive/peligrosos/clean_only_tests.sql',
     role: 'Admin SQL script to remove test matches while preserving production records.',
   },
   // Database Table Nodes
@@ -894,19 +894,24 @@ const RAW_NODES = [
 
 // Auto-register any root .sql script not described above so the graph never silently misses migrations
 const knownFiles = new Set(RAW_NODES.map((n) => n.file).filter(Boolean));
-fs.readdirSync(ROOT)
-  .filter((f) => f.endsWith('.sql') && !knownFiles.has(f))
-  .sort()
-  .forEach((f) => {
-    RAW_NODES.push({
-      id: f,
-      label: `${f} (SQL Script)`,
-      type: 'sql_script',
-      community: 'database_sql',
-      file: f,
-      role: 'Auto-discovered SQL script (run manually in the Supabase SQL Editor).',
-    });
+const SQL_DIRS = {
+  'supabase/migrations': 'Versioned migration. Its header says when to run it and whether the published app is compatible.',
+  'supabase/archive/aplicados': 'Archived script that already ran in production. History only.',
+  'supabase/archive/peligrosos': 'Archived script. Do not run: it deletes data, seeds test data or undoes security rules.',
+};
+const SQL_FILES = Object.keys(SQL_DIRS).flatMap((dir) =>
+  fs.readdirSync(path.join(ROOT, dir)).filter((f) => f.endsWith('.sql')).map((f) => `${dir}/${f}`)
+);
+SQL_FILES.filter((f) => !knownFiles.has(f)).sort().forEach((f) => {
+  RAW_NODES.push({
+    id: f,
+    label: `${path.basename(f)} (SQL Script)`,
+    type: 'sql_script',
+    community: 'database_sql',
+    file: f,
+    role: SQL_DIRS[path.dirname(f)],
   });
+});
 
 // Everything below is discovered from the code, so new files, tables and RPCs can't go missing.
 const walkDir = (dir) =>
@@ -984,12 +989,6 @@ codeRefs.rpcs.forEach((r) => {
 });
 
 // What the SQL in this repo defines, and what each script is safe for
-const SQL_FILES = [
-  ...fs.readdirSync(ROOT).filter((f) => f.endsWith('.sql')),
-  ...fs.readdirSync(path.join(ROOT, 'supabase/migrations'))
-    .filter((f) => f.endsWith('.sql'))
-    .map((f) => `supabase/migrations/${f}`),
-];
 const sqlDefines = { functions: new Set(), tables: new Set() };
 SQL_FILES.forEach((f) => {
   const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -1000,12 +999,9 @@ const schemaDrift = {
   rpcsNotInRepoSql: [...codeRefs.rpcs].filter((r) => !sqlDefines.functions.has(r)).sort(),
   tablesNotInRepoSql: [...codeRefs.tables].filter((t) => !sqlDefines.tables.has(t)).sort(),
 };
-const SQL_STATUS = {
-  'fix_admin_pin_rpc.sql': 'OBSOLETE: never run (replaced by fix_admin_pin.sql)',
-  'delete_account_rpc.sql': 'OBSOLETE: never run (replaced by fix_delete_account.sql)',
-  'supabase_maintenance_fix.sql': 'SUPERSEDED: re-running reopens policies and grants closed by fix_points_security.sql',
-  'supabase_security_hardening.sql': 'SUPERSEDED: re-running replaces the profile protection trigger with its weaker version',
-};
+const SQL_STATUS = Object.fromEntries(
+  SQL_FILES.filter((f) => f.includes('/peligrosos/')).map((f) => [f, 'DO NOT RUN: see supabase/README.md'])
+);
 RAW_NODES.forEach((n) => {
   if (n.type === 'sql_script' && SQL_STATUS[n.file]) n.sqlStatus = SQL_STATUS[n.file];
 });
@@ -1600,8 +1596,8 @@ const checks = [
     ok: inspectFile('public/sw.js').exists,
   },
   {
-    name: 'Supabase Maintenance SQL Present (supabase_maintenance_fix.sql)',
-    ok: inspectFile('supabase_maintenance_fix.sql').exists,
+    name: 'Supabase Base Schema Present (supabase/migrations/20261001_00_esquema_base.sql)',
+    ok: inspectFile('supabase/migrations/20261001_00_esquema_base.sql').exists,
   },
 ];
 

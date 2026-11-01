@@ -62,7 +62,7 @@ r = await as('authenticated', ADM, `UPDATE public.tournament_participants SET pa
 ok('un admin marca pagado', JSON.parse(r.rows?.[0]?.payout_details || '{}').paid === true, JSON.stringify(r));
 r = await as('authenticated', ADM, `SELECT details FROM public.tournament_payouts`);
 ok('y los datos siguen ahí', r.rows?.[0]?.details?.bank === 'Banco', JSON.stringify(r));
-r = await as('authenticated', B, `INSERT INTO public.tournament_participants(tournament_id,user_id,payout_details) VALUES('${t}','${B}','${datos}') RETURNING payout_details`);
+r = await as('authenticated', C, `INSERT INTO public.tournament_participants(tournament_id,user_id,payout_details) VALUES('${t}','${C}','${datos}') RETURNING payout_details`);
 const filaNueva = r.rows?.[0]?.payout_details;
 ok('al inscribirse con datos tampoco quedan públicos', !!filaNueva && !/V-1/.test(filaNueva), JSON.stringify(r));
 

@@ -15,28 +15,38 @@
 | Metric | Count |
 | :--- | :---: |
 | **System Communities** | **8** |
-| **Total Graph Nodes** | **117** |
-| **Directed Edges** | **200 (120 derived from code)** |
+| **Total Graph Nodes** | **124** |
+| **Directed Edges** | **198 (118 derived from code)** |
 | **System Hyperedges** | **7** |
 | **Screens** | **13** |
 | **Components** | **7** |
 | **Services** | **10** |
 | **DB Tables & Buckets** | **16** |
 | **DB RPCs** | **27** |
-| **SQL Scripts** | **31** |
+| **SQL Scripts** | **38** |
 | **QA Test Suites** | **16** |
 
-**RPCs called by the app:** `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `call_waitlist_duo`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `confirm_match_result`, `delete_user_account`, `dispute_match_result`, `expire_tournament_registration`, `invite_tournament_partner`, `join_tournament_with_points`, `notify_near_turn`, `place_bet`, `propose_wager`, `respond_tournament_partner`, `respond_wager`, `seat_waitlist_entry`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `update_player_streaks_for_match`, `verify_admin_pin`
+**RPCs called by the app:** `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `call_waitlist_duo`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `confirm_match_result`, `delete_user_account`, `dispute_match_result`, `expire_tournament_registration`, `invite_tournament_partner`, `join_tournament_with_points`, `notify_near_turn`, `place_bet`, `propose_wager`, `respond_tournament_partner`, `respond_wager`, `seat_waitlist_entry`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `verify_admin_pin`
 
 **Tables used by the app:** `ads`, `bets`, `duos`, `global_chat`, `live_chat`, `matches`, `profiles`, `system_config`, `tournament_brackets`, `tournament_participants`, `tournament_payouts`, `tournaments`, `wager_consents`, `waitlist`
 
-**Called by the app, but no definition in this repo's SQL:** `update_player_streaks_for_match`, `global_chat`, `live_chat`, `system_config`
+**Called by the app, but no definition in this repo's SQL:** none
 
 **SQL scripts with restrictions:**
-- `fix_admin_pin_rpc.sql`: OBSOLETE: never run (replaced by fix_admin_pin.sql)
-- `delete_account_rpc.sql`: OBSOLETE: never run (replaced by fix_delete_account.sql)
-- `supabase_maintenance_fix.sql`: SUPERSEDED: re-running reopens policies and grants closed by fix_points_security.sql
-- `supabase_security_hardening.sql`: SUPERSEDED: re-running replaces the profile protection trigger with its weaker version
+- `supabase/archive/peligrosos/clean_invitados.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/clean_only_tests.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/clean_today.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/clean_tournaments.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/cleanup_qa_accounts.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/delete_account_rpc.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/fix_admin_pin.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/inject_guests.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/pair_guests.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/supabase_clear_data.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/supabase_maintenance_fix.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/supabase_schema.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/supabase_security_hardening.sql`: DO NOT RUN: see supabase/README.md
+- `supabase/archive/peligrosos/supabase_test_data.sql`: DO NOT RUN: see supabase/README.md
 <!-- GRAPHIFY:AUTO:END -->
 
 ---

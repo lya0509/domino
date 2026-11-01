@@ -439,7 +439,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
         </View>
 
         {/* Betting UI */}
-        {matchData.status === 'active' && currentUserProfileId && (
+        {matchData.status === 'active' && currentUserProfileId && (myTeamNumber || !isParticipant) && (
           <View style={styles.bettingContainer}>
             <View style={styles.bettingHeader}>
               <Text style={styles.bettingTitle}>🎯 Zona de Apuestas</Text>

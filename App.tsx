@@ -1028,14 +1028,26 @@ export default function App() {
                 const profilesData = await offlineSync.getProfiles();
                 if (profilesData && profilesData.length > 0) {
                   const pMap = Object.fromEntries(profilesData.map(p => [p.id, p]));
-                  setWaitlistSetup({
-                    waitlistId: nextDuo.id,
-                    team1: [pMap[winnerProfileIds[0]], pMap[winnerProfileIds[1]]].filter(Boolean),
-                    team2: [pMap[nextDuo.player1_id], pMap[nextDuo.player2_id]].filter(Boolean),
+                  const nextNames = [pMap[nextDuo.player1_id], pMap[nextDuo.player2_id]]
+                    .map(p => p?.display_name || 'Jugador')
+                    .join(' y ');
+                  // Winners stay at the table, but only if the scorer wants to set that up now
+                  const setUpNext = await new Promise<boolean>((resolve) => {
+                    Alert.alert('🎲 Sigue la mesa', `En la cola están ${nextNames}. ¿Preparar la partida contra ellos?`, [
+                      { text: 'Ir al inicio', style: 'cancel', onPress: () => resolve(false) },
+                      { text: 'Preparar partida', onPress: () => resolve(true) },
+                    ]);
                   });
-                  setMatch(null);
-                  setCurrentScreen('setup');
-                  return;
+                  if (setUpNext) {
+                    setWaitlistSetup({
+                      waitlistId: nextDuo.id,
+                      team1: [pMap[winnerProfileIds[0]], pMap[winnerProfileIds[1]]].filter(Boolean),
+                      team2: [pMap[nextDuo.player1_id], pMap[nextDuo.player2_id]].filter(Boolean),
+                    });
+                    setMatch(null);
+                    setCurrentScreen('setup');
+                    return;
+                  }
                 }
               }
             } catch (err) {

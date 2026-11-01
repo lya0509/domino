@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T17:38:45.790Z",
+    "generatedAt": "2026-11-01T18:12:13.853Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,7 +10,7 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 128,
+      "totalNodes": 129,
       "totalEdges": 202,
       "totalHyperedges": 7,
       "totalScreens": 13,
@@ -123,8 +123,8 @@
         "Outdated Version Gate Screen"
       ],
       "exists": true,
-      "lines": 1555,
-      "bytes": 58797,
+      "lines": 1567,
+      "bytes": 59576,
       "exports": [
         "App"
       ],
@@ -770,7 +770,7 @@
       ],
       "exists": true,
       "lines": 947,
-      "bytes": 46458,
+      "bytes": 46494,
       "exports": [
         "LiveMatchScreen"
       ],
@@ -2312,6 +2312,24 @@
       "exists": true,
       "lines": 72,
       "bytes": 2895,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase/migrations/20261101_07_cola_diaria.sql",
+      "label": "20261101_07_cola_diaria.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261101_07_cola_diaria.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 44,
+      "bytes": 1481,
       "exports": [],
       "imports": [],
       "supabaseTables": [],

@@ -223,6 +223,21 @@ await db.query(`SELECT public.cancel_abandoned_matches()`);
 ok('una partida reciente no se toca', (await estado(m)).status === 'active', JSON.stringify(await estado(m)));
 await db.exec(`UPDATE public.matches SET status='completed' WHERE status='active';`);
 
+// Cola diaria
+await db.exec(sql('supabase/migrations/20261101_03_rachas.sql').split('-- VERIFICACIÓN')[0].replace(/-- =+\s*$/, ''));
+const m7 = sql('supabase/migrations/20261101_07_cola_diaria.sql').split('-- VERIFICACIÓN')[0].replace(/-- =+\s*$/, '');
+await db.exec(m7);
+await db.exec(`UPDATE public.waitlist SET status='cancelled';`);
+const entrada = async (cuando) => (await db.query(`INSERT INTO public.waitlist(creator_id,player1_id,player2_id,created_at) VALUES('${A}','${A}','${B}',${cuando}) RETURNING id`)).rows[0].id;
+const vieja = await entrada(`now()-interval '3 days'`);
+const deHoy = await entrada(`now()`);
+await db.query(`SELECT public.expire_old_waitlist()`);
+const estadoCola = async (id) => (await db.query(`SELECT status FROM public.waitlist WHERE id='${id}'`)).rows[0].status;
+ok('una entrada de otro día sale de la cola', (await estadoCola(vieja)) === 'cancelled', await estadoCola(vieja));
+ok('una entrada de hoy sigue', (await estadoCola(deHoy)) === 'waiting', await estadoCola(deHoy));
+r = await as('authenticated', A, `SELECT public.expire_old_waitlist()`);
+ok('la app no vacía la cola', !!r.err, JSON.stringify(r));
+
 // Un duelo anterior a la migración termina con la regla vieja
 await db.query(`UPDATE public.profiles SET betting_points=1000`);
 m = await nuevaPartida(A, ',is_wager_match,wager_amount', ',true,200');

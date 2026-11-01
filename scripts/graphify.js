@@ -924,8 +924,10 @@ const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.t
 const FILE_ROLES = {
   'src/components/PointsHistory.tsx':
     'Own-profile list of the last 30 point movements from points_ledger.',
+  'src/components/ResultConfirmationPrompt.tsx':
+    'Full-screen window mounted in App.tsx: asks the rival team to confirm or reject a finished match, with the 2-minute countdown on normal matches.',
   'src/components/PendingConfirmations.tsx':
-    'Home cards for results waiting for a rival (confirm or dispute) and for matches a rival reopened. The server decides who may answer.',
+    'Home cards: results an admin can still resolve, and the notice for matches a rival reopened. The server decides who may answer.',
   'src/lib/matchRivals.ts':
     'Pure rule mirroring _match_rivals: who answers for a closed match, used only to choose which buttons to show. Covered by tests/matchRivals.test.mjs.',
   'src/components/WagerConsent.tsx':

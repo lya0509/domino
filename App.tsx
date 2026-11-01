@@ -7,6 +7,7 @@ import { SplashAdScreen } from './src/screens/SplashAdScreen';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { GameScreen } from './src/screens/GameScreen';
 import { WagerConsentPrompt } from './src/components/WagerConsent';
+import { ResultConfirmationPrompt } from './src/components/ResultConfirmationPrompt';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LiveMatchScreen } from './src/screens/LiveMatchScreen';
@@ -947,15 +948,20 @@ export default function App() {
             wager_amount: completePayload.wager_amount,
             is_wager_match: completePayload.is_wager_match,
             tournament_id: completePayload.tournament_id,
-          }, { onConflict: 'id' }).select('status').maybeSingle();
+          }, { onConflict: 'id' }).select('status, auto_confirm_at').maybeSingle();
 
-          // Bets, Duelo VIP and tournaments wait for a rival: the server decides, and it pays on confirmation
+          // Every result waits for a rival: the server decides, and it pays on confirmation
           const awaitingRival = savedRow?.status === 'pending_confirmation';
 
           if (upsertErr) {
             await offlineSync.enqueueMatchComplete(completePayload);
           } else if (awaitingRival) {
-            Alert.alert('⏳ Por confirmar', 'Un jugador rival debe confirmar el resultado desde su teléfono. Hasta entonces no se paga nada.');
+            Alert.alert(
+              '⏳ Por confirmar',
+              savedRow?.auto_confirm_at
+                ? 'Le apareció la confirmación al equipo rival. Si nadie responde en 2 minutos, se confirma sola.'
+                : 'Hay puntos en juego: un jugador rival debe confirmar el resultado desde su teléfono. Hasta entonces no se paga nada.'
+            );
           } else {
             await settleMatchBetsAndWagers({
               matchId: finalMatchId,
@@ -1369,6 +1375,7 @@ export default function App() {
 
       {/* VIP wager proposal for this player (accept / decline within 60s) */}
       {isAuthenticated && !isGuestMode && <WagerConsentPrompt currentUserProfileId={currentUserProfileId} />}
+      {isAuthenticated && !isGuestMode && <ResultConfirmationPrompt currentUserProfileId={currentUserProfileId} />}
 
       {/* Urgent Waitlist Call Modal */}
       {waitlistCall && (

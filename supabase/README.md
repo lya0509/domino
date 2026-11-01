@@ -22,7 +22,8 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 | `20261101_04_puntos.sql` | Ejecutada en producción |
 | `20261101_05_borrar_chat_messages.sql` | Ejecutada en producción |
 | `20261101_06_partidas_abandonadas.sql` | Ejecutada en producción |
-| `20261101_07_cola_diaria.sql` | Pendiente |
+| `20261101_07_cola_diaria.sql` | Ejecutada en producción |
+| `20261101_08_confirmacion_todas.sql` | Pendiente |
 
 ## Cómo se prueba
 
@@ -33,6 +34,7 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 Corren con `pg_cron`, en hora UTC (Venezuela va 4 horas atrás):
 
 - `limpiar_partidas_zombies`, a las 03:00: partidas abiertas por más de 6 horas.
+- `confirmar-partidas-normales`, cada minuto.
 - `vencer-rachas`, a las 11:05.
 - `vaciar-cola-diaria`, a las 11:10.
 - `cleanup_global_chat`, a las 00:00: borra el chat global con más de 2 días.

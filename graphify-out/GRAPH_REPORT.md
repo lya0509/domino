@@ -15,15 +15,15 @@
 | Metric | Count |
 | :--- | :---: |
 | **System Communities** | **8** |
-| **Total Graph Nodes** | **129** |
-| **Directed Edges** | **202 (122 derived from code)** |
+| **Total Graph Nodes** | **131** |
+| **Directed Edges** | **209 (129 derived from code)** |
 | **System Hyperedges** | **7** |
 | **Screens** | **13** |
-| **Components** | **8** |
+| **Components** | **9** |
 | **Services** | **10** |
 | **DB Tables & Buckets** | **17** |
 | **DB RPCs** | **27** |
-| **SQL Scripts** | **41** |
+| **SQL Scripts** | **42** |
 | **QA Test Suites** | **16** |
 
 **RPCs called by the app:** `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `call_waitlist_duo`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `confirm_match_result`, `delete_user_account`, `dispute_match_result`, `expire_tournament_registration`, `invite_tournament_partner`, `join_tournament_with_points`, `notify_near_turn`, `place_bet`, `propose_wager`, `respond_tournament_partner`, `respond_wager`, `seat_waitlist_entry`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `verify_admin_pin`

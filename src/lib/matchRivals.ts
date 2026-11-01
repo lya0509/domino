@@ -37,3 +37,17 @@ export const isInMatch = (m: RivalMatchRow, userId: string): boolean =>
     m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2, m.closed_by,
     ...(m.initial_team1 ?? []), ...(m.initial_team2 ?? []),
   ]).includes(userId);
+
+export const isMatchRival = (m: RivalMatchRow, userId: string): boolean => matchRivalIds(m).includes(userId);
+
+export const CONFIRMATION_COLUMNS =
+  'id, status, game_mode, limit_score, rounds, players_json, substitutions, team1_player1, team1_player2, team2_player1, team2_player2, team1_total, team2_total, winner_team, closed_by, initial_team1, initial_team2, auto_confirm_at, disputed_at, disputed_round, created_by, wager_amount, is_wager_match, tournament_id';
+
+export const matchTeamLabel = (m: { players_json?: any[] | null }, team: number): string =>
+  (m.players_json || [])
+    .filter((p: any) => p.teamNumber === team)
+    .map((p: any) => p.name || p.initials)
+    .join(' y ') || `Equipo ${team}`;
+
+export const secondsUntil = (iso: string, now: number = Date.now()): number =>
+  Math.max(0, Math.ceil((new Date(iso).getTime() - now) / 1000));

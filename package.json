@@ -46,7 +46,7 @@
     "baseline": "node scripts/baseline.mjs",
     "typecheck": "node --stack-size=30000 node_modules/typescript/bin/tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
-    "test:db": "node tests/db/permisos.mjs && node tests/db/partidas.mjs && node tests/db/seguridad.mjs && node tests/db/rachas.mjs && node tests/db/puntos.mjs"
+    "test:db": "node tests/db/permisos.mjs && node tests/db/partidas.mjs && node tests/db/seguridad.mjs && node tests/db/rachas.mjs && node tests/db/puntos.mjs && node tests/db/confirmacion_todas.mjs"
   },
   "private": true
 }

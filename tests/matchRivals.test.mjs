@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canAnswerMatch, isInMatch, matchRivalIds } from '../src/lib/matchRivals.ts';
+import { canAnswerMatch, isInMatch, isMatchRival, matchRivalIds, matchTeamLabel, secondsUntil } from '../src/lib/matchRivals.ts';
 
 const row = { team1_player1: 'a', team1_player2: 'b', team2_player1: 'c', team2_player2: null, winner_team: 1 };
 
@@ -33,4 +33,22 @@ test('a substitute is not a rival, and the player they replaced still is', () =>
   assert.deepEqual(matchRivalIds(swapped), ['c', 'd']);
   assert.equal(canAnswerMatch(swapped, 'friend', false), false);
   assert.equal(isInMatch(swapped, 'c'), true);
+});
+
+test('the countdown never goes below zero', () => {
+  const now = Date.parse('2026-11-01T12:00:00Z');
+  assert.equal(secondsUntil('2026-11-01T12:02:00Z', now), 120);
+  assert.equal(secondsUntil('2026-11-01T11:59:00Z', now), 0);
+});
+
+test('team names come from the players, with a fallback', () => {
+  const players_json = [{ teamNumber: 1, name: 'Ana' }, { teamNumber: 1, name: 'Luis' }];
+  assert.equal(matchTeamLabel({ players_json }, 1), 'Ana y Luis');
+  assert.equal(matchTeamLabel({ players_json }, 2), 'Equipo 2');
+});
+
+test('only rivals get the window, an admin does not', () => {
+  const closed = { ...row, closed_by: 'a' };
+  assert.equal(isMatchRival(closed, 'c'), true);
+  assert.equal(isMatchRival(closed, 'b'), false);
 });

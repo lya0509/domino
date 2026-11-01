@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T18:12:13.853Z",
+    "generatedAt": "2026-11-01T18:29:20.398Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,11 +10,11 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 129,
-      "totalEdges": 202,
+      "totalNodes": 131,
+      "totalEdges": 209,
       "totalHyperedges": 7,
       "totalScreens": 13,
-      "totalComponents": 8,
+      "totalComponents": 9,
       "totalServices": 10,
       "totalDatabaseTables": 17,
       "totalDatabaseRpcs": 27,
@@ -123,8 +123,8 @@
         "Outdated Version Gate Screen"
       ],
       "exists": true,
-      "lines": 1567,
-      "bytes": 59576,
+      "lines": 1574,
+      "bytes": 60001,
       "exports": [
         "App"
       ],
@@ -138,6 +138,7 @@
         "./src/screens/SetupScreen",
         "./src/screens/GameScreen",
         "./src/components/WagerConsent",
+        "./src/components/ResultConfirmationPrompt",
         "./src/screens/AuthScreen",
         "./src/screens/HomeScreen",
         "./src/screens/LiveMatchScreen",
@@ -1581,7 +1582,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 53,
-      "bytes": 1798,
+      "bytes": 1838,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1652,8 +1653,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1638,
-      "bytes": 78379,
+      "lines": 1640,
+      "bytes": 78575,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2339,15 +2340,33 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261101_08_confirmacion_todas.sql",
+      "label": "20261101_08_confirmacion_todas.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261101_08_confirmacion_todas.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 227,
+      "bytes": 7765,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/PendingConfirmations.tsx",
       "label": "PendingConfirmations.tsx",
       "type": "component",
       "community": "ui_components",
       "file": "src/components/PendingConfirmations.tsx",
-      "role": "Home cards for results waiting for a rival (confirm or dispute) and for matches a rival reopened. The server decides who may answer.",
+      "role": "Home cards: results an admin can still resolve, and the notice for matches a rival reopened. The server decides who may answer.",
       "exists": true,
-      "lines": 159,
-      "bytes": 6820,
+      "lines": 145,
+      "bytes": 6175,
       "exports": [
         "PendingConfirmations"
       ],
@@ -2397,6 +2416,41 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/components/ResultConfirmationPrompt.tsx",
+      "label": "ResultConfirmationPrompt.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/ResultConfirmationPrompt.tsx",
+      "role": "Full-screen window mounted in App.tsx: asks the rival team to confirm or reject a finished match, with the 2-minute countdown on normal matches.",
+      "exists": true,
+      "lines": 183,
+      "bytes": 7343,
+      "exports": [
+        "ResultConfirmationPrompt"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase",
+        "../lib/bettingService",
+        "../lib/matchRivals",
+        "../lib/sounds"
+      ],
+      "supabaseTables": [
+        "matches"
+      ],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "result-confirmation-${Date.now()}"
+      ],
+      "storageKeys": [],
+      "soundsPlayed": [
+        "slap",
+        "chaching"
+      ]
+    },
+    {
       "id": "src/components/WagerConsent.tsx",
       "label": "WagerConsent.tsx",
       "type": "component",
@@ -2439,13 +2493,17 @@
       "file": "src/lib/matchRivals.ts",
       "role": "Pure rule mirroring _match_rivals: who answers for a closed match, used only to choose which buttons to show. Covered by tests/matchRivals.test.mjs.",
       "exists": true,
-      "lines": 40,
-      "bytes": 1555,
+      "lines": 54,
+      "bytes": 2415,
       "exports": [
         "RivalMatchRow",
         "matchRivalIds",
         "canAnswerMatch",
-        "isInMatch"
+        "isInMatch",
+        "isMatchRival",
+        "CONFIRMATION_COLUMNS",
+        "matchTeamLabel",
+        "secondsUntil"
       ],
       "imports": [],
       "supabaseTables": [],
@@ -3053,6 +3111,12 @@
     {
       "source": "App.tsx",
       "target": "src/components/WagerConsent.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/components/ResultConfirmationPrompt.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -3695,6 +3759,42 @@
     {
       "source": "src/components/PointsHistory.tsx",
       "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ResultConfirmationPrompt.tsx",
+      "target": "db:matches",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/components/ResultConfirmationPrompt.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ResultConfirmationPrompt.tsx",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ResultConfirmationPrompt.tsx",
+      "target": "src/lib/bettingService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ResultConfirmationPrompt.tsx",
+      "target": "src/lib/matchRivals.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ResultConfirmationPrompt.tsx",
+      "target": "src/lib/sounds.ts",
       "relation": "imports",
       "derived": true
     },

@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } fr
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
 import { confirmMatchResult, disputeMatchResult } from '../lib/bettingService';
-import { canAnswerMatch, isInMatch } from '../lib/matchRivals';
+import { CONFIRMATION_COLUMNS, isInMatch, isMatchRival, matchTeamLabel as teamLabel } from '../lib/matchRivals';
 
 interface Props {
   profileId?: string;
@@ -11,16 +11,7 @@ interface Props {
   onRejoinMatch?: (matchData: any) => void;
 }
 
-const COLUMNS =
-  'id, status, game_mode, limit_score, rounds, players_json, substitutions, team1_player1, team1_player2, team2_player1, team2_player2, team1_total, team2_total, winner_team, closed_by, initial_team1, initial_team2, disputed_at, disputed_round, created_by, wager_amount, is_wager_match, tournament_id';
-
-const teamLabel = (m: any, team: number) =>
-  (m.players_json || [])
-    .filter((p: any) => p.teamNumber === team)
-    .map((p: any) => p.initials || p.name)
-    .join(' & ') || `Equipo ${team}`;
-
-/** Home cards for results waiting for a rival, and for matches a rival sent back. */
+/** Admin list of results still waiting, and the notice for matches a rival sent back. Rivals answer in ResultConfirmationPrompt. */
 export const PendingConfirmations: React.FC<Props> = ({ profileId, isAdmin, onRejoinMatch }) => {
   const [pending, setPending] = useState<any[]>([]);
   const [reopened, setReopened] = useState<any[]>([]);
@@ -30,10 +21,10 @@ export const PendingConfirmations: React.FC<Props> = ({ profileId, isAdmin, onRe
     if (!profileId) return;
     // These columns don't exist until the migration runs: an error just means nothing to show
     const [waiting, disputed] = await Promise.all([
-      supabase.from('matches').select(COLUMNS).eq('status', 'pending_confirmation').order('closed_at', { ascending: false }).limit(30),
-      supabase.from('matches').select(COLUMNS).eq('status', 'active').not('disputed_at', 'is', null).limit(30),
+      supabase.from('matches').select(CONFIRMATION_COLUMNS).eq('status', 'pending_confirmation').order('closed_at', { ascending: false }).limit(30),
+      supabase.from('matches').select(CONFIRMATION_COLUMNS).eq('status', 'active').not('disputed_at', 'is', null).limit(30),
     ]);
-    setPending((waiting.data || []).filter((m: any) => isAdmin || isInMatch(m, profileId)));
+    setPending(isAdmin ? (waiting.data || []).filter((m: any) => !isMatchRival(m, profileId)) : []);
     setReopened((disputed.data || []).filter((m: any) => isInMatch(m, profileId) || m.created_by === profileId));
   }, [profileId, isAdmin]);
 
@@ -86,7 +77,6 @@ export const PendingConfirmations: React.FC<Props> = ({ profileId, isAdmin, onRe
   return (
     <View>
       {pending.map((m) => {
-        const canAnswer = canAnswerMatch(m, profileId, isAdmin);
         const winner = m.winner_team === 1 || m.winner_team === 2 ? teamLabel(m, m.winner_team) : null;
         return (
           <View key={m.id} style={styles.card}>
@@ -95,21 +85,17 @@ export const PendingConfirmations: React.FC<Props> = ({ profileId, isAdmin, onRe
               {teamLabel(m, 1)}  {m.team1_total} – {m.team2_total}  {teamLabel(m, 2)}
             </Text>
             <Text style={styles.detail}>{winner ? `Ganador: ${winner}` : 'Partida anulada'}</Text>
-            {canAnswer ? (
-              busyId === m.id ? (
-                <ActivityIndicator color={theme.colors.accent} style={styles.spinner} />
-              ) : (
-                <View style={styles.row}>
-                  <TouchableOpacity style={[styles.button, styles.confirm]} onPress={() => confirm(m)} accessibilityRole="button">
-                    <Text style={styles.buttonText}>✅ Confirmar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.button, styles.reject]} onPress={() => dispute(m)} accessibilityRole="button">
-                    <Text style={styles.buttonText}>✋ No estoy de acuerdo</Text>
-                  </TouchableOpacity>
-                </View>
-              )
+            {busyId === m.id ? (
+              <ActivityIndicator color={theme.colors.accent} style={styles.spinner} />
             ) : (
-              <Text style={styles.detail}>Esperando a que un rival confirme. Todavía no se paga nada.</Text>
+              <View style={styles.row}>
+                <TouchableOpacity style={[styles.button, styles.confirm]} onPress={() => confirm(m)} accessibilityRole="button">
+                  <Text style={styles.buttonText}>✅ Confirmar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.button, styles.reject]} onPress={() => dispute(m)} accessibilityRole="button">
+                  <Text style={styles.buttonText}>✋ No estoy de acuerdo</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         );

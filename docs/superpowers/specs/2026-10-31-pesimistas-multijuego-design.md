@@ -102,10 +102,10 @@ Antes de cualquier arreglo, el dueño corre en el SQL Editor una consulta de sol
   - Pedir confirmación cuando una mano cierra la partida.
   - Deshacer disponible en la pantalla de ganador.
   - Nada se paga hasta que la partida se cierra de verdad.
-  - Cerrar una partida con apuestas, Duelo VIP o torneo requiere la confirmación de un jugador rival desde su teléfono.
-  - Si nadie responde, la partida queda "por confirmar" y no se paga. Puede confirmarla después cualquier jugador rival o un admin.
+  - Toda partida con ganador requiere la confirmación de un jugador rival, con una ventana al frente de la pantalla *(decisión del dueño)*.
+  - Partida normal: si nadie responde en 2 minutos, se confirma sola.
+  - Con apuestas, Duelo VIP o torneo: si nadie responde, la partida queda "por confirmar" y no se paga. Puede confirmarla después cualquier jugador rival o un admin.
   - Si el rival no está de acuerdo, se reabre la última mano para corregirla.
-  - Las partidas sin apuestas ni torneo se cierran normal, sin esperar a nadie.
 - **Cola offline:** ninguna partida se descarta sola, ni se pierde durante una sincronización, ni se da por guardada si el servidor no la guardó.
 
 ### Fase 2: seguridad del servidor

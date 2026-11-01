@@ -184,6 +184,17 @@ ok('la app no cancela una partida con un estado inventado', r.rows?.[0]?.status 
 await db.query(`UPDATE public.matches SET status='cancelled' WHERE id='${cancelada}'`);
 r = await as('authenticated', A, `UPDATE public.matches SET status='active' WHERE id='${cancelada}' RETURNING status`);
 ok('una partida cancelada no revive', r.rows?.[0]?.status === 'cancelled', JSON.stringify(r));
+// Eliminar cuenta en una partida ya terminada
+m = await crear();
+await db.query(`UPDATE public.matches SET players_json='[{"profileId":"${D}","name":"Daniela","initials":"DA"}]'::jsonb WHERE id='${m}'`);
+await cerrar(A, m);
+r = await as('authenticated', D, `SELECT public.delete_user_account() r`);
+ok('eliminar cuenta sigue funcionando', r.rows?.[0]?.r?.deleted === true, JSON.stringify(r));
+const anon = (await partida(m)).players_json[0];
+ok('y quita su nombre de partidas ya terminadas', anon.initials === '--' && !/Daniela/.test(anon.name), JSON.stringify(anon));
+ok('sin abrir la partida para los demás', (await partida(m)).status === 'completed');
+r = await as('authenticated', A, `UPDATE public.matches SET winner_team=2 WHERE id='${m}' RETURNING winner_team`);
+ok('la partida sigue cerrada después', r.rows?.[0]?.winner_team === 1, JSON.stringify(r));
 await db.query(`UPDATE public.matches SET winner_team=2 WHERE id='${m}'`);
 ok('el dueño sí corrige desde el editor SQL', (await partida(m)).winner_team === 2);
 

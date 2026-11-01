@@ -21,7 +21,10 @@ CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service
 CREATE SCHEMA auth; CREATE SCHEMA storage; CREATE SCHEMA extensions;
 CREATE EXTENSION pgcrypto SCHEMA extensions;
 CREATE PUBLICATION supabase_realtime;
-CREATE TABLE auth.users(id uuid primary key);
+CREATE TABLE auth.users(id uuid primary key, email text, phone text, encrypted_password text, raw_user_meta_data jsonb, banned_until timestamptz);
+CREATE TABLE auth.identities(user_id uuid);
+CREATE TABLE auth.sessions(user_id uuid);
+CREATE TABLE auth.refresh_tokens(user_id text);
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT NULLIF(current_setting('request.uid',true),'')::uuid $$;
 CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT NULLIF(current_setting('request.role',true),'') $$;
 GRANT USAGE ON SCHEMA auth, storage, public TO anon, authenticated;

@@ -14,6 +14,7 @@ import { MatchGraph } from '../components/MatchGraph';
 import { RainbowText } from '../components/RainbowText';
 import { LegalModal, LegalTab } from '../components/LegalModal';
 import { PointsHistory } from '../components/PointsHistory';
+import { InviteQr } from '../components/InviteQr';
 import { offlineSync } from '../lib/offlineSync';
 import { reconcileUserPendingBets } from '../lib/bettingService';
 
@@ -1036,16 +1037,13 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
             </Text>
 
             <View style={{ padding: 12, backgroundColor: '#ffffff', borderRadius: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }}>
-              <Image
-                source={{
-                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
-                    Platform.OS === 'web' && typeof window !== 'undefined'
-                      ? `${window.location.origin}/?invite=CAFETIN`
-                      : 'https://domino-mauve.vercel.app/?invite=CAFETIN'
-                  )}`
-                }}
-                style={{ width: 170, height: 170 }}
-                resizeMode="contain"
+              <InviteQr
+                size={170}
+                value={
+                  Platform.OS === 'web' && typeof window !== 'undefined'
+                    ? `${window.location.origin}/?invite=CAFETIN`
+                    : 'https://domino-mauve.vercel.app/?invite=CAFETIN'
+                }
               />
             </View>
 

@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T20:49:59.404Z",
+    "generatedAt": "2026-11-01T22:04:55.699Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,12 +10,12 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 139,
-      "totalEdges": 223,
+      "totalNodes": 142,
+      "totalEdges": 225,
       "totalHyperedges": 7,
       "totalScreens": 13,
-      "totalComponents": 10,
-      "totalServices": 11,
+      "totalComponents": 11,
+      "totalServices": 12,
       "totalDatabaseTables": 17,
       "totalDatabaseRpcs": 30,
       "totalQaSuites": 16
@@ -617,8 +617,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1441,
-      "bytes": 52832,
+      "lines": 1443,
+      "bytes": 53134,
       "exports": [
         "HomeScreen"
       ],
@@ -719,8 +719,8 @@
         "🚨 Llamar Siguiente Dúo Waitlist Trigger Button"
       ],
       "exists": true,
-      "lines": 880,
-      "bytes": 40807,
+      "lines": 881,
+      "bytes": 40857,
       "exports": [
         "GameScreen"
       ],
@@ -830,8 +830,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1497,
-      "bytes": 62612,
+      "lines": 1495,
+      "bytes": 62465,
       "exports": [
         "ProfileScreen"
       ],
@@ -849,6 +849,7 @@
         "../components/RainbowText",
         "../components/LegalModal",
         "../components/PointsHistory",
+        "../components/InviteQr",
         "../lib/offlineSync",
         "../lib/bettingService"
       ],
@@ -1584,8 +1585,8 @@
       "file": "package.json",
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
-      "lines": 53,
-      "bytes": 1864,
+      "lines": 54,
+      "bytes": 1897,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1656,8 +1657,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1647,
-      "bytes": 79311,
+      "lines": 1651,
+      "bytes": 79568,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2415,6 +2416,24 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261101_12_aviso_turno_antes_del_limite.sql",
+      "label": "20261101_12_aviso_turno_antes_del_limite.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261101_12_aviso_turno_antes_del_limite.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 50,
+      "bytes": 2000,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/ClubNotices.tsx",
       "label": "ClubNotices.tsx",
       "type": "component",
@@ -2448,6 +2467,30 @@
       "soundsPlayed": [
         "pop"
       ]
+    },
+    {
+      "id": "src/components/InviteQr.tsx",
+      "label": "InviteQr.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/InviteQr.tsx",
+      "role": "Draws the invite QR as SVG on the own-profile invite card.",
+      "exists": true,
+      "lines": 20,
+      "bytes": 549,
+      "exports": [
+        "InviteQr"
+      ],
+      "imports": [
+        "react",
+        "react-native-svg",
+        "../lib/inviteQr"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
     },
     {
       "id": "src/components/PendingConfirmations.tsx",
@@ -2574,6 +2617,29 @@
         "wager_consent_me_${Date.now()}",
         "wager_status_${matchId}_${Date.now()}"
       ],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/inviteQr.ts",
+      "label": "inviteQr.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/inviteQr.ts",
+      "role": "Builds the invite QR on the device, with no outside service. Covered by tests/inviteQr.test.mjs, which scans the result back.",
+      "exists": true,
+      "lines": 18,
+      "bytes": 601,
+      "exports": [
+        "qrModules",
+        "qrPath"
+      ],
+      "imports": [
+        "qrcode-generator"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
     },
@@ -3662,6 +3728,12 @@
       "derived": true
     },
     {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/InviteQr.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/screens/StoreScreen.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -3922,6 +3994,12 @@
     {
       "source": "src/components/ClubNotices.tsx",
       "target": "src/lib/matchRivals.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/InviteQr.tsx",
+      "target": "src/lib/inviteQr.ts",
       "relation": "imports",
       "derived": true
     },

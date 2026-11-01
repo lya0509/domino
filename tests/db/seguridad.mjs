@@ -24,6 +24,7 @@ await db.exec(m1);
 await db.exec(m2);
 await db.exec(m2);
 ok('la migración se puede repetir', true);
+await db.exec(sql('supabase/migrations/20261101_12_aviso_turno_antes_del_limite.sql').split('-- VERIFICACIÓN')[0]);
 await db.query(`UPDATE public.profiles SET betting_points=1000`);
 
 // 1. Quien anota no apuesta
@@ -115,6 +116,9 @@ const lejos = await nuevaPartida(C, ',limit_score,team1_total', ',100,10');
 await db.query(`UPDATE public.waitlist SET near_turn_at=NULL`);
 r = await as('authenticated', D, `SELECT public.notify_near_turn('${lejos}')`);
 ok('lejos del final no se avisa y la app sabe que debe reintentar', !r.err && r.rows?.[0]?.notify_near_turn === false && (await fila()).near_turn_at === null, JSON.stringify(r));
+const pasada = await nuevaPartida(C, ',limit_score,team1_total', ',100,120');
+r = await as('authenticated', D, `SELECT public.notify_near_turn('${pasada}')`);
+ok('con el límite ya alcanzado no se avisa que falta poco', !r.err && r.rows?.[0]?.notify_near_turn === false && (await fila()).near_turn_at === null, JSON.stringify(r));
 
 // 5. Duelo VIP
 const duelo = async (monto = 200) => {

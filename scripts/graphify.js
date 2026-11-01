@@ -922,6 +922,10 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/lib/inviteQr.ts':
+    'Builds the invite QR on the device, with no outside service. Covered by tests/inviteQr.test.mjs, which scans the result back.',
+  'src/components/InviteQr.tsx':
+    'Draws the invite QR as SVG on the own-profile invite card.',
   'src/lib/pushNotifications.ts':
     'Registers this device for Web Push (permission, PushManager, save_push_subscription) and removes it on logout. The server sends through the send-push Edge Function.',
   'src/components/ClubNotices.tsx':

@@ -129,6 +129,7 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
         !proximityAlertSent.current &&
         updatedMatch.limitScore > 0 &&
         highestScore >= updatedMatch.limitScore - 10 &&
+        highestScore < updatedMatch.limitScore &&
         offlineSync.getIsOnline()
       ) {
         // The server reads the score itself; false means this hand hasn't reached it yet

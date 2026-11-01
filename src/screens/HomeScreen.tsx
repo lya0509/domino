@@ -755,89 +755,91 @@ export const HomeScreen: React.FC<Props> = ({
           </View>
         )}
 
-        {/* Waitlist Section */}
-        <View style={styles.waitlistContainer}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.m }}>
-            <Text style={[styles.waitlistTitle, { marginBottom: 0 }]}>📋 Lista de Espera</Text>
-            <TouchableOpacity
-              onPress={handleOpenWaitlistModal}
-              style={{
-                backgroundColor: myWaitlistEntry ? 'rgba(16, 185, 129, 0.18)' : theme.colors.primary,
-                borderWidth: 1,
-                borderColor: myWaitlistEntry ? '#10b981' : '#60a5fa',
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: 10,
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={{ color: myWaitlistEntry ? '#34d399' : '#fff', fontWeight: '900', fontSize: 13 }}>
-                {myWaitlistEntry ? '✏️ Editar mi turno' : '✋ Pedir Mesa'}
+        {/* The queue only matters with a table in play; anyone already waiting stays visible */}
+        {(liveMatches.length > 0 || waitlist.length > 0) && (
+          <View style={styles.waitlistContainer}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.m }}>
+              <Text style={[styles.waitlistTitle, { marginBottom: 0 }]}>📋 Lista de Espera</Text>
+              <TouchableOpacity
+                onPress={handleOpenWaitlistModal}
+                style={{
+                  backgroundColor: myWaitlistEntry ? 'rgba(16, 185, 129, 0.18)' : theme.colors.primary,
+                  borderWidth: 1,
+                  borderColor: myWaitlistEntry ? '#10b981' : '#60a5fa',
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: 10,
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={{ color: myWaitlistEntry ? '#34d399' : '#fff', fontWeight: '900', fontSize: 13 }}>
+                  {myWaitlistEntry ? '✏️ Editar mi turno' : '✋ Pedir Mesa'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {waitlist.length === 0 ? (
+              <Text style={{ color: theme.colors.textDim, fontStyle: 'italic', paddingVertical: 8, textAlign: 'center' }}>
+                No hay nadie en fila aún. ¡Toca "Pedir Mesa" para anotar tu dúo!
               </Text>
-            </TouchableOpacity>
-          </View>
-          {waitlist.length === 0 ? (
-            <Text style={{ color: theme.colors.textDim, fontStyle: 'italic', paddingVertical: 8, textAlign: 'center' }}>
-              No hay nadie en fila aún. ¡Toca "Pedir Mesa" para anotar tu dúo!
-            </Text>
-          ) : (
-            waitlist.map((item, index) => {
-              const canDelete =
-                currentUser?.is_admin ||
-                (currentUserProfileId &&
-                  (item.creator_id === currentUserProfileId ||
-                    item.player1_id === currentUserProfileId ||
-                    item.player2_id === currentUserProfileId));
-              return (
-                <View key={item.id} style={styles.waitlistItem}>
-                  <Text style={styles.waitlistRank}>#{index + 1}</Text>
-                  <View style={styles.waitlistPlayers}>
-                    <Text style={styles.waitlistName}>{item.player1?.display_name || 'Desconocido'}</Text>
-                    <Text style={styles.waitlistAnd}>&</Text>
-                    <Text style={styles.waitlistName}>{item.player2?.display_name || 'Desconocido'}</Text>
-                  </View>
-                  {index === 0 && onSeatWaitlistDuo && (
+            ) : (
+              waitlist.map((item, index) => {
+                const canDelete =
+                  currentUser?.is_admin ||
+                  (currentUserProfileId &&
+                    (item.creator_id === currentUserProfileId ||
+                      item.player1_id === currentUserProfileId ||
+                      item.player2_id === currentUserProfileId));
+                return (
+                  <View key={item.id} style={styles.waitlistItem}>
+                    <Text style={styles.waitlistRank}>#{index + 1}</Text>
+                    <View style={styles.waitlistPlayers}>
+                      <Text style={styles.waitlistName}>{item.player1?.display_name || 'Desconocido'}</Text>
+                      <Text style={styles.waitlistAnd}>&</Text>
+                      <Text style={styles.waitlistName}>{item.player2?.display_name || 'Desconocido'}</Text>
+                    </View>
+                    {index === 0 && onSeatWaitlistDuo && (
+                      <TouchableOpacity
+                        onPress={() => onSeatWaitlistDuo(item)}
+                        style={{
+                          backgroundColor: 'rgba(16, 185, 129, 0.16)',
+                          borderWidth: 1,
+                          borderColor: '#10b981',
+                          paddingHorizontal: 8,
+                          paddingVertical: 5,
+                          borderRadius: 8,
+                          marginRight: 6,
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={{ color: '#34d399', fontSize: 11, fontWeight: '800' }}>🎲 Pasar</Text>
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity
-                      onPress={() => onSeatWaitlistDuo(item)}
+                      onPress={() => handleCallDuo(item)}
                       style={{
-                        backgroundColor: 'rgba(16, 185, 129, 0.16)',
+                        backgroundColor: 'rgba(245, 158, 11, 0.15)',
                         borderWidth: 1,
-                        borderColor: '#10b981',
-                        paddingHorizontal: 8,
+                        borderColor: '#f59e0b',
+                        paddingHorizontal: 10,
                         paddingVertical: 5,
                         borderRadius: 8,
-                        marginRight: 6,
+                        marginRight: canDelete ? 8 : 0,
                       }}
                       activeOpacity={0.7}
                     >
-                      <Text style={{ color: '#34d399', fontSize: 11, fontWeight: '800' }}>🎲 Pasar</Text>
+                      <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '800' }}>📢 Llamar</Text>
                     </TouchableOpacity>
-                  )}
-                  <TouchableOpacity
-                    onPress={() => handleCallDuo(item)}
-                    style={{
-                      backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                      borderWidth: 1,
-                      borderColor: '#f59e0b',
-                      paddingHorizontal: 10,
-                      paddingVertical: 5,
-                      borderRadius: 8,
-                      marginRight: canDelete ? 8 : 0,
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '800' }}>📢 Llamar</Text>
-                  </TouchableOpacity>
-                  {canDelete && (
-                    <TouchableOpacity onPress={() => handleRemoveWaitlist(item.id)} style={{ paddingLeft: 6 }}>
-                      <Text style={{ color: theme.colors.danger, fontWeight: 'bold', fontSize: 18 }}>✕</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })
-          )}
-        </View>
+                    {canDelete && (
+                      <TouchableOpacity onPress={() => handleRemoveWaitlist(item.id)} style={{ paddingLeft: 6 }}>
+                        <Text style={{ color: theme.colors.danger, fontWeight: 'bold', fontSize: 18 }}>✕</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              })
+            )}
+          </View>
+        )}
 
         {/* New Match Button */}
         <TouchableOpacity style={styles.newMatchBtn} onPress={onNewMatch}>

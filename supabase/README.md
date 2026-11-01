@@ -26,7 +26,8 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 | `20261101_08_confirmacion_todas.sql` | Ejecutada en producción |
 | `20261101_09_confirmacion_1_minuto.sql` | Ejecutada en producción |
 | `20261101_10_notificaciones_push.sql` | Ejecutada en producción |
-| `20261101_11_direccion_send_push.sql` | Pendiente |
+| `20261101_11_direccion_send_push.sql` | Ejecutada en producción |
+| `20261101_12_aviso_turno_antes_del_limite.sql` | Ejecutada en producción |
 
 ## Cómo se prueba
 

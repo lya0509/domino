@@ -3,7 +3,9 @@
 
 const encoder = new TextEncoder();
 
-export const fromBase64Url = (value: string): Uint8Array => {
+type Bytes = Uint8Array<ArrayBuffer>;
+
+export const fromBase64Url = (value: string): Bytes => {
   const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(base64 + '='.repeat((4 - (base64.length % 4)) % 4));
   return Uint8Array.from(binary, (c) => c.charCodeAt(0));
@@ -12,7 +14,7 @@ export const fromBase64Url = (value: string): Uint8Array => {
 export const toBase64Url = (bytes: Uint8Array): string =>
   btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-const concat = (...parts: Uint8Array[]): Uint8Array => {
+const concat = (...parts: Uint8Array[]): Bytes => {
   const out = new Uint8Array(parts.reduce((sum, p) => sum + p.length, 0));
   let offset = 0;
   for (const part of parts) {
@@ -22,7 +24,7 @@ const concat = (...parts: Uint8Array[]): Uint8Array => {
   return out;
 };
 
-const hkdf = async (salt: Uint8Array, ikm: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> => {
+const hkdf = async (salt: Bytes, ikm: Bytes, info: Bytes, length: number): Promise<Bytes> => {
   const key = await crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info }, key, length * 8);
   return new Uint8Array(bits);
@@ -50,12 +52,12 @@ const newEphemeralKeys = async (): Promise<EphemeralKeys> => {
 
 /** The optional arguments exist for the RFC 8291 test vector; real sends always use fresh ones. */
 export const encryptPayload = async (
-  plaintext: Uint8Array,
+  plaintext: Bytes,
   p256dh: string,
   auth: string,
-  salt: Uint8Array = crypto.getRandomValues(new Uint8Array(16)),
+  salt: Bytes = crypto.getRandomValues(new Uint8Array(16)),
   ephemeral?: EphemeralKeys
-): Promise<Uint8Array> => {
+): Promise<Bytes> => {
   const receiverPublic = fromBase64Url(p256dh);
   const server = ephemeral ?? (await newEphemeralKeys());
 

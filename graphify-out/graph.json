@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T17:05:22.692Z",
+    "generatedAt": "2026-11-01T17:17:51.105Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -2220,8 +2220,8 @@
       "file": "supabase/migrations/20261101_01_confirmacion_rival.sql",
       "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
       "exists": true,
-      "lines": 258,
-      "bytes": 9614,
+      "lines": 292,
+      "bytes": 10990,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2275,7 +2275,7 @@
       "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
       "exists": true,
       "lines": 280,
-      "bytes": 10986,
+      "bytes": 10990,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2311,7 +2311,7 @@
       "role": "Home cards for results waiting for a rival (confirm or dispute) and for matches a rival reopened. The server decides who may answer.",
       "exists": true,
       "lines": 159,
-      "bytes": 6790,
+      "bytes": 6820,
       "exports": [
         "PendingConfirmations"
       ],
@@ -2403,8 +2403,8 @@
       "file": "src/lib/matchRivals.ts",
       "role": "Pure rule mirroring _match_rivals: who answers for a closed match, used only to choose which buttons to show. Covered by tests/matchRivals.test.mjs.",
       "exists": true,
-      "lines": 32,
-      "bytes": 1200,
+      "lines": 40,
+      "bytes": 1555,
       "exports": [
         "RivalMatchRow",
         "matchRivalIds",

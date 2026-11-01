@@ -14,8 +14,8 @@ const cerrar = (u, id, ganador = 1) => as('authenticated', u, `UPDATE public.mat
 // ANTES: reproduce que hoy no hay límite ni premio
 await db.query(`UPDATE public.profiles SET betting_points=2000`);
 let m = await partida();
-let r = await as('authenticated', X, `SELECT public.place_bet('${m}',1,600)`);
-ok('ANTES: se apuestan más de 500 en una partida', !r.err, JSON.stringify(r));
+let r = await as('authenticated', X, `SELECT public.place_bet('${m}',1,1100)`);
+ok('ANTES: se apuestan más de 1.000 en una partida', !r.err, JSON.stringify(r));
 m = await partida();
 await cerrar(A, m);
 ok('ANTES: ganar no paga premio', (await puntos(A)) === 2000, String(await puntos(A)));
@@ -35,22 +35,24 @@ ok('igual a su saldo actual', (await historial(D))[0].d === 777 && (await puntos
 ok('los saldos no cambiaron', (await puntos(A)) === 1000);
 
 // Apuestas
+await db.query(`UPDATE public.profiles SET betting_points=3000 WHERE id='${X}'`);
 m = await partida();
-r = await as('authenticated', X, `SELECT public.place_bet('${m}',1,300) r`);
-ok('apostar descuenta el saldo', !r.err && (await puntos(X)) === 700, JSON.stringify(r));
-ok('y queda en el historial', (await historial(X)).at(-1).d === -300 && (await historial(X)).at(-1).r === 'Apuesta', JSON.stringify(await historial(X)));
+r = await as('authenticated', X, `SELECT public.place_bet('${m}',1,800) r`);
+ok('apostar descuenta el saldo', !r.err && (await puntos(X)) === 2200, JSON.stringify(r));
+ok('y queda en el historial', (await historial(X)).at(-1).d === -800 && (await historial(X)).at(-1).r === 'Apuesta', JSON.stringify(await historial(X)));
 r = await as('authenticated', X, `SELECT public.place_bet('${m}',2,10) r`);
 ok('no se apuesta a los dos lados', /otro equipo/.test(r.err || ''), JSON.stringify(r));
 r = await as('authenticated', X, `SELECT public.place_bet('${m}',1,201) r`);
-ok('la suma por persona y partida no pasa de 500', /Límite/.test(r.err || '') && (await puntos(X)) === 700, JSON.stringify(r));
+ok('la suma por persona y partida no pasa de 1.000', /Límite/.test(r.err || '') && (await puntos(X)) === 2200, JSON.stringify(r));
 r = await as('authenticated', X, `SELECT public.place_bet('${m}',1,200) r`);
-ok('justo 500 sí se puede', !r.err, JSON.stringify(r));
+ok('justo 1.000 sí se puede', !r.err, JSON.stringify(r));
 await db.query(`UPDATE public.profiles SET betting_points=5000 WHERE id='${ADM}'`);
-r = await as('authenticated', ADM, `SELECT public.place_bet('${m}',1,501) r`);
+r = await as('authenticated', ADM, `SELECT public.place_bet('${m}',1,1001) r`);
 ok('tampoco de una sola vez', /Límite/.test(r.err || ''), JSON.stringify(r));
-await db.query(`UPDATE public.system_config SET max_bet_per_match=500`);
-await db.exec(`INSERT INTO public.system_config(id,max_bet_per_match) VALUES(1,1000) ON CONFLICT (id) DO UPDATE SET max_bet_per_match=1000;`);
-r = await as('authenticated', ADM, `SELECT public.place_bet('${m}',1,501) r`);
+r = await as('authenticated', ADM, `SELECT public.place_bet('${m}',1,1000) r`);
+ok('High Roller se puede lograr con una apuesta de 1.000', !r.err, JSON.stringify(r));
+await db.exec(`INSERT INTO public.system_config(id,max_bet_per_match) VALUES(1,1500) ON CONFLICT (id) DO UPDATE SET max_bet_per_match=1500;`);
+r = await as('authenticated', ADM, `SELECT public.place_bet('${m}',1,300) r`);
 ok('el límite se puede ajustar', !r.err, JSON.stringify(r));
 await db.exec(`DELETE FROM public.system_config;`);
 await db.query(`UPDATE public.profiles SET betting_points=100 WHERE id='${C}'`);

@@ -12,7 +12,7 @@ interface Props {
 }
 
 const COLUMNS =
-  'id, status, game_mode, limit_score, rounds, players_json, substitutions, team1_player1, team1_player2, team2_player1, team2_player2, team1_total, team2_total, winner_team, closed_by, disputed_at, disputed_round, created_by, wager_amount, is_wager_match, tournament_id';
+  'id, status, game_mode, limit_score, rounds, players_json, substitutions, team1_player1, team1_player2, team2_player1, team2_player2, team1_total, team2_total, winner_team, closed_by, initial_team1, initial_team2, disputed_at, disputed_round, created_by, wager_amount, is_wager_match, tournament_id';
 
 const teamLabel = (m: any, team: number) =>
   (m.players_json || [])

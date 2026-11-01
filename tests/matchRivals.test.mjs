@@ -27,3 +27,10 @@ test('the closer counts as part of the match', () => {
   assert.equal(isInMatch({ ...row, closed_by: 'z' }, 'z'), true);
   assert.equal(isInMatch({ ...row, closed_by: 'z' }, 'x'), false);
 });
+
+test('a substitute is not a rival, and the player they replaced still is', () => {
+  const swapped = { ...row, team2_player1: 'friend', initial_team1: ['a', 'b'], initial_team2: ['c', 'd'], closed_by: 'a' };
+  assert.deepEqual(matchRivalIds(swapped), ['c', 'd']);
+  assert.equal(canAnswerMatch(swapped, 'friend', false), false);
+  assert.equal(isInMatch(swapped, 'c'), true);
+});

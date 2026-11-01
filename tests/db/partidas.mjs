@@ -139,6 +139,27 @@ ok('el equipo ganador no confirma lo que cerró un tercero', /rival/.test(r.err 
 r = await confirmar(C, m);
 ok('responde el equipo que pierde', !r.err, JSON.stringify(r));
 
+// Sustitutos
+await db.query(`UPDATE public.profiles SET betting_points=1000`);
+m = await crear();
+await apostar(m);
+r = await as('authenticated', A, `UPDATE public.matches SET team2_player1='${X}', initial_team2='{}' WHERE id='${m}' RETURNING initial_team2`);
+ok('la formación inicial no se cambia desde la app', r.rows?.[0]?.initial_team2?.length === 2, JSON.stringify(r));
+await cerrar(A, m);
+r = await confirmar(X, m);
+ok('un sustituto no confirma como rival', /rival/.test(r.err || ''), JSON.stringify(r));
+ok('y no se paga nada', (await partida(m)).status === 'pending_confirmation');
+r = await confirmar(C, m);
+ok('el rival original sí confirma aunque ya no esté sentado', !r.err && (await partida(m)).status === 'completed', JSON.stringify(r));
+m = await crear();
+await apostar(m);
+await db.query(`UPDATE public.matches SET team1_player1='${X}' WHERE id='${m}'`);
+await cerrar(X, m);
+r = await confirmar(B, m);
+ok('si cierra un sustituto, su compañero no confirma', /rival/.test(r.err || ''), JSON.stringify(r));
+r = await confirmar(D, m);
+ok('responde el equipo contrario', !r.err, JSON.stringify(r));
+
 // Zapatos: el logro se entrega al confirmar
 for (let i = 0; i < 3; i++) {
   m = await crear(',is_zapato', ',true');

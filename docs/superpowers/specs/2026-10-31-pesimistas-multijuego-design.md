@@ -50,7 +50,7 @@ La escena que debe funcionar, en la mañana: alguien entra al cafetín, abre la 
   - Si un resultado se corrige después de pagado, el premio se revierte con un movimiento visible en el historial *(decisión del diseñador)*.
   - El tope diario y la revisión del historial son la protección contra partidas repetidas; no se agregan más reglas por ahora *(decisión del diseñador)*.
 - **Apuestas de dominó:** el multiplicador sigue entre x1,20 y x3,50, sin subir el tope.
-- **Límite de apuesta por persona y partida:** se agrega. Valor inicial 500 puntos *(decisión del diseñador, ajustable)*.
+- **Límite de apuesta por persona y partida:** se agrega. Valor inicial 1.000 puntos, para que el logro High Roller se pueda alcanzar *(decisión del dueño, ajustable)*.
 - Los puntos actuales de los usuarios no se tocan.
 
 ## 6. Juegos

@@ -3,7 +3,7 @@
 -- - Cada cambio de saldo queda en el historial, venga de donde venga.
 -- - Cada usuario arranca con un movimiento inicial igual a su saldo actual.
 -- - Ganar paga +20, con tope de 3 premios al día. El torneo no paga +20.
--- - Se apuesta hasta 500 puntos por persona y partida (system_config lo ajusta).
+-- - Se apuesta hasta 1.000 puntos por persona y partida (system_config lo ajusta).
 -- Los saldos actuales no se tocan.
 --
 -- Orden: ejecutar después de 20261101_03_rachas.sql.
@@ -230,7 +230,7 @@ CREATE TRIGGER tr_match_prize_fix
 -- ------------------------------------------------------------------------------
 -- Límite de apuesta por persona y partida
 -- ------------------------------------------------------------------------------
-ALTER TABLE public.system_config ADD COLUMN IF NOT EXISTS max_bet_per_match integer NOT NULL DEFAULT 500;
+ALTER TABLE public.system_config ADD COLUMN IF NOT EXISTS max_bet_per_match integer NOT NULL DEFAULT 1000;
 
 CREATE OR REPLACE FUNCTION public.trg_fn_bet_limit()
 RETURNS trigger
@@ -243,7 +243,7 @@ DECLARE
   v_used bigint;
 BEGIN
   SELECT max_bet_per_match INTO v_limit FROM public.system_config ORDER BY id LIMIT 1;
-  v_limit := COALESCE(v_limit, 500);
+  v_limit := COALESCE(v_limit, 1000);
 
   SELECT COALESCE(SUM(amount_wagered), 0) INTO v_used
   FROM public.bets

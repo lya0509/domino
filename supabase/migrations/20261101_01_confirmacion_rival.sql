@@ -20,7 +20,35 @@ ALTER TABLE public.matches
   ADD COLUMN IF NOT EXISTS confirmed_at timestamptz,
   ADD COLUMN IF NOT EXISTS disputed_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS disputed_at timestamptz,
-  ADD COLUMN IF NOT EXISTS disputed_round jsonb;
+  ADD COLUMN IF NOT EXISTS disputed_round jsonb,
+  ADD COLUMN IF NOT EXISTS initial_team1 uuid[],
+  ADD COLUMN IF NOT EXISTS initial_team2 uuid[];
+
+-- Las partidas en curso conservan a quienes están sentados ahora
+UPDATE public.matches
+SET initial_team1 = array_remove(ARRAY[team1_player1, team1_player2], NULL),
+    initial_team2 = array_remove(ARRAY[team2_player1, team2_player2], NULL)
+WHERE status = 'active' AND initial_team1 IS NULL;
+
+-- Los rivales se fijan al crear la partida: quien entra después como sustituto no confirma
+CREATE OR REPLACE FUNCTION public.trg_fn_match_initial_lineup()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  NEW.initial_team1 := array_remove(ARRAY[NEW.team1_player1, NEW.team1_player2], NULL);
+  NEW.initial_team2 := array_remove(ARRAY[NEW.team2_player1, NEW.team2_player2], NULL);
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS tr_match_initial_lineup ON public.matches;
+CREATE TRIGGER tr_match_initial_lineup
+  BEFORE INSERT ON public.matches
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trg_fn_match_initial_lineup();
 
 -- Si producción limita los valores de status, se amplía conservando lo que ya permite
 DO $$
@@ -61,8 +89,8 @@ AS $$
       OR EXISTS (SELECT 1 FROM public.bets b WHERE b.match_id = p.id AND b.status = 'pending');
 $$;
 
--- Quiénes son rivales: el equipo contrario a quien cerró. Si cerró alguien que no
--- está jugando, responde el equipo que pierde con ese resultado.
+-- Quiénes son rivales: el equipo contrario a quien cerró, tal como empezó la partida.
+-- Si cerró alguien que no está jugando, responde el equipo que pierde con ese resultado.
 CREATE OR REPLACE FUNCTION public._match_rivals(p public.matches)
 RETURNS uuid[]
 LANGUAGE plpgsql
@@ -73,12 +101,14 @@ AS $$
 DECLARE
   v_t1 uuid[] := array_remove(ARRAY[p.team1_player1, p.team1_player2], NULL);
   v_t2 uuid[] := array_remove(ARRAY[p.team2_player1, p.team2_player2], NULL);
+  v_i1 uuid[] := COALESCE(p.initial_team1, v_t1);
+  v_i2 uuid[] := COALESCE(p.initial_team2, v_t2);
 BEGIN
-  IF p.closed_by = ANY(v_t1) THEN RETURN v_t2; END IF;
-  IF p.closed_by = ANY(v_t2) THEN RETURN v_t1; END IF;
-  IF p.winner_team = 1 THEN RETURN v_t2; END IF;
-  IF p.winner_team = 2 THEN RETURN v_t1; END IF;
-  RETURN v_t1 || v_t2;
+  IF p.closed_by = ANY(v_t1 || v_i1) THEN RETURN v_i2; END IF;
+  IF p.closed_by = ANY(v_t2 || v_i2) THEN RETURN v_i1; END IF;
+  IF p.winner_team = 1 THEN RETURN v_i2; END IF;
+  IF p.winner_team = 2 THEN RETURN v_i1; END IF;
+  RETURN v_i1 || v_i2;
 END;
 $$;
 
@@ -112,6 +142,9 @@ BEGIN
   IF OLD.status IN ('completed', 'pending_confirmation', 'cancelled') THEN
     RETURN OLD;
   END IF;
+
+  NEW.initial_team1 := OLD.initial_team1;
+  NEW.initial_team2 := OLD.initial_team2;
 
   -- Desde la app una partida solo sigue activa o se cierra
   IF NEW.status NOT IN ('active', 'completed', 'pending_confirmation') THEN
@@ -241,6 +274,7 @@ REVOKE EXECUTE ON FUNCTION public._match_needs_confirmation(public.matches) FROM
 REVOKE EXECUTE ON FUNCTION public._match_rivals(public.matches) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public._match_can_answer(public.matches, uuid) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.trg_fn_match_close_gate() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.trg_fn_match_initial_lineup() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.confirm_match_result(uuid) FROM PUBLIC, anon;
 REVOKE EXECUTE ON FUNCTION public.dispute_match_result(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.confirm_match_result(uuid) TO authenticated;

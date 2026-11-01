@@ -83,6 +83,11 @@ La escena que debe funcionar, en la mañana: alguien entra al cafetín, abre la 
 
 Se registran los jugadores, sin orden, y al final quién ganó. Tres variantes, con ranking propio cada una *(decisión del diseñador)*. Igual que en póker, se puede anotar a alguien solo con un nombre, sin ranking ni premio. No se llevan los puntos oficiales de UNO (500): el dueño pidió anotar solo al ganador.
 
+- **Confirmación:** otro jugador con cuenta confirma el ganador, con la misma ventana y el mismo minuto que el dominó. Si no hay nadie más con cuenta, se cierra de una y sin premio *(decisión del diseñador, sigue la regla del dueño de confirmar toda partida con ganador)*.
+- **Racha:** jugar UNO cuenta igual que jugar dominó *(decisión del diseñador)*.
+- **Anular:** cualquiera de la mesa puede anular antes de enviar el resultado. Una partida abierta por más de 6 horas se anula sola *(decisión del diseñador)*.
+- **Jugadores:** de 2 a 10 *(decisión del diseñador)*.
+
 ### Cola
 
 "Pedir Mesa" sigue siendo solo de dominó *(decisión del diseñador: la escena descrita es de dominó)*.

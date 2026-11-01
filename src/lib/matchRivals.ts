@@ -52,6 +52,9 @@ export const matchTeamLabel = (m: { players_json?: any[] | null }, team: number)
 export const secondsUntil = (iso: string, now: number = Date.now()): number =>
   Math.max(0, Math.ceil((new Date(iso).getTime() - now) / 1000));
 
+export const formatClock = (seconds: number): string =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+
 // Club notices: who hears what, and in what words
 export interface Notice {
   title: string;

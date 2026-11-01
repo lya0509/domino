@@ -153,6 +153,19 @@
       ]
     },
     {
+      "id": "QA-UNO",
+      "screenOrModule": "UnoScreen (route: uno)",
+      "file": "src/screens/UnoScreen.tsx",
+      "navigateCommand": "window.__DOMINO_GRAPHIFY__.navigate('uno')",
+      "focus": "UNO variants, players without an account, winner confirmation and ranking",
+      "steps": [
+        "In Home, open the UNO tab and tap Nueva Partida. Pick a variant, add 3 players with an account and one without, and start.",
+        "From another phone, check Home shows the game under Jugando ahora.",
+        "Mark a winner and finish: the other players get the full-screen window with the 1-minute countdown.",
+        "Check the winner received +20 and the ranking of that variant counted the game."
+      ]
+    },
+    {
       "id": "QA-13",
       "screenOrModule": "TournamentsScreen (route: tournaments)",
       "file": "src/screens/TournamentsScreen.tsx",

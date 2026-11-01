@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T22:04:55.699Z",
+    "generatedAt": "2026-11-01T22:57:19.388Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,15 +10,15 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 142,
-      "totalEdges": 225,
+      "totalNodes": 154,
+      "totalEdges": 260,
       "totalHyperedges": 7,
-      "totalScreens": 13,
-      "totalComponents": 11,
-      "totalServices": 12,
-      "totalDatabaseTables": 17,
-      "totalDatabaseRpcs": 30,
-      "totalQaSuites": 16
+      "totalScreens": 14,
+      "totalComponents": 14,
+      "totalServices": 14,
+      "totalDatabaseTables": 18,
+      "totalDatabaseRpcs": 34,
+      "totalQaSuites": 17
     }
   },
   "communities": [
@@ -123,8 +123,8 @@
         "Outdated Version Gate Screen"
       ],
       "exists": true,
-      "lines": 1563,
-      "bytes": 59592,
+      "lines": 1576,
+      "bytes": 60219,
       "exports": [
         "App"
       ],
@@ -140,6 +140,8 @@
         "./src/components/WagerConsent",
         "./src/components/ResultConfirmationPrompt",
         "./src/components/ClubNotices",
+        "./src/components/TableGameConfirmationPrompt",
+        "./src/screens/UnoScreen",
         "./src/lib/pushNotifications",
         "./src/screens/AuthScreen",
         "./src/screens/HomeScreen",
@@ -271,8 +273,8 @@
       "file": "src/lib/offlineSync.ts",
       "role": "Provides Stale-While-Revalidate profile & match caching, UUIDv4 generation, online/offline detection, and a persistent FIFO Outbox Queue (@domino_offline_queue_v1) that syncs offline matches to Supabase upon reconnection.",
       "exists": true,
-      "lines": 579,
-      "bytes": 18375,
+      "lines": 592,
+      "bytes": 19075,
       "exports": [
         "OfflineOperationType",
         "OfflineQueueItem",
@@ -426,8 +428,8 @@
       "file": "src/lib/graphifyBridge.ts",
       "role": "Exposes window.__DOMINO_GRAPHIFY__ with FULL_SYSTEM_GRAPH_MANIFEST, programmatic navigate(screen, opts), uiTestHelpers (toast/waitlist modal triggers), direct service hooks, and runDiagnostics().",
       "exists": true,
-      "lines": 354,
-      "bytes": 14895,
+      "lines": 355,
+      "bytes": 14996,
       "exports": [
         "GraphifyRuntimeState",
         "GraphifyNavigateOptions",
@@ -617,8 +619,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1443,
-      "bytes": 53134,
+      "lines": 1618,
+      "bytes": 59171,
       "exports": [
         "HomeScreen"
       ],
@@ -635,7 +637,10 @@
         "../lib/waitlistService",
         "../lib/bettingService",
         "../components/PendingConfirmations",
-        "../lib/pushNotifications"
+        "../lib/pushNotifications",
+        "../lib/tableGames",
+        "../components/LiveTableGames",
+        "../components/TableGameRanking"
       ],
       "supabaseTables": [
         "matches",
@@ -1586,7 +1591,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 54,
-      "bytes": 1897,
+      "bytes": 1922,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1657,8 +1662,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1651,
-      "bytes": 79568,
+      "lines": 1683,
+      "bytes": 82105,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2434,6 +2439,24 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261101_13_uno.sql",
+      "label": "20261101_13_uno.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261101_13_uno.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 593,
+      "bytes": 21186,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/ClubNotices.tsx",
       "label": "ClubNotices.tsx",
       "type": "component",
@@ -2489,6 +2512,35 @@
       "supabaseTables": [],
       "supabaseRpcs": [],
       "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/LiveTableGames.tsx",
+      "label": "LiveTableGames.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/LiveTableGames.tsx",
+      "role": "Home list of table games being played now. Hidden when there are none.",
+      "exists": true,
+      "lines": 74,
+      "bytes": 2631,
+      "exports": [
+        "LiveTableGames"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase",
+        "../lib/tableGames",
+        "../lib/tableGameService"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "live-table-games-${Date.now()}"
+      ],
       "storageKeys": [],
       "soundsPlayed": []
     },
@@ -2559,7 +2611,7 @@
       "role": "Full-screen window mounted in App.tsx: asks the rival team to confirm or reject a finished match, with the 1-minute countdown on normal matches.",
       "exists": true,
       "lines": 196,
-      "bytes": 7671,
+      "bytes": 7612,
       "exports": [
         "ResultConfirmationPrompt"
       ],
@@ -2584,6 +2636,67 @@
         "slap",
         "chaching"
       ]
+    },
+    {
+      "id": "src/components/TableGameConfirmationPrompt.tsx",
+      "label": "TableGameConfirmationPrompt.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/TableGameConfirmationPrompt.tsx",
+      "role": "Full-screen window mounted in App.tsx: asks the other players of a table game to confirm the winner, with the 1-minute countdown.",
+      "exists": true,
+      "lines": 128,
+      "bytes": 5052,
+      "exports": [
+        "TableGameConfirmationPrompt"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase",
+        "../lib/matchRivals",
+        "../lib/sounds",
+        "../lib/tableGames",
+        "../lib/tableGameService",
+        "./ResultConfirmationPrompt"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "table-game-confirmation-${Date.now()}"
+      ],
+      "storageKeys": [],
+      "soundsPlayed": [
+        "slap",
+        "chaching"
+      ]
+    },
+    {
+      "id": "src/components/TableGameRanking.tsx",
+      "label": "TableGameRanking.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/TableGameRanking.tsx",
+      "role": "Home ranking for one UNO variant, from the table_game_ranking RPC.",
+      "exists": true,
+      "lines": 73,
+      "bytes": 2701,
+      "exports": [
+        "TableGameRanking"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/tableGames",
+        "../lib/tableGameService"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
     },
     {
       "id": "src/components/WagerConsent.tsx",
@@ -2651,8 +2764,8 @@
       "file": "src/lib/matchRivals.ts",
       "role": "Pure rule mirroring _match_rivals: who answers for a closed match, used only to choose which buttons to show. Covered by tests/matchRivals.test.mjs.",
       "exists": true,
-      "lines": 81,
-      "bytes": 3375,
+      "lines": 84,
+      "bytes": 3506,
       "exports": [
         "RivalMatchRow",
         "matchRivalIds",
@@ -2662,6 +2775,7 @@
         "CONFIRMATION_COLUMNS",
         "matchTeamLabel",
         "secondsUntil",
+        "formatClock",
         "Notice",
         "matchStartedNotice",
         "betPlacedNotice",
@@ -2724,6 +2838,80 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/tableGameService.ts",
+      "label": "tableGameService.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/tableGameService.ts",
+      "role": "Reads and RPCs for table games. Starting and finishing go through the offline outbox when there is no connection.",
+      "exists": true,
+      "lines": 113,
+      "bytes": 3744,
+      "exports": [
+        "RankingRow",
+        "startTableGame",
+        "finishTableGame",
+        "cancelTableGame",
+        "answerTableGame",
+        "finishExpiredTableGame",
+        "fetchTableGame",
+        "fetchTableGames",
+        "fetchTableGameRanking"
+      ],
+      "imports": [
+        "./supabase",
+        "./offlineSync",
+        "./tableGames"
+      ],
+      "supabaseTables": [
+        "table_games"
+      ],
+      "supabaseRpcs": [
+        "cancel_table_game",
+        "answer_table_game",
+        "finish_expired_table_game",
+        "table_game_ranking"
+      ],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/tableGames.ts",
+      "label": "tableGames.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/tableGames.ts",
+      "role": "Pure rules for table games (UNO and its variants): labels, roster size, who manages and who answers. Mirrors the server. Covered by tests/tableGames.test.mjs.",
+      "exists": true,
+      "lines": 70,
+      "bytes": 2736,
+      "exports": [
+        "TableGameKind",
+        "TABLE_GAMES",
+        "MIN_PLAYERS",
+        "MAX_PLAYERS",
+        "TableGamePlayer",
+        "TableGame",
+        "RosterEntry",
+        "TABLE_GAME_COLUMNS",
+        "tableGameLabel",
+        "canStartRoster",
+        "playerNames",
+        "winnerName",
+        "canManageGame",
+        "mustAnswerGame",
+        "canAnswerGame",
+        "isConnectionError"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/webAlert.ts",
       "label": "webAlert.ts",
       "type": "service",
@@ -2744,6 +2932,45 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/screens/UnoScreen.tsx",
+      "label": "UnoScreen.tsx",
+      "type": "screen",
+      "community": "gameplay_live_screens",
+      "file": "src/screens/UnoScreen.tsx",
+      "role": "Route uno: choose the variant and players (with or without an account), play, mark the winner, wait for confirmation and rematch. Also the live view for the rest of the club and the list of recent games.",
+      "exists": true,
+      "lines": 552,
+      "bytes": 21878,
+      "exports": [
+        "UnoScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "@react-native-async-storage/async-storage",
+        "../theme",
+        "../types",
+        "../lib/supabase",
+        "../lib/offlineSync",
+        "../lib/sounds",
+        "../lib/matchRivals",
+        "../lib/tableGames",
+        "../lib/tableGameService"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "table-game-${gameId}-${Date.now()}"
+      ],
+      "storageKeys": [
+        "@domino_uno_game_v1"
+      ],
+      "soundsPlayed": [
+        "pop",
+        "slap"
+      ]
+    },
+    {
       "id": "db:points_ledger",
       "label": "points_ledger",
       "type": "db_table",
@@ -2756,6 +2983,13 @@
       "type": "db_table",
       "community": "database_sql",
       "role": "One row per player/match for the VIP wager consent (status, team, expires_at). Written only by RPCs."
+    },
+    {
+      "id": "db:table_games",
+      "label": "table_games",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "UNO games and their state. The app only reads it: every change goes through the table game RPCs."
     },
     {
       "id": "db:tournament_payouts",
@@ -2826,6 +3060,34 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "Removes the signed-in user's device from push notifications on logout."
+    },
+    {
+      "id": "rpc:cancel_table_game",
+      "label": "cancel_table_game",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Someone at the table annuls a game still being played. A sent result can no longer be annulled."
+    },
+    {
+      "id": "rpc:answer_table_game",
+      "label": "answer_table_game",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Another player confirms the winner, which pays the prize, or sends the game back to active."
+    },
+    {
+      "id": "rpc:finish_expired_table_game",
+      "label": "finish_expired_table_game",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Closes a table game whose countdown ended; the server checks the time."
+    },
+    {
+      "id": "rpc:table_game_ranking",
+      "label": "table_game_ranking",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Wins and games played per player for one UNO variant and period."
     },
     {
       "id": "rpc:call_waitlist_duo",
@@ -3333,6 +3595,18 @@
     },
     {
       "source": "App.tsx",
+      "target": "src/components/TableGameConfirmationPrompt.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/UnoScreen.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "App.tsx",
       "target": "src/lib/pushNotifications.ts",
       "relation": "imports",
       "derived": true
@@ -3550,6 +3824,24 @@
     {
       "source": "src/screens/HomeScreen.tsx",
       "target": "src/lib/pushNotifications.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/components/LiveTableGames.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/components/TableGameRanking.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -4004,6 +4296,30 @@
       "derived": true
     },
     {
+      "source": "src/components/LiveTableGames.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/LiveTableGames.tsx",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/LiveTableGames.tsx",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/LiveTableGames.tsx",
+      "target": "src/lib/tableGameService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/PendingConfirmations.tsx",
       "target": "db:matches",
       "relation": "uses_table",
@@ -4088,6 +4404,66 @@
       "derived": true
     },
     {
+      "source": "src/components/TableGameConfirmationPrompt.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameConfirmationPrompt.tsx",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameConfirmationPrompt.tsx",
+      "target": "src/lib/matchRivals.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameConfirmationPrompt.tsx",
+      "target": "src/lib/sounds.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameConfirmationPrompt.tsx",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameConfirmationPrompt.tsx",
+      "target": "src/lib/tableGameService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameConfirmationPrompt.tsx",
+      "target": "src/components/ResultConfirmationPrompt.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameRanking.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameRanking.tsx",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameRanking.tsx",
+      "target": "src/lib/tableGameService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/WagerConsent.tsx",
       "target": "db:wager_consents",
       "relation": "uses_table",
@@ -4138,6 +4514,102 @@
     {
       "source": "src/lib/pushNotifications.ts",
       "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "db:table_games",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:cancel_table_game",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:answer_table_game",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:finish_expired_table_game",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:table_game_ranking",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "src/lib/offlineSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/types.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/lib/offlineSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/lib/sounds.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/lib/matchRivals.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/lib/tableGameService.ts",
       "relation": "imports",
       "derived": true
     }

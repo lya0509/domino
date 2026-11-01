@@ -184,6 +184,7 @@ export const FULL_SYSTEM_GRAPH_MANIFEST = {
     { route: 'achievements', component: 'AchievementsScreen', file: 'src/screens/AchievementsScreen.tsx', requiresAuth: true },
     { route: 'leaderboard', component: 'LeaderboardScreen', file: 'src/screens/LeaderboardScreen.tsx', requiresAuth: true },
     { route: 'tournaments', component: 'TournamentsScreen', file: 'src/screens/TournamentsScreen.tsx', requiresAuth: true },
+    { route: 'uno', component: 'UnoScreen', file: 'src/screens/UnoScreen.tsx', requiresAuth: true },
     { route: 'global_chat', component: 'GlobalChatScreen', file: 'src/screens/GlobalChatScreen.tsx', requiresAuth: true },
   ],
   databaseTables: [

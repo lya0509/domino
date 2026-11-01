@@ -3,13 +3,11 @@ import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TouchableOpacity, Vi
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
 import { confirmMatchResult, disputeMatchResult, finishExpiredMatch } from '../lib/bettingService';
-import { CONFIRMATION_COLUMNS, isMatchRival, matchTeamLabel, secondsUntil } from '../lib/matchRivals';
+import { CONFIRMATION_COLUMNS, formatClock, isMatchRival, matchTeamLabel, secondsUntil } from '../lib/matchRivals';
 import { sounds } from '../lib/sounds';
 
 const RELOAD_MS = 20000;
 const FINISH_RETRY_MS = 3000;
-
-const formatClock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 
 /** Full-screen window over any screen: the rival must say whether the result is right. */
 export const ResultConfirmationPrompt: React.FC<{ currentUserProfileId: string | null }> = ({ currentUserProfileId }) => {
@@ -193,3 +191,5 @@ const styles = StyleSheet.create({
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   more: { color: theme.colors.textDim, fontSize: 13, marginTop: theme.spacing.m },
 });
+
+export { styles as confirmationStyles };

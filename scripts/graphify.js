@@ -922,6 +922,18 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/screens/UnoScreen.tsx':
+    'Route uno: choose the variant and players (with or without an account), play, mark the winner, wait for confirmation and rematch. Also the live view for the rest of the club and the list of recent games.',
+  'src/lib/tableGames.ts':
+    'Pure rules for table games (UNO and its variants): labels, roster size, who manages and who answers. Mirrors the server. Covered by tests/tableGames.test.mjs.',
+  'src/lib/tableGameService.ts':
+    'Reads and RPCs for table games. Starting and finishing go through the offline outbox when there is no connection.',
+  'src/components/TableGameConfirmationPrompt.tsx':
+    'Full-screen window mounted in App.tsx: asks the other players of a table game to confirm the winner, with the 1-minute countdown.',
+  'src/components/LiveTableGames.tsx':
+    'Home list of table games being played now. Hidden when there are none.',
+  'src/components/TableGameRanking.tsx':
+    'Home ranking for one UNO variant, from the table_game_ranking RPC.',
   'src/lib/inviteQr.ts':
     'Builds the invite QR on the device, with no outside service. Covered by tests/inviteQr.test.mjs, which scans the result back.',
   'src/components/InviteQr.tsx':
@@ -973,6 +985,12 @@ CODE_FILES.forEach((f) => {
 codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
 
 const RPC_ROLES = {
+  start_table_game: 'Starts a UNO game with a phone-made id, so the offline outbox can resend it without duplicating it.',
+  finish_table_game: 'Someone at the table marks the winner; it waits for another player, or closes at once if nobody else has an account.',
+  answer_table_game: 'Another player confirms the winner, which pays the prize, or sends the game back to active.',
+  finish_expired_table_game: 'Closes a table game whose countdown ended; the server checks the time.',
+  cancel_table_game: 'Someone at the table annuls a game still being played. A sent result can no longer be annulled.',
+  table_game_ranking: 'Wins and games played per player for one UNO variant and period.',
   save_push_subscription: 'Registers a device for push notifications under the signed-in user.',
   remove_push_subscription: 'Removes the signed-in user\'s device from push notifications on logout.',
   finish_expired_match: 'Closes a normal match whose countdown ended; the server checks the time and that nothing is at stake.',
@@ -990,6 +1008,7 @@ const RPC_ROLES = {
   expire_tournament_registration: 'After 5 minutes starts the tournament or cancels and refunds.',
 };
 const TABLE_ROLES = {
+  table_games: 'UNO games and their state. The app only reads it: every change goes through the table game RPCs.',
   points_ledger: 'Every balance change with its reason, written by a trigger on profiles.betting_points. Readable by its owner and admins.',
   tournament_payouts: 'Private bank data for tournament payouts, readable only by its owner and admins. Filled by a trigger from tournament_participants.payout_details.',
   wager_consents: 'One row per player/match for the VIP wager consent (status, team, expires_at). Written only by RPCs.',
@@ -1413,6 +1432,19 @@ const QA_MATRIX = {
       steps: [
         'Switch across 💰 Ricos, 🏆 Ganadores, and 🥾 Zapateros tabs.',
         'Tap any player row and verify navigation to their ProfileScreen.',
+      ],
+    },
+    {
+      id: 'QA-UNO',
+      screenOrModule: 'UnoScreen (route: uno)',
+      file: 'src/screens/UnoScreen.tsx',
+      navigateCommand: "window.__DOMINO_GRAPHIFY__.navigate('uno')",
+      focus: 'UNO variants, players without an account, winner confirmation and ranking',
+      steps: [
+        'In Home, open the UNO tab and tap Nueva Partida. Pick a variant, add 3 players with an account and one without, and start.',
+        'From another phone, check Home shows the game under Jugando ahora.',
+        'Mark a winner and finish: the other players get the full-screen window with the 1-minute countdown.',
+        'Check the winner received +20 and the ranking of that variant counted the game.',
       ],
     },
     {

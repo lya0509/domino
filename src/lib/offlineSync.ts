@@ -16,7 +16,9 @@ export type OfflineOperationType =
   | 'UPSERT_MATCH'
   | 'COMPLETE_MATCH'
   | 'WAITLIST_JOIN'
-  | 'WAITLIST_CANCEL';
+  | 'WAITLIST_CANCEL'
+  | 'START_TABLE_GAME'
+  | 'FINISH_TABLE_GAME';
 
 export interface OfflineQueueItem {
   id: string;
@@ -381,6 +383,11 @@ class OfflineSyncEngine {
     await this.persistQueue();
   }
 
+  async enqueueTableGame(type: 'START_TABLE_GAME' | 'FINISH_TABLE_GAME', payload: Record<string, unknown>) {
+    this.queue.push({ id: generateUUID(), type, payload, createdAt: Date.now(), retryCount: 0 });
+    await this.persistQueue();
+  }
+
   /**
    * Saves or updates an active match online first; if offline or network error occurs,
    * queues it in the persistent outbox so the game continues without interruption.
@@ -551,6 +558,12 @@ class OfflineSyncEngine {
             const { settleMatchBetsAndWagers } = require('./bettingService');
             await settleMatchBetsAndWagers(matchData, winnerTeam);
           }
+          syncedCount++;
+        } else if (item.type === 'START_TABLE_GAME' || item.type === 'FINISH_TABLE_GAME') {
+          // Both are safe to repeat: the server recognizes a start or a finish it already has
+          const fn = item.type === 'START_TABLE_GAME' ? 'start_table_game' : 'finish_table_game';
+          const { error } = await supabase.rpc(fn, item.payload);
+          if (error) throw error;
           syncedCount++;
         }
         confirmed.set(item.id, sentPayload);

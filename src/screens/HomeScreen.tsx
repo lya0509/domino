@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, RefreshControl, ActivityIndicator, Animated, Image, Alert, Platform, Modal, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
@@ -11,6 +11,9 @@ import { fetchActiveWaitlist, joinOrUpdateWaitlist, removeWaitlistEntry, callWai
 import { reconcileUserPendingBets } from '../lib/bettingService';
 import { PendingConfirmations } from '../components/PendingConfirmations';
 import { activatePushNotifications } from '../lib/pushNotifications';
+import { TABLE_GAMES, TableGameKind } from '../lib/tableGames';
+import { LiveTableGames } from '../components/LiveTableGames';
+import { TableGameRanking } from '../components/TableGameRanking';
 
 interface Props {
   onNewMatch: () => void;
@@ -25,10 +28,28 @@ interface Props {
   onRejoinMatch?: (matchData: any) => void;
   onOpenTournaments?: () => void;
   onSeatWaitlistDuo?: (waitlistEntry: any) => void;
+  onOpenUno: (gameId?: string) => void;
 }
 
 type RankingPeriod = 'today' | 'week' | 'all';
 type RankingTab = 'individual' | 'duos';
+type GameTab = 'domino' | 'uno' | 'poker';
+
+const GAME_TABS: { key: GameTab; label: string; note?: string }[] = [
+  { key: 'domino', label: '🎲 Dominó' },
+  { key: 'uno', label: '🃏 UNO' },
+  { key: 'poker', label: '♠ Póker', note: 'En proceso' },
+];
+
+// Home unmounts when another screen opens: coming back from a game must land on its tab
+let lastGameTab: GameTab = 'domino';
+
+const periodStart = (period: RankingPeriod): string | null => {
+  const now = new Date();
+  if (period === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  if (period === 'week') return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  return null;
+};
 
 const REFRESH_MS = 15000;
 
@@ -45,10 +66,13 @@ export const HomeScreen: React.FC<Props> = ({
   onRejoinMatch,
   onOpenTournaments,
   onSeatWaitlistDuo,
+  onOpenUno,
 }) => {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [allProfiles, setAllProfiles] = useState<Profile[]>(() => offlineSync.getCachedProfilesSync());
   const [rankings, setRankings] = useState<PlayerStats[]>([]);
+  const [gameTab, setGameTab] = useState<GameTab>(lastGameTab);
+  const [unoVariant, setUnoVariant] = useState<TableGameKind>('uno');
   const [duoRankings, setDuoRankings] = useState<DuoStats[]>([]);
   const [period, setPeriod] = useState<RankingPeriod>('today');
   const [tab, setTab] = useState<RankingTab>('individual');
@@ -202,18 +226,12 @@ export const HomeScreen: React.FC<Props> = ({
     []
   );
 
+  // "Week" moves with the clock: keep one value per period or the ranking reloads on every render
+  const rankingFrom = useMemo(() => periodStart(period), [period]);
+
   const fetchData = useCallback(async () => {
     try {
-      // Build date filter
-      let fromDate: string | null = null;
-      const now = new Date();
-      if (period === 'today') {
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        fromDate = today.toISOString();
-      } else if (period === 'week') {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        fromDate = weekAgo.toISOString();
-      }
+      const fromDate = periodStart(period);
 
       // 0. Stale-while-revalidate: paint rankings instantly from cache, network refresh below
       const cachedProfiles = offlineSync.getCachedProfilesSync();
@@ -309,7 +327,7 @@ export const HomeScreen: React.FC<Props> = ({
           if (!lastBonus) {
             canClaim = true;
           } else {
-            const adjustedNow = new Date(now.getTime() - 7 * 60 * 60 * 1000);
+            const adjustedNow = new Date(Date.now() - 7 * 60 * 60 * 1000);
             const adjustedLast = new Date(lastBonus.getTime() - 7 * 60 * 60 * 1000);
             canClaim =
               adjustedNow.getDate() !== adjustedLast.getDate() ||
@@ -516,6 +534,11 @@ export const HomeScreen: React.FC<Props> = ({
       unsubWaitlistBroadcast();
     };
   }, [fetchWaitlist, fetchData]);
+
+  const selectGameTab = (tab: GameTab) => {
+    lastGameTab = tab;
+    setGameTab(tab);
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -755,8 +778,26 @@ export const HomeScreen: React.FC<Props> = ({
           </View>
         )}
 
+        <LiveTableGames currentUserProfileId={currentUserProfileId} onOpen={onOpenUno} />
+
+        {/* One tab per game */}
+        <View style={styles.gameTabs} accessibilityRole="tablist">
+          {GAME_TABS.map(({ key, label, note }) => (
+            <TouchableOpacity
+              key={key}
+              style={[styles.gameTab, gameTab === key && styles.gameTabActive]}
+              onPress={() => selectGameTab(key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: gameTab === key }}
+            >
+              <Text style={[styles.gameTabText, gameTab === key && styles.gameTabTextActive]}>{label}</Text>
+              {note && <Text style={[styles.gameTabNote, gameTab === key && styles.gameTabTextActive]}>{note}</Text>}
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* The queue only matters with a table in play; anyone already waiting stays visible */}
-        {(liveMatches.length > 0 || waitlist.length > 0) && (
+        {gameTab === 'domino' && (liveMatches.length > 0 || waitlist.length > 0) && (
           <View style={styles.waitlistContainer}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.m }}>
               <Text style={[styles.waitlistTitle, { marginBottom: 0 }]}>📋 Lista de Espera</Text>
@@ -842,89 +883,141 @@ export const HomeScreen: React.FC<Props> = ({
         )}
 
         {/* New Match Button */}
-        <TouchableOpacity style={styles.newMatchBtn} onPress={onNewMatch}>
-          <Text style={styles.newMatchIcon}>🎲</Text>
-          <Text style={styles.newMatchText}>Nueva Partida</Text>
-        </TouchableOpacity>
+        {gameTab === 'domino' && (
+          <TouchableOpacity style={styles.newMatchBtn} onPress={onNewMatch}>
+            <Text style={styles.newMatchIcon}>🎲</Text>
+            <Text style={styles.newMatchText}>Nueva Partida</Text>
+          </TouchableOpacity>
+        )}
+
+        {gameTab === 'uno' && (
+          currentUserProfileId ? (
+            <TouchableOpacity style={[styles.newMatchBtn, styles.unoMatchBtn]} onPress={() => onOpenUno()} accessibilityRole="button">
+              <Text style={styles.newMatchIcon}>🃏</Text>
+              <Text style={styles.newMatchText}>Nueva Partida</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.gameNotice}>Inicia sesión para jugar UNO.</Text>
+          )
+        )}
+
+        {gameTab === 'poker' && (
+          <View style={styles.pokerCard}>
+            <Text style={styles.pokerIcon}>♠</Text>
+            <Text style={styles.pokerTitle}>En proceso</Text>
+            <Text style={styles.pokerText}>Muy pronto podrán anotar aquí sus partidas de póker.</Text>
+          </View>
+        )}
 
         {/* Rankings Section */}
-        <View style={styles.rankingSection}>
-          <Text style={styles.rankingTitle}>🏆 Rankings</Text>
+        {gameTab !== 'poker' && (
+          <View style={styles.rankingSection}>
+            <Text style={styles.rankingTitle}>🏆 Rankings</Text>
 
-          {/* Period Selector */}
-          <View style={styles.periodSelector}>
-            {([['today', 'Hoy'], ['week', 'Semana'], ['all', 'Historial']] as const).map(([key, label]) => (
+            {/* Each UNO variant has its own ranking */}
+            {gameTab === 'uno' && (
+              <View style={styles.gameSelector}>
+                {TABLE_GAMES.map(({ key, label }) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.gameChip, unoVariant === key && styles.gameChipActive]}
+                    onPress={() => setUnoVariant(key)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: unoVariant === key }}
+                  >
+                    <Text style={[styles.periodText, unoVariant === key && styles.periodTextActive]}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Period Selector */}
+            <View style={styles.periodSelector}>
+              {([['today', 'Hoy'], ['week', 'Semana'], ['all', 'Historial']] as const).map(([key, label]) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.periodBtn, period === key && styles.periodActive]}
+                  onPress={() => setPeriod(key)}
+                >
+                  <Text style={[styles.periodText, period === key && styles.periodTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {gameTab === 'uno' && (
+              <TableGameRanking
+                game={unoVariant}
+                from={rankingFrom}
+                currentUserProfileId={currentUserProfileId}
+                medal={getMedal}
+                onOpenProfile={onOpenProfile}
+              />
+            )}
+
+            {/* Tab Selector */}
+            {gameTab === 'domino' && (
+            <View style={styles.tabSelector}>
               <TouchableOpacity
-                key={key}
-                style={[styles.periodBtn, period === key && styles.periodActive]}
-                onPress={() => setPeriod(key)}
+                style={[styles.tabBtn, tab === 'individual' && styles.tabActive]}
+                onPress={() => setTab('individual')}
               >
-                <Text style={[styles.periodText, period === key && styles.periodTextActive]}>{label}</Text>
+                <Text style={[styles.tabText, tab === 'individual' && styles.tabTextActive]}>👤 Individual</Text>
               </TouchableOpacity>
-            ))}
+              <TouchableOpacity
+                style={[styles.tabBtn, tab === 'duos' && styles.tabActive]}
+                onPress={() => setTab('duos')}
+              >
+                <Text style={[styles.tabText, tab === 'duos' && styles.tabTextActive]}>👥 Duos</Text>
+              </TouchableOpacity>
+            </View>
+            )}
+
+            {/* Individual Rankings */}
+            {gameTab === 'domino' && tab === 'individual' && (
+              <>
+                {rankings.length === 0 ? (
+                  <Text style={styles.emptyText}>No hay partidas en este período.</Text>
+                ) : (
+                  rankings.map((stat, i) => (
+                    <TouchableOpacity key={stat.id} style={[styles.rankItem, stat.id === currentUser?.id && styles.rankItemMe]} onPress={() => onOpenProfile(stat.id)}>
+                      <Text style={styles.rankMedal}>{getMedal(i)}</Text>
+                      <View style={styles.rankInfo}>
+                        <Text style={styles.rankName}>{stat.display_name} {stat.medals?.join('')}</Text>
+                        <Text style={styles.rankDetail}>
+                          {stat.wins}W - {stat.losses}L
+                          {stat.zapatos_given > 0 ? ` · 👟${stat.zapatos_given}` : ''}
+                        </Text>
+                      </View>
+                      <Text style={styles.rankWins}>{stat.wins}</Text>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </>
+            )}
+
+            {/* Duo Rankings */}
+            {gameTab === 'domino' && tab === 'duos' && (
+              <>
+                {duoRankings.length === 0 ? (
+                  <Text style={styles.emptyText}>No hay duos registrados en este período.</Text>
+                ) : (
+                  duoRankings.map((duo, i) => (
+                    <TouchableOpacity key={`${duo.player1.id}_${duo.player2.id}`} style={styles.rankItem} onPress={() => onOpenProfile(duo.player1.id)}>
+                      <Text style={styles.rankMedal}>{getMedal(i)}</Text>
+                      <View style={styles.rankInfo}>
+                        <Text style={styles.rankName}>{duo.player1.initials} & {duo.player2.initials}</Text>
+                        <Text style={styles.rankDetail}>
+                          {duo.wins}W de {duo.totalMatches} partidas juntos
+                        </Text>
+                      </View>
+                      <Text style={styles.rankWins}>{duo.wins}</Text>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </>
+            )}
           </View>
-
-          {/* Tab Selector */}
-          <View style={styles.tabSelector}>
-            <TouchableOpacity
-              style={[styles.tabBtn, tab === 'individual' && styles.tabActive]}
-              onPress={() => setTab('individual')}
-            >
-              <Text style={[styles.tabText, tab === 'individual' && styles.tabTextActive]}>👤 Individual</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tabBtn, tab === 'duos' && styles.tabActive]}
-              onPress={() => setTab('duos')}
-            >
-              <Text style={[styles.tabText, tab === 'duos' && styles.tabTextActive]}>👥 Duos</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Individual Rankings */}
-          {tab === 'individual' && (
-            <>
-              {rankings.length === 0 ? (
-                <Text style={styles.emptyText}>No hay partidas en este período.</Text>
-              ) : (
-                rankings.map((stat, i) => (
-                  <TouchableOpacity key={stat.id} style={[styles.rankItem, stat.id === currentUser?.id && styles.rankItemMe]} onPress={() => onOpenProfile(stat.id)}>
-                    <Text style={styles.rankMedal}>{getMedal(i)}</Text>
-                    <View style={styles.rankInfo}>
-                      <Text style={styles.rankName}>{stat.display_name} {stat.medals?.join('')}</Text>
-                      <Text style={styles.rankDetail}>
-                        {stat.wins}W - {stat.losses}L
-                        {stat.zapatos_given > 0 ? ` · 👟${stat.zapatos_given}` : ''}
-                      </Text>
-                    </View>
-                    <Text style={styles.rankWins}>{stat.wins}</Text>
-                  </TouchableOpacity>
-                ))
-              )}
-            </>
-          )}
-
-          {/* Duo Rankings */}
-          {tab === 'duos' && (
-            <>
-              {duoRankings.length === 0 ? (
-                <Text style={styles.emptyText}>No hay duos registrados en este período.</Text>
-              ) : (
-                duoRankings.map((duo, i) => (
-                  <TouchableOpacity key={`${duo.player1.id}_${duo.player2.id}`} style={styles.rankItem} onPress={() => onOpenProfile(duo.player1.id)}>
-                    <Text style={styles.rankMedal}>{getMedal(i)}</Text>
-                    <View style={styles.rankInfo}>
-                      <Text style={styles.rankName}>{duo.player1.initials} & {duo.player2.initials}</Text>
-                      <Text style={styles.rankDetail}>
-                        {duo.wins}W de {duo.totalMatches} partidas juntos
-                      </Text>
-                    </View>
-                    <Text style={styles.rankWins}>{duo.wins}</Text>
-                  </TouchableOpacity>
-                ))
-              )}
-            </>
-          )}
-        </View>
+        )}
       </ScrollView>
 
       {/* Modal para Pedir Mesa / Editar Pareja */}
@@ -1187,6 +1280,88 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.85,
     shadowRadius: 18,
     elevation: 10,
+  },
+  unoMatchBtn: {
+    backgroundColor: theme.colors.secondary,
+    borderColor: '#a78bfa',
+    shadowColor: theme.colors.secondary,
+  },
+  gameTabs: {
+    flexDirection: 'row',
+    gap: theme.spacing.xs,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: theme.borderRadius.m,
+    padding: theme.spacing.xs,
+    marginBottom: theme.spacing.m,
+  },
+  gameTab: {
+    flex: 1,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.borderRadius.s,
+    paddingHorizontal: theme.spacing.xs,
+  },
+  gameTabActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  gameTabText: {
+    color: theme.colors.textDim,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  gameTabTextActive: {
+    color: '#fff',
+  },
+  gameTabNote: {
+    color: theme.colors.accent,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 1,
+  },
+  gameNotice: {
+    color: theme.colors.textDim,
+    textAlign: 'center',
+    paddingVertical: theme.spacing.m,
+    marginBottom: theme.spacing.m,
+  },
+  pokerCard: {
+    alignItems: 'center',
+    backgroundColor: theme.colors.card,
+    borderColor: theme.colors.cardBorder,
+    borderWidth: 1,
+    borderRadius: theme.borderRadius.l,
+    padding: theme.spacing.xl,
+    marginBottom: theme.spacing.xl,
+  },
+  pokerIcon: { color: theme.colors.text, fontSize: 44 },
+  pokerTitle: {
+    color: theme.colors.accent,
+    fontSize: 24,
+    fontWeight: '900',
+    marginTop: theme.spacing.s,
+  },
+  pokerText: {
+    color: theme.colors.textDim,
+    fontSize: 15,
+    textAlign: 'center',
+    marginTop: theme.spacing.xs,
+  },
+  gameSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.s,
+  },
+  gameChip: {
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.m,
+    borderRadius: theme.borderRadius.s,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  gameChipActive: {
+    backgroundColor: theme.colors.primary,
   },
   newMatchIcon: {
     fontSize: 24,

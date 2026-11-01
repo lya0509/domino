@@ -28,6 +28,7 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 | `20261101_10_notificaciones_push.sql` | Ejecutada en producción |
 | `20261101_11_direccion_send_push.sql` | Ejecutada en producción |
 | `20261101_12_aviso_turno_antes_del_limite.sql` | Ejecutada en producción |
+| `20261101_13_uno.sql` | Ejecutada en producción |
 
 ## Cómo se prueba
 
@@ -44,6 +45,7 @@ Corren con `pg_cron`, en hora UTC (Venezuela va 4 horas atrás):
 - `limpiar_partidas_zombies`, a las 03:00: partidas abiertas por más de 6 horas.
 - `confirmar-partidas-normales`, cada minuto.
 - `enviar-notificaciones`, cada minuto: reenvía lo que quedó en cola.
+- `confirmar-partidas-de-mesa`, cada minuto: cierra resultados de UNO sin respuesta y anula partidas abiertas por más de 6 horas.
 - `vencer-rachas`, a las 11:05.
 - `vaciar-cola-diaria`, a las 11:10.
 - `cleanup_global_chat`, a las 00:00: borra el chat global con más de 2 días.

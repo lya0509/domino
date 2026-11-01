@@ -9,6 +9,8 @@ import { GameScreen } from './src/screens/GameScreen';
 import { WagerConsentPrompt } from './src/components/WagerConsent';
 import { ResultConfirmationPrompt } from './src/components/ResultConfirmationPrompt';
 import { ClubNotices } from './src/components/ClubNotices';
+import { TableGameConfirmationPrompt } from './src/components/TableGameConfirmationPrompt';
+import { UnoScreen } from './src/screens/UnoScreen';
 import { removePushSubscription } from './src/lib/pushNotifications';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -39,7 +41,7 @@ const theme = {
   }
 };
 
-type ScreenState = 'splash' | 'ad' | 'auth' | 'home' | 'setup' | 'game' | 'live' | 'profile' | 'store' | 'achievements' | 'leaderboard' | 'global_chat' | 'tournaments';
+type ScreenState = 'splash' | 'ad' | 'auth' | 'home' | 'setup' | 'game' | 'live' | 'profile' | 'store' | 'achievements' | 'leaderboard' | 'global_chat' | 'tournaments' | 'uno';
 
 const checkIsPasswordRecovery = (): boolean => {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -299,7 +301,7 @@ export default function App() {
       navigate('tournaments');
       return;
     }
-    if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat', 'tournaments'].includes(currentScreen)) {
+    if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat', 'tournaments', 'uno'].includes(currentScreen)) {
       if (currentScreen === 'profile' && currentUserProfileId) {
         fetchCurrentUser(currentUserProfileId);
       }
@@ -676,7 +678,7 @@ export default function App() {
   // 2. Manejo de botón físico Atrás en Android nativo
   useEffect(() => {
     const onBackPress = () => {
-      if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat', 'tournaments'].includes(currentScreen)) {
+      if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat', 'tournaments', 'uno'].includes(currentScreen)) {
         navigateBack();
         return true;
       }
@@ -1216,6 +1218,7 @@ export default function App() {
           onRejoinMatch={handleRejoinMatch}
           onOpenTournaments={() => navigate('tournaments')}
           onSeatWaitlistDuo={handleSeatWaitlistDuo}
+          onOpenUno={(gameId) => navigate('uno', { liveMatchId: gameId ?? null })}
         />
       )}
 
@@ -1297,6 +1300,15 @@ export default function App() {
         />
       )}
 
+      {currentScreen === 'uno' && (
+        <UnoScreen
+          currentUserProfileId={currentUserProfileId}
+          isAdmin={currentUserProfile?.is_admin || false}
+          initialGameId={liveMatchId}
+          onBack={navigateBack}
+        />
+      )}
+
       {currentScreen === 'tournaments' && (
         <TournamentsScreen
           onBack={navigateBack}
@@ -1364,6 +1376,7 @@ export default function App() {
       {/* VIP wager proposal for this player (accept / decline within 60s) */}
       {isAuthenticated && !isGuestMode && <WagerConsentPrompt currentUserProfileId={currentUserProfileId} />}
       {isAuthenticated && !isGuestMode && <ResultConfirmationPrompt currentUserProfileId={currentUserProfileId} />}
+      {isAuthenticated && !isGuestMode && <TableGameConfirmationPrompt currentUserProfileId={currentUserProfileId} />}
       {isAuthenticated && !isGuestMode && <ClubNotices currentUserProfileId={currentUserProfileId} showToast={showToast} />}
 
       {/* Urgent Waitlist Call Modal */}

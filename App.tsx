@@ -453,7 +453,7 @@ export default function App() {
             if (Notification.permission === 'granted') {
               new Notification('Nuevo mensaje en Dominó', {
                 body: `${profile.display_name}: ${payload.new.message}`,
-                icon: '/assets/favicon.png'
+                icon: '/favicon.ico'
               });
             } else if (Notification.permission !== 'denied') {
               Notification.requestPermission();
@@ -645,6 +645,15 @@ export default function App() {
 
     const handlePopState = (event: PopStateEvent) => {
       const state = event.state;
+      // Without a session only login and the guest scoresheet exist; going back after logging out
+      // must not land on a screen that renders nothing
+      if (!sessionRef.current && !isPasswordRecoveryRef.current && !['auth', 'setup', 'game'].includes(state?.screen)) {
+        window.history.replaceState({ screen: 'auth' }, '', '#auth');
+        setCurrentScreen('auth');
+        setViewProfileId(null);
+        setLiveMatchId(null);
+        return;
+      }
       if (state && state.screen) {
         // La publicidad, splash y base NUNCA deben abrirse al retroceder,
         // y con sesión iniciada tampoco el login
@@ -724,6 +733,7 @@ export default function App() {
       status: 'active',
       is_wager_match: false,
       wager_amount: 0,
+      created_by: currentUserProfileId || undefined,
     };
 
     if (!matchConfig.isGuestMode && isAuthenticated) {
@@ -788,6 +798,7 @@ export default function App() {
       tournament_id: matchData.tournament_id,
       is_wager_match: matchData.is_wager_match,
       wager_amount: matchData.wager_amount,
+      created_by: matchData.created_by,
     };
     setMatch(rejoinedMatch);
     navigate('game');
@@ -800,21 +811,9 @@ export default function App() {
       else if (r.scorerId === 'team2') totals.team2 += r.points;
     });
 
-    let newStatus = updatedMatch.status;
-    let winnerTeam: number | null = null;
-    let isZapato = false;
-
-    if (totals.team1 >= updatedMatch.limitScore) {
-      newStatus = 'completed';
-      winnerTeam = 1;
-      isZapato = totals.team2 === 0;
-    } else if (totals.team2 >= updatedMatch.limitScore) {
-      newStatus = 'completed';
-      winnerTeam = 2;
-      isZapato = totals.team1 === 0;
-    } else {
-      newStatus = 'active';
-    }
+    // Reaching the limit doesn't close the match: that happens in handleEndMatch ("Terminar Partida"),
+    // so a typo on the last hand can still be undone before the server pays anything
+    const newStatus = 'active' as const;
 
     const matchToSave: Match = { ...updatedMatch, status: newStatus };
     setMatch(matchToSave);
@@ -832,8 +831,6 @@ export default function App() {
       realtimeManager.broadcastMatchUpdate(matchToSave.id, {
         id: matchToSave.id,
         status: newStatus,
-        winner_team: winnerTeam,
-        is_zapato: isZapato,
         rounds: matchToSave.rounds,
         players_json: matchToSave.players,
         substitutions: matchToSave.substitutions || [],
@@ -846,8 +843,8 @@ export default function App() {
         status: newStatus,
         game_mode: matchToSave.gameMode,
         limit_score: matchToSave.limitScore,
-        winner_team: winnerTeam,
-        is_zapato: isZapato,
+        winner_team: null,
+        is_zapato: false,
         rounds: matchToSave.rounds,
         players_json: matchToSave.players,
         substitutions: matchToSave.substitutions || [],
@@ -862,19 +859,6 @@ export default function App() {
         tournament_id: matchToSave.tournament_id || null,
       });
 
-      // If match reached limitScore automatically, settle bets & wagers immediately so winners get paid even if host closes tab
-      if (newStatus === 'completed' && winnerTeam !== null && offlineSync.getIsOnline()) {
-        settleMatchBetsAndWagers({
-          matchId: matchToSave.id,
-          winnerTeam,
-          isWagerMatch: matchToSave.is_wager_match,
-          wagerAmount: matchToSave.wager_amount,
-          team1Player1: getValidId(team1Players[0]?.profileId),
-          team1Player2: getValidId(team1Players[1]?.profileId),
-          team2Player1: getValidId(team2Players[0]?.profileId),
-          team2Player2: getValidId(team2Players[1]?.profileId),
-        }).catch(err => console.warn('[App] Background bet settlement warning:', err));
-      }
     }
   };
 

@@ -919,6 +919,8 @@ const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.t
 const FILE_ROLES = {
   'src/components/WagerConsent.tsx':
     'WagerConsentPrompt (60s accept/decline shown on each of the 4 phones, mounted globally in App.tsx) and WagerStatusBanner (live proposal state in GameScreen). Reads wager_consents via realtime; writes only through respond_wager.',
+  'src/lib/outbox.ts':
+    'Pure rule of the offline outbox: an item leaves the queue only when the server confirmed that exact payload. Covered by tests/outbox.test.mjs.',
   'src/lib/webAlert.ts':
     'Maps Alert.alert to window.alert/confirm on web (react-native-web ships it empty). Imported first in index.ts; with 3+ buttons only the main and cancel actions survive.',
 };

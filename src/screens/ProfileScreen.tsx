@@ -417,6 +417,18 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           onPress: async () => {
             setLoading(true);
             try {
+              // The photo is public storage, not a table: remove it while the session is still valid
+              if (profileId) {
+                try {
+                  const { data: files } = await supabase.storage.from('avatars').list(profileId);
+                  if (files && files.length > 0) {
+                    await supabase.storage.from('avatars').remove(files.map(f => `${profileId}/${f.name}`));
+                  }
+                } catch (avatarErr) {
+                  console.warn('Could not delete avatar:', avatarErr);
+                }
+              }
+
               // 1. The server deletes the data (or anonymizes it when match history needs the profile)
               //    and closes the login; only report success when it confirms
               const { data, error } = await supabase.rpc('delete_user_account');

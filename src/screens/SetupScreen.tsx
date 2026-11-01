@@ -326,8 +326,8 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
           {/* Wager Settings (Only for Authenticated Mode) */}
           {!isGuestMode && (
             <View style={styles.section}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.m }}>
-                <View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.m, gap: 8 }}>
+                <View style={{ flex: 1 }}>
                   <Text style={[styles.sectionTitle, { marginBottom: 2, color: isWagerMatch ? theme.colors.accent : theme.colors.text }]}>
                     Duelo VIP (Apuestas)
                   </Text>

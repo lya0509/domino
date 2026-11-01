@@ -472,7 +472,7 @@ export const HomeScreen: React.FC<Props> = ({
   };
 
   const handleRemoveWaitlist = async (id: string) => {
-    const ok = await removeWaitlistEntry(id);
+    const { ok } = await removeWaitlistEntry(id);
     if (ok) {
       setShowWaitlistModal(false);
       await fetchWaitlist();
@@ -521,7 +521,7 @@ export const HomeScreen: React.FC<Props> = ({
       if (!offlineSync.getIsOnline()) return;
       const { data } = await supabase
         .from('matches')
-        .select('id, status, team1_player1, team1_player2, team2_player1, team2_player2, players_json, team1_total, team2_total, limit_score, game_mode, rounds, substitutions, wager_amount, is_wager_match, tournament_id')
+        .select('id, status, team1_player1, team1_player2, team2_player1, team2_player2, players_json, team1_total, team2_total, limit_score, game_mode, rounds, substitutions, wager_amount, is_wager_match, tournament_id, created_by')
         .eq('status', 'active');
       setLiveMatches(data || []);
     };

@@ -42,7 +42,8 @@
     "build": "expo export --platform web && node scripts/postbuild.js",
     "export": "expo export --platform web && node scripts/postbuild.js",
     "graphify": "node scripts/graphify.js",
-    "typecheck": "node --stack-size=30000 node_modules/typescript/bin/tsc --noEmit"
+    "typecheck": "node --stack-size=30000 node_modules/typescript/bin/tsc --noEmit",
+    "test": "node --test tests/"
   },
   "private": true
 }

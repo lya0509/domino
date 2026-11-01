@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T00:11:58.071Z",
+    "generatedAt": "2026-11-01T01:13:00.503Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [
@@ -17,11 +17,11 @@
     "summary": {
       "totalCommunities": 8,
       "totalNodes": 109,
-      "totalEdges": 188,
+      "totalEdges": 189,
       "totalHyperedges": 7,
       "totalScreens": 13,
       "totalComponents": 6,
-      "totalServices": 8,
+      "totalServices": 9,
       "totalDatabaseTables": 15,
       "totalDatabaseRpcs": 22,
       "totalQaSuites": 16
@@ -129,8 +129,8 @@
         "Outdated Version Gate Screen"
       ],
       "exists": true,
-      "lines": 1583,
-      "bytes": 59300,
+      "lines": 1567,
+      "bytes": 58801,
       "exports": [
         "App"
       ],
@@ -275,8 +275,8 @@
       "file": "src/lib/offlineSync.ts",
       "role": "Provides Stale-While-Revalidate profile & match caching, UUIDv4 generation, online/offline detection, and a persistent FIFO Outbox Queue (@domino_offline_queue_v1) that syncs offline matches to Supabase upon reconnection.",
       "exists": true,
-      "lines": 577,
-      "bytes": 18075,
+      "lines": 584,
+      "bytes": 18546,
       "exports": [
         "OfflineOperationType",
         "OfflineQueueItem",
@@ -289,7 +289,8 @@
         "@react-native-async-storage/async-storage",
         "react-native",
         "./supabase",
-        "../types"
+        "../types",
+        "./outbox"
       ],
       "supabaseTables": [
         "profiles",
@@ -616,7 +617,7 @@
       ],
       "exists": true,
       "lines": 1491,
-      "bytes": 54768,
+      "bytes": 54784,
       "exports": [
         "HomeScreen"
       ],
@@ -674,7 +675,7 @@
       ],
       "exists": true,
       "lines": 711,
-      "bytes": 30386,
+      "bytes": 30414,
       "exports": [
         "SetupScreen"
       ],
@@ -716,8 +717,8 @@
         "🚨 Llamar Siguiente Dúo Waitlist Trigger Button"
       ],
       "exists": true,
-      "lines": 895,
-      "bytes": 41344,
+      "lines": 921,
+      "bytes": 42449,
       "exports": [
         "GameScreen"
       ],
@@ -826,8 +827,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1482,
-      "bytes": 61892,
+      "lines": 1494,
+      "bytes": 62469,
       "exports": [
         "ProfileScreen"
       ],
@@ -1504,7 +1505,7 @@
       "role": "Caches app shell & static bundles (Cache-First + Stale-While-Revalidate) so the web app boots and plays matches 100% offline.",
       "exists": true,
       "lines": 71,
-      "bytes": 2200,
+      "bytes": 2179,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1575,8 +1576,8 @@
       "file": "package.json",
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
-      "lines": 49,
-      "bytes": 1509,
+      "lines": 50,
+      "bytes": 1543,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1647,8 +1648,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1622,
-      "bytes": 76536,
+      "lines": 1624,
+      "bytes": 76709,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1740,25 +1741,6 @@
       "exists": true,
       "lines": 53,
       "bytes": 1985,
-      "exports": [],
-      "imports": [],
-      "supabaseTables": [],
-      "supabaseRpcs": [],
-      "realtimeChannels": [],
-      "storageKeys": [],
-      "soundsPlayed": []
-    },
-    {
-      "id": "fix_admin_pin_rpc.sql",
-      "label": "fix_admin_pin_rpc.sql (SQL Script)",
-      "type": "sql_script",
-      "community": "database_sql",
-      "file": "fix_admin_pin_rpc.sql",
-      "role": "Auto-discovered SQL script (run manually in the Supabase SQL Editor).",
-      "sqlStatus": "OBSOLETE: never run (replaced by fix_admin_pin.sql)",
-      "exists": true,
-      "lines": 77,
-      "bytes": 2573,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2196,6 +2178,27 @@
         "wager_consent_me_${Date.now()}",
         "wager_status_${matchId}_${Date.now()}"
       ],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/outbox.ts",
+      "label": "outbox.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/outbox.ts",
+      "role": "Pure rule of the offline outbox: an item leaves the queue only when the server confirmed that exact payload. Covered by tests/outbox.test.mjs.",
+      "exists": true,
+      "lines": 14,
+      "bytes": 469,
+      "exports": [
+        "OutboxItem",
+        "removeConfirmedItems"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
     },
@@ -2758,6 +2761,12 @@
     {
       "source": "src/lib/offlineSync.ts",
       "target": "src/types.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/offlineSync.ts",
+      "target": "src/lib/outbox.ts",
       "relation": "imports",
       "derived": true
     },

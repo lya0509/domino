@@ -1,5 +1,5 @@
-const CACHE_NAME = 'pesimistas-domino-pwa-v2';
-const APP_SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
+const CACHE_NAME = 'pesimistas-domino-pwa-v3';
+const APP_SHELL = ['/', '/index.html', '/manifest.json', '/icon.png'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

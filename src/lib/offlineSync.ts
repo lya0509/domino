@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { Match, Profile } from '../types';
+import { removeConfirmedItems } from './outbox';
 
 const STORAGE_KEYS = {
   OFFLINE_QUEUE: '@domino_offline_queue_v1',
@@ -476,6 +477,17 @@ class OfflineSyncEngine {
     }
   }
 
+  // An UPDATE blocked by permissions returns no error and no rows, which is not a saved match
+  private async updateMatchOrThrow(payload: any): Promise<void> {
+    const { data, error } = await supabase
+      .from('matches')
+      .update(payload)
+      .eq('id', payload.id)
+      .select('id');
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error('El servidor no guardó la partida.');
+  }
+
   /**
    * Flushes all queued offline operations to Supabase in FIFO order.
    */
@@ -491,9 +503,12 @@ class OfflineSyncEngine {
 
     this.updateStatus({ isSyncing: true, lastError: null });
     let syncedCount = 0;
-    const remainingItems: OfflineQueueItem[] = [];
+    let failedCount = 0;
+    // Payload each item had when it was sent: edits made during the flush must not be lost
+    const confirmed = new Map<string, unknown>();
 
-    for (const item of this.queue) {
+    for (const item of [...this.queue]) {
+      const sentPayload = item.payload;
       try {
         if (item.type === 'UPSERT_MATCH') {
           const payload = item.payload;
@@ -505,11 +520,7 @@ class OfflineSyncEngine {
 
           if (existing) {
             if (existing.status !== 'completed') {
-              const { error } = await supabase
-                .from('matches')
-                .update(payload)
-                .eq('id', payload.id);
-              if (error) throw error;
+              await this.updateMatchOrThrow(payload);
             }
           } else {
             const { error } = await supabase.from('matches').insert(payload);
@@ -530,11 +541,7 @@ class OfflineSyncEngine {
             .maybeSingle();
 
           if (existing) {
-            const { error } = await supabase
-              .from('matches')
-              .update(matchData)
-              .eq('id', matchData.id);
-            if (error) throw error;
+            await this.updateMatchOrThrow(matchData);
           } else {
             const { error } = await supabase.from('matches').insert(matchData);
             if (error) throw error;
@@ -551,21 +558,21 @@ class OfflineSyncEngine {
           }
           syncedCount++;
         }
+        confirmed.set(item.id, sentPayload);
       } catch (err: any) {
         console.warn(`Failed to flush offline item ${item.id} (${item.type}):`, err?.message);
+        // Never dropped: a match stays queued until the server confirms it, however long that takes
         item.retryCount = (item.retryCount || 0) + 1;
-        if (item.retryCount <= 20) {
-          remainingItems.push(item);
-        }
+        failedCount++;
         this.updateStatus({ lastError: err?.message || 'Sync error' });
       }
     }
 
-    this.queue = remainingItems;
+    this.queue = removeConfirmedItems(this.queue, confirmed);
     await this.persistQueue();
     this.updateStatus({
       isSyncing: false,
-      isOnline: remainingItems.length === 0,
+      isOnline: failedCount === 0,
       lastSyncedAt: syncedCount > 0 ? Date.now() : this.status.lastSyncedAt,
     });
 

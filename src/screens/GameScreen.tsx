@@ -173,19 +173,18 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
     };
   }, [match.id, match.rounds.length, (match.substitutions || []).length]);
 
+  // Players, the admin, whoever created the match, and a scorer who substituted themself out
+  const canScore =
+    !!match.isGuestMode ||
+    !!isAdmin ||
+    (!!currentUserProfileId &&
+      (match.created_by === currentUserProfileId ||
+        match.players.some(p => p.profileId === currentUserProfileId) ||
+        (match.substitutions || []).some(s => s.originalProfileId === currentUserProfileId)));
+
   const handleOpenScoreModal = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (match.isGuestMode) {
-      setScorerId(id);
-      setEndingType('normal');
-      setPointsStr('');
-      setIsAddModalOpen(true);
-      return;
-    }
-
-    const isParticipant = match.players.some(p => p.profileId === currentUserProfileId);
-    
-    if (!isParticipant && !isAdmin) {
+    if (!canScore) {
       Alert.alert('Solo Lectura', 'Solo los jugadores de la partida pueden anotar puntos.');
       return;
     }
@@ -203,26 +202,47 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
       return;
     }
     const type = scorerId === 'tie' ? 'trancado' : endingType;
-    
-    const newRound: Round = {
-      id: Math.random().toString(36).substring(7),
-      roundNumber: match.rounds.length + 1,
-      scorerId: scorerId,
-      points: pts,
-      endingType: type,
+
+    const saveRound = () => {
+      const newRound: Round = {
+        id: Math.random().toString(36).substring(7),
+        roundNumber: match.rounds.length + 1,
+        scorerId: scorerId,
+        points: pts,
+        endingType: type,
+      };
+      const newMatch = { ...match, rounds: [...match.rounds, newRound] };
+      onUpdateMatch(newMatch, false);
+      syncToSupabase(newMatch);
+
+      sounds.playSound('pop');
+
+      setPointsStr('');
+      setScorerId('');
+      setIsAddModalOpen(false);
     };
-    const newMatch = { ...match, rounds: [...match.rounds, newRound] };
-    onUpdateMatch(newMatch, false);
-    syncToSupabase(newMatch);
-    
-    sounds.playSound('pop');
-    
-    setPointsStr('');
-    setScorerId('');
-    setIsAddModalOpen(false);
+
+    // The hand that ends the match gets a second look: this is where a typo costs the most
+    const newTotal = (totals[scorerId] || 0) + pts;
+    if (scorerId !== 'tie' && newTotal >= match.limitScore) {
+      Alert.alert(
+        '¿Esta mano termina la partida?',
+        `${getEntityName(scorerId)} llegaría a ${newTotal} puntos y ganaría. Revisa que ${pts} sea correcto.`,
+        [
+          { text: 'Corregir', style: 'cancel' },
+          { text: 'Sí, anotar', onPress: saveRound },
+        ]
+      );
+      return;
+    }
+    saveRound();
   };
 
   const handleUndo = () => {
+    if (!canScore) {
+      Alert.alert('Solo Lectura', 'Solo quien anota la partida puede deshacer.');
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (match.rounds.length > 0) {
       const newRounds = match.rounds.slice(0, -1);
@@ -576,6 +596,12 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
                 </View>
               ))}
             </View>
+
+            {canScore && (
+              <TouchableOpacity style={styles.shareBtn} onPress={handleUndo}>
+                <Text style={styles.shareBtnText}>↩ Corregir Última Mano</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.shareBtn} onPress={() => captureAndShare(winnerRef)}>
               <Text style={styles.shareBtnText}>📸 Compartir Resultado</Text>

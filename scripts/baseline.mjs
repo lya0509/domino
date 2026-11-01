@@ -216,6 +216,73 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('avatars', 'avatars', true), ('ads', 'ads', true), ('receipts', 'receipts', true)
 ON CONFLICT (id) DO NOTHING;
 
+-- Registro de usuarios: copiado de producción
+CREATE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_code text;
+  v_code_upper text;
+BEGIN
+  v_code := COALESCE(new.raw_user_meta_data->>'access_code', '');
+  v_code_upper := UPPER(TRIM(v_code));
+
+  IF NOT (
+    v_code_upper IN ('CAFETIN', 'PESIMISTAS', 'DOMINO', '0509', 'VIP') OR
+    v_code_upper LIKE '%CAFETIN%' OR
+    v_code_upper LIKE '%PESIMISTAS%' OR
+    v_code_upper LIKE '%DOMINO%' OR
+    v_code_upper LIKE '%0509%' OR
+    v_code_upper LIKE '%VIP%'
+  ) THEN
+    RAISE EXCEPTION 'Registro bloqueado: Es obligatorio escanear un código QR de invitación válido.';
+  END IF;
+
+  INSERT INTO public.profiles (id, display_name, initials, betting_points, is_admin)
+  VALUES (
+    new.id,
+    COALESCE(new.raw_user_meta_data->>'display_name', 'Jugador'),
+    UPPER(COALESCE(new.raw_user_meta_data->>'initials', 'JG')),
+    1000,
+    false
+  );
+  RETURN new;
+END;
+$$;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- Límite de un mensaje cada 3 segundos en el chat global: copiado de producción
+CREATE FUNCTION public.check_global_chat_spam()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  last_msg_time timestamptz;
+BEGIN
+  SELECT created_at INTO last_msg_time
+  FROM public.global_chat
+  WHERE user_id = NEW.user_id
+  ORDER BY created_at DESC
+  LIMIT 1;
+  IF last_msg_time IS NOT NULL AND EXTRACT(EPOCH FROM (NEW.created_at - last_msg_time)) < 3 THEN
+    RAISE EXCEPTION 'Por favor, espera 3 segundos antes de enviar otro mensaje.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER anti_spam_global_chat
+  BEFORE INSERT ON public.global_chat
+  FOR EACH ROW
+  EXECUTE FUNCTION public.check_global_chat_spam();
+
 -- Se reemplaza por 20261101_03_rachas.sql
 CREATE FUNCTION public.update_player_streaks_for_match(p_match_id uuid)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN NULL; END $$;

@@ -175,6 +175,54 @@ await db.query(`UPDATE public.profiles SET betting_points=50 WHERE id='${D}'`);
 r = await responder(D, m);
 ok('sin saldo al final no se aparta nada', r.rows?.[0]?.r?.status === 'insufficient' && (await puntos(A)) === 1000, JSON.stringify(r));
 
+// Limpieza nocturna: la tarea que había en producción pagaba por el marcador
+await db.exec(`DELETE FROM public.bets; UPDATE public.profiles SET betting_points=1000;`);
+const zombieViejo = async (id) => db.query(`UPDATE public.matches SET status='completed', winner_team=NULL WHERE id='${id}'`);
+const conApuesta = async (total) => {
+  const id = await nuevaPartida(A);
+  await db.query(`INSERT INTO public.bets(user_id,match_id,bet_on_team,amount_wagered,multiplier) VALUES('${X}','${id}',1,100,2)`);
+  await db.query(`UPDATE public.matches SET team1_total=${total}, limit_score=100, created_at=now()-interval '7 hours', rounds='[{"points":100,"scorerId":"team1"}]'::jsonb WHERE id='${id}'`);
+  return id;
+};
+await db.query(`UPDATE public.profiles SET betting_points=900 WHERE id='${X}'`);
+m = await conApuesta(100);
+await zombieViejo(m);
+ok('ANTES: la limpieza vieja pagaba sin confirmación del rival', (await puntos(X)) === 1100, String(await puntos(X)));
+
+await db.exec(`DELETE FROM public.bets; UPDATE public.matches SET status='completed' WHERE status='active'; UPDATE public.profiles SET betting_points=1000;`);
+const m6 = sql('supabase/migrations/20261101_06_partidas_abandonadas.sql').split('-- VERIFICACIÓN')[0].replace(/-- =+\s*$/, '').replace(/DO \$\$[\s\S]*?END \$\$;/, '');
+await db.exec(m6);
+await db.exec(m6);
+const estado = async (id) => (await db.query(`SELECT status, winner_team FROM public.matches WHERE id='${id}'`)).rows[0];
+
+await db.query(`UPDATE public.profiles SET betting_points=900 WHERE id='${X}'`);
+m = await conApuesta(100);
+await db.query(`SELECT public.cancel_abandoned_matches()`);
+ok('llegó al límite y tiene apuestas: queda por confirmar', (await estado(m)).status === 'pending_confirmation' && (await estado(m)).winner_team === 1, JSON.stringify(await estado(m)));
+ok('y no paga nada', (await puntos(X)) === 900, String(await puntos(X)));
+r = await as('authenticated', A, `SELECT public.confirm_match_result('${m}')`);
+ok('el ganador no se confirma solo', /rival/.test(r.err || ''), JSON.stringify(r));
+r = await as('authenticated', C, `SELECT public.confirm_match_result('${m}')`);
+ok('el equipo perdedor sí confirma y se paga', !r.err && (await puntos(X)) === 1100, JSON.stringify([r, await puntos(X)]));
+
+await db.exec(`DELETE FROM public.bets; UPDATE public.profiles SET betting_points=1000;`);
+await db.query(`UPDATE public.profiles SET betting_points=900 WHERE id='${X}'`);
+m = await conApuesta(20);
+await db.query(`SELECT public.cancel_abandoned_matches()`);
+ok('sin terminar y con apuestas: se cancela', (await estado(m)).status === 'cancelled', JSON.stringify(await estado(m)));
+ok('y se devuelve la apuesta', (await puntos(X)) === 1000, String(await puntos(X)));
+
+m = await nuevaPartida(A);
+await db.query(`UPDATE public.matches SET created_at=now()-interval '7 hours' WHERE id='${m}'`);
+await db.query(`SELECT public.cancel_abandoned_matches()`);
+ok('sin nada en juego: se cierra sin ganador', JSON.stringify(await estado(m)) === '{"status":"completed","winner_team":null}', JSON.stringify(await estado(m)));
+
+m = await nuevaPartida(A);
+await db.query(`UPDATE public.matches SET created_at=now()-interval '1 hour' WHERE id='${m}'`);
+await db.query(`SELECT public.cancel_abandoned_matches()`);
+ok('una partida reciente no se toca', (await estado(m)).status === 'active', JSON.stringify(await estado(m)));
+await db.exec(`UPDATE public.matches SET status='completed' WHERE status='active';`);
+
 // Un duelo anterior a la migración termina con la regla vieja
 await db.query(`UPDATE public.profiles SET betting_points=1000`);
 m = await nuevaPartida(A, ',is_wager_match,wager_amount', ',true,200');

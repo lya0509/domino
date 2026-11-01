@@ -25,7 +25,8 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 | `20261101_07_cola_diaria.sql` | Ejecutada en producción |
 | `20261101_08_confirmacion_todas.sql` | Ejecutada en producción |
 | `20261101_09_confirmacion_1_minuto.sql` | Ejecutada en producción |
-| `20261101_10_notificaciones_push.sql` | Pendiente |
+| `20261101_10_notificaciones_push.sql` | Ejecutada en producción |
+| `20261101_11_direccion_send_push.sql` | Pendiente |
 
 ## Cómo se prueba
 
@@ -33,7 +34,7 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 
 ## Función de envío
 
-`functions/send-push/` entrega los avisos de `notification_queue`. Necesita los secretos `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY` en Supabase. Se publica sin exigir sesión, porque no recibe datos: solo envía lo que la base de datos dejó en cola.
+`functions/send-push/` entrega los avisos de `notification_queue`. En producción su dirección interna es `swift-endpoint`. Necesita los secretos `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY` en Supabase. Se publica sin exigir sesión, porque no recibe datos: solo envía lo que la base de datos dejó en cola.
 
 ## Tareas automáticas de producción
 

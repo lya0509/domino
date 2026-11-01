@@ -14,6 +14,7 @@ const mig = cuerpo('20261101_10_notificaciones_push.sql').replace('CREATE EXTENS
 await db.exec(mig);
 await db.exec(mig);
 ok('la migración se puede repetir', true);
+await db.exec(sql('supabase/migrations/20261101_11_direccion_send_push.sql').split('-- VERIFICACIÓN')[0]);
 await db.exec(`GRANT SELECT ON public.despertares TO authenticated; GRANT USAGE ON SCHEMA net TO postgres;`);
 
 const suscribir = (u, n = u) => as('authenticated', u, `SELECT public.save_push_subscription('https://push/${n}','k','a')`);
@@ -49,7 +50,7 @@ let n = await ultimo();
 ok('empezar una partida avisa al club', n?.title === '🎲 Ya están jugando' && /Ana y Beto contra Caro y Dani/.test(n.body), JSON.stringify(n));
 ok('solo a quienes no están en la mesa', JSON.stringify(n.user_ids) === JSON.stringify([X]), JSON.stringify(n.user_ids));
 const desp = (await db.query(`SELECT url FROM public.despertares ORDER BY n DESC LIMIT 1`)).rows[0];
-ok('y despierta la función de envío', /functions\/v1\/send-push$/.test(desp?.url || ''), JSON.stringify(desp));
+ok('y despierta la función de envío en su dirección real', /functions\/v1\/swift-endpoint$/.test(desp?.url || ''), JSON.stringify(desp));
 await vaciar();
 
 // Apuestas

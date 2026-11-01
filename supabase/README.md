@@ -19,7 +19,8 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 | `20261101_01_confirmacion_rival.sql` | Pendiente |
 | `20261101_02_seguridad_servidor.sql` | Pendiente |
 | `20261101_03_rachas.sql` | Pendiente |
-| `20261101_04_borrar_chat_messages.sql` | Pendiente |
+| `20261101_04_puntos.sql` | Pendiente |
+| `20261101_05_borrar_chat_messages.sql` | Pendiente |
 
 ## Cómo se prueba
 

@@ -13,6 +13,7 @@ import { Profile } from '../types';
 import { MatchGraph } from '../components/MatchGraph';
 import { RainbowText } from '../components/RainbowText';
 import { LegalModal, LegalTab } from '../components/LegalModal';
+import { PointsHistory } from '../components/PointsHistory';
 import { offlineSync } from '../lib/offlineSync';
 import { reconcileUserPendingBets } from '../lib/bettingService';
 
@@ -980,6 +981,8 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
             ))}
           </View>
         )}
+
+        {isOwnProfile && !!profileId && <PointsHistory profileId={profileId} />}
 
         {/* Betting History */}
         {betHistory.length > 0 && (

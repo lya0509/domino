@@ -562,6 +562,7 @@ BEGIN
   END IF;
 
   PERFORM set_config('app.allow_points_change', 'true', true);
+  PERFORM set_config('app.points_reason', 'Duelo VIP', true);
 
   -- Partida anulada: cada quien recupera lo apartado
   IF p_winner_team IS NULL THEN
@@ -569,6 +570,7 @@ BEGIN
       PERFORM public._refund_wager_escrow(p_match_id);
       UPDATE public.matches SET wager_settled = true WHERE id = p_match_id;
     END IF;
+    PERFORM set_config('app.points_reason', '', true);
     RETURN;
   END IF;
 
@@ -619,6 +621,7 @@ BEGIN
   END IF;
 
   UPDATE public.matches SET wager_settled = true WHERE id = p_match_id;
+  PERFORM set_config('app.points_reason', '', true);
 END;
 $$;
 

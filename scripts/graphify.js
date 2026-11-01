@@ -922,6 +922,8 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/components/PointsHistory.tsx':
+    'Own-profile list of the last 30 point movements from points_ledger.',
   'src/components/PendingConfirmations.tsx':
     'Home cards for results waiting for a rival (confirm or dispute) and for matches a rival reopened. The server decides who may answer.',
   'src/lib/matchRivals.ts':
@@ -975,6 +977,7 @@ const RPC_ROLES = {
   expire_tournament_registration: 'After 5 minutes starts the tournament or cancels and refunds.',
 };
 const TABLE_ROLES = {
+  points_ledger: 'Every balance change with its reason, written by a trigger on profiles.betting_points. Readable by its owner and admins.',
   tournament_payouts: 'Private bank data for tournament payouts, readable only by its owner and admins. Filled by a trigger from tournament_participants.payout_details.',
   wager_consents: 'One row per player/match for the VIP wager consent (status, team, expires_at). Written only by RPCs.',
 };

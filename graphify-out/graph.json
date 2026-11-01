@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T16:57:28.368Z",
+    "generatedAt": "2026-11-01T17:05:22.692Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,13 +10,13 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 124,
-      "totalEdges": 198,
+      "totalNodes": 127,
+      "totalEdges": 202,
       "totalHyperedges": 7,
       "totalScreens": 13,
-      "totalComponents": 7,
+      "totalComponents": 8,
       "totalServices": 10,
-      "totalDatabaseTables": 16,
+      "totalDatabaseTables": 17,
       "totalDatabaseRpcs": 27,
       "totalQaSuites": 16
     }
@@ -826,8 +826,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1494,
-      "bytes": 62469,
+      "lines": 1497,
+      "bytes": 62612,
       "exports": [
         "ProfileScreen"
       ],
@@ -844,6 +844,7 @@
         "../components/MatchGraph",
         "../components/RainbowText",
         "../components/LegalModal",
+        "../components/PointsHistory",
         "../lib/offlineSync",
         "../lib/bettingService"
       ],
@@ -1580,7 +1581,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 53,
-      "bytes": 1770,
+      "bytes": 1798,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1651,8 +1652,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1635,
-      "bytes": 78125,
+      "lines": 1638,
+      "bytes": 78379,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2237,8 +2238,8 @@
       "file": "supabase/migrations/20261101_02_seguridad_servidor.sql",
       "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
       "exists": true,
-      "lines": 897,
-      "bytes": 34239,
+      "lines": 900,
+      "bytes": 34409,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2266,11 +2267,29 @@
       "soundsPlayed": []
     },
     {
-      "id": "supabase/migrations/20261101_04_borrar_chat_messages.sql",
-      "label": "20261101_04_borrar_chat_messages.sql (SQL Script)",
+      "id": "supabase/migrations/20261101_04_puntos.sql",
+      "label": "20261101_04_puntos.sql (SQL Script)",
       "type": "sql_script",
       "community": "database_sql",
-      "file": "supabase/migrations/20261101_04_borrar_chat_messages.sql",
+      "file": "supabase/migrations/20261101_04_puntos.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 280,
+      "bytes": 10986,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase/migrations/20261101_05_borrar_chat_messages.sql",
+      "label": "20261101_05_borrar_chat_messages.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261101_05_borrar_chat_messages.sql",
       "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
       "exists": true,
       "lines": 26,
@@ -2311,6 +2330,33 @@
       "realtimeChannels": [
         "pending-confirmations-${Date.now()}"
       ],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/PointsHistory.tsx",
+      "label": "PointsHistory.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PointsHistory.tsx",
+      "role": "Own-profile list of the last 30 point movements from points_ledger.",
+      "exists": true,
+      "lines": 89,
+      "bytes": 2984,
+      "exports": [
+        "PointsHistory"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase"
+      ],
+      "supabaseTables": [
+        "points_ledger"
+      ],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
     },
@@ -2412,6 +2458,13 @@
       "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
+    },
+    {
+      "id": "db:points_ledger",
+      "label": "points_ledger",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Every balance change with its reason, written by a trigger on profiles.betting_points. Readable by its owner and admins."
     },
     {
       "id": "db:wager_consents",
@@ -3340,6 +3393,12 @@
       "derived": true
     },
     {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/PointsHistory.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/screens/StoreScreen.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -3582,6 +3641,24 @@
     {
       "source": "src/components/PendingConfirmations.tsx",
       "target": "src/lib/matchRivals.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PointsHistory.tsx",
+      "target": "db:points_ledger",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/components/PointsHistory.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PointsHistory.tsx",
+      "target": "src/lib/supabase.ts",
       "relation": "imports",
       "derived": true
     },

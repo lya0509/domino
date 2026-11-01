@@ -2,7 +2,7 @@
 -- BORRAR chat_messages
 -- La app no usa esta tabla: el chat real está en global_chat y live_chat.
 --
--- Orden: ejecutar al final, después de 20261101_03_rachas.sql.
+-- Orden: ejecutar al final, después de 20261101_04_puntos.sql.
 -- Compatibilidad: no afecta a ninguna versión publicada.
 -- El borrado no se puede deshacer, así que se detiene si la tabla tiene filas:
 -- en ese caso, revísalas antes de seguir.

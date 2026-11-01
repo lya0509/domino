@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T01:38:25.082Z",
+    "generatedAt": "2026-11-01T16:36:48.044Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [
@@ -16,14 +16,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 109,
-      "totalEdges": 189,
+      "totalNodes": 113,
+      "totalEdges": 197,
       "totalHyperedges": 7,
       "totalScreens": 13,
-      "totalComponents": 6,
-      "totalServices": 9,
+      "totalComponents": 7,
+      "totalServices": 10,
       "totalDatabaseTables": 15,
-      "totalDatabaseRpcs": 22,
+      "totalDatabaseRpcs": 24,
       "totalQaSuites": 16
     }
   },
@@ -129,8 +129,8 @@
         "Outdated Version Gate Screen"
       ],
       "exists": true,
-      "lines": 1567,
-      "bytes": 58801,
+      "lines": 1572,
+      "bytes": 59257,
       "exports": [
         "App"
       ],
@@ -199,7 +199,7 @@
       "uiElements": [],
       "exists": true,
       "lines": 129,
-      "bytes": 2923,
+      "bytes": 2948,
       "exports": [
         "GameMode",
         "Profile",
@@ -342,12 +342,14 @@
       "file": "src/lib/bettingService.ts",
       "role": "Handles placeMatchBet (with rollback on error), settleMatchBetsAndWagers (invoking SECURITY DEFINER RPCs resolve_match_bets & resolve_match_wagers + client fallback), and reconcileUserPendingBets (self-healing payout credit on login/mount).",
       "exists": true,
-      "lines": 162,
-      "bytes": 4927,
+      "lines": 182,
+      "bytes": 5861,
       "exports": [
         "PlaceBetResult",
         "placeMatchBet",
         "settleMatchBetsAndWagers",
+        "confirmMatchResult",
+        "disputeMatchResult",
         "reconcileUserPendingBets"
       ],
       "imports": [
@@ -358,6 +360,8 @@
       "supabaseRpcs": [
         "place_bet",
         "settle_completed_match",
+        "confirm_match_result",
+        "dispute_match_result",
         "settle_my_pending_bets"
       ],
       "realtimeChannels": [],
@@ -616,8 +620,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1491,
-      "bytes": 54784,
+      "lines": 1498,
+      "bytes": 55023,
       "exports": [
         "HomeScreen"
       ],
@@ -632,7 +636,8 @@
         "../lib/offlineSync",
         "../lib/realtimeManager",
         "../lib/waitlistService",
-        "../lib/bettingService"
+        "../lib/bettingService",
+        "../components/PendingConfirmations"
       ],
       "supabaseTables": [
         "matches",
@@ -771,7 +776,7 @@
       ],
       "exists": true,
       "lines": 947,
-      "bytes": 46240,
+      "bytes": 46391,
       "exports": [
         "LiveMatchScreen"
       ],
@@ -1577,7 +1582,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 52,
-      "bytes": 1636,
+      "bytes": 1666,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1648,8 +1653,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1624,
-      "bytes": 76709,
+      "lines": 1635,
+      "bytes": 77465,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2147,6 +2152,37 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/components/PendingConfirmations.tsx",
+      "label": "PendingConfirmations.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PendingConfirmations.tsx",
+      "role": "Home cards for results waiting for a rival (confirm or dispute) and for matches a rival reopened. The server decides who may answer.",
+      "exists": true,
+      "lines": 159,
+      "bytes": 6790,
+      "exports": [
+        "PendingConfirmations"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase",
+        "../lib/bettingService",
+        "../lib/matchRivals"
+      ],
+      "supabaseTables": [
+        "matches"
+      ],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "pending-confirmations-${Date.now()}"
+      ],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/WagerConsent.tsx",
       "label": "WagerConsent.tsx",
       "type": "component",
@@ -2178,6 +2214,29 @@
         "wager_consent_me_${Date.now()}",
         "wager_status_${matchId}_${Date.now()}"
       ],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/matchRivals.ts",
+      "label": "matchRivals.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/matchRivals.ts",
+      "role": "Pure rule mirroring _match_rivals: who answers for a closed match, used only to choose which buttons to show. Covered by tests/matchRivals.test.mjs.",
+      "exists": true,
+      "lines": 32,
+      "bytes": 1200,
+      "exports": [
+        "RivalMatchRow",
+        "matchRivalIds",
+        "canAnswerMatch",
+        "isInMatch"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
     },
@@ -2249,6 +2308,20 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "One player accepts/declines; on 4 accepts it re-checks balances and activates the wager."
+    },
+    {
+      "id": "rpc:confirm_match_result",
+      "label": "confirm_match_result",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "A rival or admin accepts a pending result; marks it completed and pays in one transaction."
+    },
+    {
+      "id": "rpc:dispute_match_result",
+      "label": "dispute_match_result",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "A rival or admin rejects a pending result; removes the last hand and reopens the match."
     },
     {
       "id": "rpc:invite_tournament_partner",
@@ -2778,6 +2851,18 @@
     },
     {
       "source": "src/lib/bettingService.ts",
+      "target": "rpc:confirm_match_result",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/bettingService.ts",
+      "target": "rpc:dispute_match_result",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/bettingService.ts",
       "target": "src/lib/supabase.ts",
       "relation": "imports",
       "derived": true
@@ -2923,6 +3008,12 @@
     {
       "source": "src/screens/HomeScreen.tsx",
       "target": "src/lib/sounds.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/components/PendingConfirmations.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -3295,6 +3386,36 @@
     {
       "source": "src/components/LegalModal.tsx",
       "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PendingConfirmations.tsx",
+      "target": "db:matches",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/components/PendingConfirmations.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PendingConfirmations.tsx",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PendingConfirmations.tsx",
+      "target": "src/lib/bettingService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PendingConfirmations.tsx",
+      "target": "src/lib/matchRivals.ts",
       "relation": "imports",
       "derived": true
     },

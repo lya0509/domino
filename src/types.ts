@@ -53,7 +53,7 @@ export interface Match {
   limitScore: number;
   players: Player[];
   rounds: Round[];
-  status: 'active' | 'completed';
+  status: 'active' | 'pending_confirmation' | 'completed';
   isGuestMode?: boolean;
   substitutions?: Substitution[];
   wager_amount?: number;

@@ -9,6 +9,7 @@ import { offlineSync } from '../lib/offlineSync';
 import { realtimeManager } from '../lib/realtimeManager';
 import { fetchActiveWaitlist, joinOrUpdateWaitlist, removeWaitlistEntry, callWaitlistDuo } from '../lib/waitlistService';
 import { reconcileUserPendingBets } from '../lib/bettingService';
+import { PendingConfirmations } from '../components/PendingConfirmations';
 
 interface Props {
   onNewMatch: () => void;
@@ -663,6 +664,12 @@ export const HomeScreen: React.FC<Props> = ({
             </TouchableOpacity>
           </View>
         )}
+
+        <PendingConfirmations
+          profileId={currentUser?.id}
+          isAdmin={!!currentUser?.is_admin}
+          onRejoinMatch={onRejoinMatch}
+        />
 
         {/* Active Match Banner */}
         {activeUserMatch && (

@@ -15,18 +15,18 @@
 | Metric | Count |
 | :--- | :---: |
 | **System Communities** | **8** |
-| **Total Graph Nodes** | **109** |
-| **Directed Edges** | **189 (109 derived from code)** |
+| **Total Graph Nodes** | **113** |
+| **Directed Edges** | **197 (117 derived from code)** |
 | **System Hyperedges** | **7** |
 | **Screens** | **13** |
-| **Components** | **6** |
-| **Services** | **9** |
+| **Components** | **7** |
+| **Services** | **10** |
 | **DB Tables & Buckets** | **15** |
-| **DB RPCs** | **22** |
+| **DB RPCs** | **24** |
 | **SQL Scripts** | **31** |
 | **QA Test Suites** | **16** |
 
-**RPCs called by the app:** `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `delete_user_account`, `expire_tournament_registration`, `invite_tournament_partner`, `join_tournament_with_points`, `place_bet`, `propose_wager`, `respond_tournament_partner`, `respond_wager`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `update_player_streaks_for_match`, `verify_admin_pin`
+**RPCs called by the app:** `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `confirm_match_result`, `delete_user_account`, `dispute_match_result`, `expire_tournament_registration`, `invite_tournament_partner`, `join_tournament_with_points`, `place_bet`, `propose_wager`, `respond_tournament_partner`, `respond_wager`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `update_player_streaks_for_match`, `verify_admin_pin`
 
 **Tables used by the app:** `ads`, `bets`, `duos`, `global_chat`, `live_chat`, `matches`, `profiles`, `system_config`, `tournament_brackets`, `tournament_participants`, `tournaments`, `wager_consents`, `waitlist`
 

@@ -74,8 +74,8 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
     const limit = mData.limit_score || 100;
     const t1 = mData.team1_total || 0;
     const t2 = mData.team2_total || 0;
-    const isDone = mData.status === 'completed' || t1 >= limit || t2 >= limit;
-    if (isDone && !settledMatchRef.current) {
+    // Reaching the limit doesn't close a match, and one waiting for a rival hasn't paid yet
+    if (mData.status === 'completed' && !settledMatchRef.current) {
       settledMatchRef.current = true;
       const winTeam = mData.winner_team || (t1 >= limit ? 1 : t2 >= limit ? 2 : null);
       if (winTeam) {
@@ -392,7 +392,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
   const team1Total = matchData.team1_total || 0;
   const team2Total = matchData.team2_total || 0;
 
-  const isCompleted = matchData.status === 'completed' || team1Total >= limitScore || team2Total >= limitScore;
+  const isCompleted = matchData.status === 'completed' || matchData.status === 'pending_confirmation' || team1Total >= limitScore || team2Total >= limitScore;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -404,7 +404,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
-            {isCompleted ? '✅ Partida Terminada' : '🔴 En Vivo'}
+            {matchData.status === 'pending_confirmation' ? '⏳ Por Confirmar' : isCompleted ? '✅ Partida Terminada' : '🔴 En Vivo'}
           </Text>
           <Text style={styles.headerSub}>Meta: {limitScore} pts</Text>
         </View>

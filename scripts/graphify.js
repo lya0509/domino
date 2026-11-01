@@ -917,6 +917,10 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/components/PendingConfirmations.tsx':
+    'Home cards for results waiting for a rival (confirm or dispute) and for matches a rival reopened. The server decides who may answer.',
+  'src/lib/matchRivals.ts':
+    'Pure rule mirroring _match_rivals: who answers for a closed match, used only to choose which buttons to show. Covered by tests/matchRivals.test.mjs.',
   'src/components/WagerConsent.tsx':
     'WagerConsentPrompt (60s accept/decline shown on each of the 4 phones, mounted globally in App.tsx) and WagerStatusBanner (live proposal state in GameScreen). Reads wager_consents via realtime; writes only through respond_wager.',
   'src/lib/outbox.ts':
@@ -952,6 +956,8 @@ CODE_FILES.forEach((f) => {
 codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
 
 const RPC_ROLES = {
+  confirm_match_result: 'A rival or admin accepts a pending result; marks it completed and pays in one transaction.',
+  dispute_match_result: 'A rival or admin rejects a pending result; removes the last hand and reopens the match.',
   propose_wager: 'Sends the VIP wager proposal to the 4 players (60s). Match must be unstarted.',
   respond_wager: 'One player accepts/declines; on 4 accepts it re-checks balances and activates the wager.',
   award_zapatero_maestro: 'Grants the Zapatero Maestro achievement after the server counts 3 zapatos given.',
@@ -974,7 +980,12 @@ codeRefs.rpcs.forEach((r) => {
 });
 
 // What the SQL in this repo defines, and what each script is safe for
-const SQL_FILES = fs.readdirSync(ROOT).filter((f) => f.endsWith('.sql'));
+const SQL_FILES = [
+  ...fs.readdirSync(ROOT).filter((f) => f.endsWith('.sql')),
+  ...fs.readdirSync(path.join(ROOT, 'supabase/migrations'))
+    .filter((f) => f.endsWith('.sql'))
+    .map((f) => `supabase/migrations/${f}`),
+];
 const sqlDefines = { functions: new Set(), tables: new Set() };
 SQL_FILES.forEach((f) => {
   const text = fs.readFileSync(path.join(ROOT, f), 'utf8');

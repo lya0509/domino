@@ -937,7 +937,7 @@ export default function App() {
             return;
           }
 
-          const { error: upsertErr } = await supabase.from('matches').upsert({
+          const { data: savedRow, error: upsertErr } = await supabase.from('matches').upsert({
             id: completePayload.id,
             status: 'completed',
             game_mode: completePayload.game_mode,
@@ -956,10 +956,15 @@ export default function App() {
             wager_amount: completePayload.wager_amount,
             is_wager_match: completePayload.is_wager_match,
             tournament_id: completePayload.tournament_id,
-          }, { onConflict: 'id' });
+          }, { onConflict: 'id' }).select('status').maybeSingle();
+
+          // Bets, Duelo VIP and tournaments wait for a rival: the server decides, and it pays on confirmation
+          const awaitingRival = savedRow?.status === 'pending_confirmation';
 
           if (upsertErr) {
             await offlineSync.enqueueMatchComplete(completePayload);
+          } else if (awaitingRival) {
+            Alert.alert('⏳ Por confirmar', 'Un jugador rival debe confirmar el resultado desde su teléfono. Hasta entonces no se paga nada.');
           } else {
             await settleMatchBetsAndWagers({
               matchId: finalMatchId,
@@ -973,7 +978,7 @@ export default function App() {
             });
           }
 
-          if (isSupabaseId(finalMatchId)) {
+          if (isSupabaseId(finalMatchId) && !awaitingRival) {
             try {
               await supabase.rpc('update_player_streaks_for_match', { 
                 p_match_id: finalMatchId 
@@ -1005,7 +1010,7 @@ export default function App() {
             }
           }
 
-          if (isZapato) {
+          if (isZapato && !awaitingRival) {
             const winners = winnerTeam === 1 ? [team1P1, team1P2] : [team2P1, team2P2];
             // The server counts zapatos given and grants the badge (clients can't write achievements)
             for (const wid of winners) {

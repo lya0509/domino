@@ -115,6 +115,26 @@ export const settleMatchBetsAndWagers = async (
   }
 };
 
+/** A rival or admin accepts the result; the server pays in the same step. */
+export const confirmMatchResult = async (matchId: string): Promise<{ ok: boolean; error?: string }> => {
+  try {
+    const { error } = await supabase.rpc('confirm_match_result', { p_match_id: matchId });
+    return error ? { ok: false, error: error.message } : { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || 'Error de conexión.' };
+  }
+};
+
+/** A rival or admin rejects the result; the server removes the last hand and reopens the match. */
+export const disputeMatchResult = async (matchId: string): Promise<{ ok: boolean; error?: string }> => {
+  try {
+    const { error } = await supabase.rpc('dispute_match_result', { p_match_id: matchId });
+    return error ? { ok: false, error: error.message } : { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || 'Error de conexión.' };
+  }
+};
+
 /**
  * Settles the current user's pending bets whose matches already finished
  * (`settle_my_pending_bets` RPC) and returns what was credited.

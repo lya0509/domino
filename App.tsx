@@ -970,14 +970,6 @@ export default function App() {
           }
 
           if (isSupabaseId(finalMatchId) && !awaitingRival) {
-            try {
-              await supabase.rpc('update_player_streaks_for_match', { 
-                p_match_id: finalMatchId 
-              });
-            } catch (rpcErr) {
-              console.error('Error updating streaks via RPC:', rpcErr);
-            }
-            
             // Tournament brackets advance on the server (tr_advance_tournament) when the match is saved
             // as completed; here we only tell the players what happened
             if (completePayload.tournament_id && !upsertErr) {

@@ -167,19 +167,18 @@ BEGIN
   PERFORM public.settle_completed_match(p_match_id);
   PERFORM set_config('app.allow_match_close', 'false', true);
 
-  -- La racha y el logro no deben impedir el pago
-  BEGIN
-    PERFORM public.update_player_streaks_for_match(p_match_id);
-    IF v_match.is_zapato THEN
+  -- El logro no debe impedir el pago
+  IF v_match.is_zapato THEN
+    BEGIN
       PERFORM public.award_zapatero_maestro(u)
       FROM unnest(CASE WHEN v_match.winner_team = 1
                        THEN ARRAY[v_match.team1_player1, v_match.team1_player2]
                        ELSE ARRAY[v_match.team2_player1, v_match.team2_player2] END) AS u
       WHERE u IS NOT NULL;
-    END IF;
-  EXCEPTION WHEN OTHERS THEN
-    NULL;
-  END;
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
+  END IF;
 
   RETURN jsonb_build_object('status', 'completed', 'winner_team', v_match.winner_team);
 END;

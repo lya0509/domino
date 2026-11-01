@@ -550,11 +550,6 @@ class OfflineSyncEngine {
           if (isValidUUID(matchData.id)) {
             const { settleMatchBetsAndWagers } = require('./bettingService');
             await settleMatchBetsAndWagers(matchData, winnerTeam);
-            try {
-              await supabase.rpc('update_player_streaks_for_match', {
-                p_match_id: matchData.id,
-              });
-            } catch {}
           }
           syncedCount++;
         }

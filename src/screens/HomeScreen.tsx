@@ -299,7 +299,7 @@ export const HomeScreen: React.FC<Props> = ({
             });
           }
 
-          // Daily bonus (10 pts at 7am) & daily login streak
+          // Daily bonus (10 pts at 7am). Streaks are counted on the server when a match finishes.
           const lastBonus = profile.last_daily_bonus_at ? new Date(profile.last_daily_bonus_at) : null;
           let canClaim = false;
           if (!lastBonus) {
@@ -313,92 +313,18 @@ export const HomeScreen: React.FC<Props> = ({
               adjustedNow.getFullYear() !== adjustedLast.getFullYear();
           }
 
-          const getLocalDateKey = (d: Date) => {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
-          };
+          if (canClaim && offlineSync.getIsOnline()) {
+            // The server decides if today's bonus is still available and credits it
+            const { data: bonus, error: bonusErr } = await supabase.rpc('claim_daily_bonus');
+            if (bonusErr) console.warn('claim_daily_bonus failed:', bonusErr.message);
 
-          const todayKey = getLocalDateKey(now);
-          const rawLastStreak = profile.last_streak_update_at;
-          const lastStreakKey = rawLastStreak ? rawLastStreak.slice(0, 10) : null;
-
-          let newStreak = profile.streak_count || 0;
-          let streakUpdated = false;
-          let streakIncreased = false;
-          let streakLost = false;
-          const previousStreak = profile.streak_count || 0;
-
-          if (!lastStreakKey) {
-            newStreak = 1;
-            streakUpdated = true;
-            streakIncreased = true;
-          } else if (lastStreakKey === todayKey) {
-            streakUpdated = false;
-          } else {
-            const [ty, tm, td] = todayKey.split('-').map(Number);
-            const [ly, lm, ld] = lastStreakKey.split('-').map(Number);
-            const todayUtc = Date.UTC(ty, tm - 1, td);
-            const lastUtc = Date.UTC(ly, lm - 1, ld);
-            const diffDays = Math.round((todayUtc - lastUtc) / (1000 * 60 * 60 * 24));
-
-            if (diffDays === 1) {
-              newStreak = previousStreak + 1;
-              streakUpdated = true;
-              streakIncreased = true;
-            } else if (diffDays > 1) {
-              newStreak = 1;
-              streakUpdated = true;
-              streakIncreased = false;
-              if (previousStreak > 1) {
-                streakLost = true;
-              }
-            }
-          }
-
-          if ((canClaim || streakUpdated) && offlineSync.getIsOnline()) {
-            if (canClaim) {
-              // The server decides if today's bonus is still available and credits it
-              const { data: bonus, error: bonusErr } = await supabase.rpc('claim_daily_bonus');
-              if (bonusErr) console.warn('claim_daily_bonus failed:', bonusErr.message);
-              canClaim = !bonusErr && !!bonus?.claimed;
-            }
-
-            const { data: updatedProfile } = streakUpdated
-              ? await supabase
-                  .from('profiles')
-                  .update({ streak_count: newStreak, last_streak_update_at: todayKey })
-                  .eq('id', profile.id)
-                  .select('*')
-                  .single()
-              : await supabase.from('profiles').select('*').eq('id', profile.id).single();
-
+            const { data: updatedProfile } = await supabase.from('profiles').select('*').eq('id', profile.id).single();
             if (updatedProfile) {
               if (profile.is_admin) (updatedProfile as Profile).is_admin = true;
               setCurrentUser(updatedProfile as Profile);
               offlineSync.updateProfileInCache(updatedProfile as Profile);
-              if (streakLost) {
-                Alert.alert(
-                  '💔 ¡Racha Perdida!',
-                  `No iniciaste sesión ayer y se perdió tu racha de ${previousStreak} días.\n¡Hoy comienzas una nueva racha de 1 día! 🔥` +
-                    (canClaim ? '\n\nAdemás recibiste 10 puntos de bono diario.' : '')
-                );
-                sounds.playSound('slap');
-              } else if (canClaim && streakIncreased) {
-                Alert.alert(
-                  '🔥 ¡Racha y Bono Diario!',
-                  `¡Has subido a ${newStreak} días de racha consecutiva! 🔥\nAdemás recibiste 10 puntos de apuestas.`
-                );
-                sounds.playSound('chaching');
-              } else if (canClaim) {
+              if (!bonusErr && bonus?.claimed) {
                 Alert.alert('🎁 ¡Bono Diario!', '¡Has recibido 10 puntos de apuestas por iniciar sesión hoy!');
-                sounds.playSound('chaching');
-              } else if (streakIncreased) {
-                Alert.alert(
-                  '🔥 ¡Racha Aumentada!',
-                  `¡Has alcanzado ${newStreak} días de racha consecutiva jugando en PeSiMistas! 🔥`
-                );
                 sounds.playSound('chaching');
               }
             } else {

@@ -1,5 +1,5 @@
 {
-  "version": "3.0.0-full-system",
+  "version": "3.1.0-full-system",
   "targetAgent": "Claude Code (Frontend Design, Visual Polish & E2E QA)",
   "backendBrain": "Antigravity (Backend Architecture, SQL, Offline Sync, Realtime & Betting Engine)",
   "runtimeBridgeObject": "window.__DOMINO_GRAPHIFY__",
@@ -38,7 +38,7 @@
       "steps": [
         "Verify Login, Register, and Forgot Password mode toggles.",
         "In Register mode, test invite code validation (valid codes: CAFETIN, PESIMISTAS, DOMINO, 0509, VIP) and open the 📷 Escanear QR modal.",
-        "Test \"Entrar como Invitado (Solo Anotar)\" and verify direct navigation to SetupScreen.",
+        "Test \"🎲 Solo Contar Puntos\" and verify direct navigation to SetupScreen in guest mode (no 4-slot picker, no Duelo VIP).",
         "Click footer legal links to verify LegalModal opens on the selected tab."
       ]
     },
@@ -73,7 +73,7 @@
       "screenOrModule": "SetupScreen (route: setup)",
       "file": "src/screens/SetupScreen.tsx",
       "navigateCommand": "window.__DOMINO_GRAPHIFY__.navigate('setup')",
-      "focus": "2v2 & Individual Setup, Salida/Mano Order & VIP Wager Match",
+      "focus": "2v2 Setup, Salida/Mano Order & VIP Wager Proposal",
       "steps": [
         "Select 4 players for Team 1 and Team 2 (or create a guest player on the fly).",
         "Test the 2-step \"¿Quién sale en la primera ronda?\" and \"¿Quién está a la derecha?\" selector and verify the 1-2-3-4 turn order preview.",
@@ -172,6 +172,30 @@
       "steps": [
         "Verify the last 100 messages load and new messages stream in real time.",
         "Verify equipped titles, borders, and RainbowText render on sender badges."
+      ]
+    },
+    {
+      "id": "QA-15",
+      "screenOrModule": "WagerConsent (SetupScreen, GameScreen, global prompt)",
+      "file": "src/components/WagerConsent.tsx",
+      "navigateCommand": "window.__DOMINO_GRAPHIFY__.navigate('setup')",
+      "focus": "Consent of the 4 players, timeout, declined and scored-first paths",
+      "steps": [
+        "Use 4 throwaway accounts on 4 sessions and turn Duelo VIP on in SetupScreen.",
+        "Verify the 60s prompt reaches the other 3 phones and WagerStatusBanner tracks each answer.",
+        "Verify a decline, a timeout, and scoring the first hand all leave the match without a wager.",
+        "Verify a wager with a substitute settles between the 4 who accepted."
+      ]
+    },
+    {
+      "id": "QA-16",
+      "screenOrModule": "Account Deletion (ProfileScreen)",
+      "file": "src/screens/ProfileScreen.tsx",
+      "navigateCommand": "window.__DOMINO_GRAPHIFY__.navigate('profile')",
+      "focus": "delete_user_account: full delete and anonymize paths",
+      "steps": [
+        "Throwaway account without history: confirm the profile and login are gone.",
+        "Throwaway account with one match: confirm \"Jugador eliminado\", no photo or points, and blocked login."
       ]
     }
   ]

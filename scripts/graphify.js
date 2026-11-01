@@ -2,17 +2,20 @@
 /**
  * Graphify Full-System Analyzer, Knowledge Graph Builder & QA Matrix Generator for Domino VIP (PeSiMistas)
  *
- * Scans 100% of the repository (all 11 Screens, 5 Components, 7 Services, Core Router, Types/Theme,
- * 4 SQL Scripts, 11 Supabase Database Tables, 4 RPCs, 8 LocalStorage Keys, Realtime Channels,
- * Sound Assets, and PWA/Vercel Configs) to produce:
- *   1. graphify-out/graph.json       (Machine-readable Full-System Knowledge Graph)
- *   2. graphify-out/qa_matrix.json   (Complete E2E & Visual Design QA Matrix for Claude Code)
- *   3. Console Verification Report   (12 Automated Full-System Invariant Checks)
+ * Scans the repository (screens, components, services, SQL, tables, RPCs, storage keys, realtime
+ * channels, sounds and PWA/Vercel configs) and auto-discovers anything new, so nothing depends on a
+ * hand-kept list. It produces:
+ *   1. graphify-out/graph.json        (machine-readable knowledge graph)
+ *   2. graphify-out/qa_matrix.json    (E2E & visual QA matrix)
+ *   3. graphify-out/GRAPH_REPORT.md   (auto section between the GRAPHIFY:AUTO markers)
+ *   4. graphify-out/graph.html        (explorer data between the GRAPHIFY:DATA markers)
+ *   5. Console report; exits 1 when code is missing from the graph
  */
 
 const fs = require('fs');
 const path = require('path');
 
+const GRAPHIFY_VERSION = '3.1.0-full-system';
 const ROOT = path.resolve(__dirname, '..');
 const OUT_DIR = path.join(ROOT, 'graphify-out');
 
@@ -110,7 +113,7 @@ const COMMUNITIES = [
     name: '2. Backend, Offline Outbox, Realtime & Graphify Services',
     color: '#10b981',
     description:
-      '7 core services in src/lib/: Supabase client, Offline-First Outbox & SWR profile cache, WebSocket Broadcast + Postgres Changes manager, Atomic Betting & Wager Settlement, Waitlist Queue manager, Sound synthesizer, and Claude Code Graphify Bridge.',
+      '8 core services in src/lib/: Supabase client, Offline-First Outbox & SWR profile cache, WebSocket Broadcast + Postgres Changes manager, Atomic Betting & Wager Settlement, Waitlist Queue manager, Sound synthesizer, and Claude Code Graphify Bridge.',
   },
   {
     id: 'onboarding_auth_screens',
@@ -152,7 +155,7 @@ const COMMUNITIES = [
     name: '8. PWA Service Worker, Build Pipeline & Deployment Config',
     color: '#64748b',
     description:
-      'Offline-First Service Worker (public/sw.js v3), Web App Manifest, postbuild HTML/CSS injector, Vercel SPA routing config, Expo app.json, and Graphify CLI analyzer.',
+      'Offline-First Service Worker (public/sw.js), Web App Manifest, postbuild HTML/CSS injector, Vercel SPA routing config, Expo app.json, and Graphify CLI analyzer.',
   },
 ];
 
@@ -324,7 +327,7 @@ const RAW_NODES = [
     uiElements: [
       'Login / Register / Forgot Password / Update Password Forms',
       'Invite Code Input + 📷 Escanear QR Button (QRScannerModal)',
-      'Entrar como Invitado (Solo Anotar) Button',
+      'Solo Contar Puntos Button (guest scoresheet)',
       'Legal Links Footer (Términos, Privacidad, Reglas, Contacto)',
     ],
   },
@@ -368,7 +371,7 @@ const RAW_NODES = [
     route: 'setup',
     community: 'gameplay_live_screens',
     file: 'src/screens/SetupScreen.tsx',
-    role: 'Configures a new domino match: Team (2v2) or Individual mode, 4 player slots with search & on-the-fly guest profile creation, target score (100/200), 2-step Salida/Mano rotation selector, and VIP Wager match toggle (is_wager_match, wager_amount).',
+    role: 'Configures a new domino match: 2v2 teams only (the club decided Individual stays off; mode is fixed to teams), 4 player slots with search, target score (50/100/150/200/500), 2-step Salida/Mano rotation selector, and Duelo VIP proposal (accepted by all 4 players).',
     propsContract: [
       'onStartMatch: (mode, t1Name, t2Name, limitScore, players, t1Profiles, t2Profiles, isWagerMatch, wagerAmount) => void',
       'onCancel?: () => void',
@@ -377,10 +380,9 @@ const RAW_NODES = [
       'currentUserId?: string | null',
     ],
     uiElements: [
-      'Mode Selector (Equipos 2 vs 2 / Individual)',
-      '4 Player Slots with Searchable Player Picker Modal + Add Guest Input',
+            '4 Player Slots with Searchable Player Picker Modal + Add Guest Input',
       '2-Step Salida & Derecha Order Configurator (sets turn sequence)',
-      'Target Score Selector (100 pts / 200 pts)',
+      'Target Score Selector (50 / 100 / 150 / 200 / 500)',
       '💰 Apuesta de Puntos VIP Toggle & Amount Input (50 / 100 / 250 / Custom)',
     ],
   },
@@ -541,7 +543,7 @@ const RAW_NODES = [
     type: 'component',
     community: 'ui_components',
     file: 'src/components/ProgressChart.tsx',
-    role: 'Displays animated horizontal progress bars comparing Team 1 and Team 2 totals against the target limitScore (100/200).',
+    role: 'Displays animated horizontal progress bars comparing Team 1 and Team 2 totals against the target limitScore.',
   },
   {
     id: 'src/components/MatchGraph.tsx',
@@ -615,7 +617,7 @@ const RAW_NODES = [
     label: 'Table: public.profiles',
     type: 'db_table',
     community: 'database_sql',
-    role: 'Stores user profiles, betting_points, inventory, equipped_items, achievements, streak_count, last_streak_date, and is_admin.',
+    role: 'Stores user profiles, betting_points, inventory, equipped_items, achievements, streak_count, last_streak_update_at, and is_admin.',
   },
   {
     id: 'db:matches',
@@ -714,7 +716,7 @@ const RAW_NODES = [
     label: 'RPC: verify_admin_pin (SECURITY DEFINER)',
     type: 'db_rpc',
     community: 'database_sql',
-    role: 'Verifies the secret admin PIN server-side and persists is_admin (fix_admin_pin_rpc.sql).',
+    role: 'Verifies the secret admin PIN server-side and persists is_admin (fix_admin_pin.sql).',
   },
   {
     id: 'rpc:delete_user_account',
@@ -906,6 +908,91 @@ fs.readdirSync(ROOT)
     });
   });
 
+// Everything below is discovered from the code, so new files, tables and RPCs can't go missing.
+const walkDir = (dir) =>
+  fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true }).flatMap((e) => {
+    const rel = path.join(dir, e.name);
+    return e.isDirectory() ? walkDir(rel) : [rel];
+  });
+const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
+
+const FILE_ROLES = {
+  'src/components/WagerConsent.tsx':
+    'WagerConsentPrompt (60s accept/decline shown on each of the 4 phones, mounted globally in App.tsx) and WagerStatusBanner (live proposal state in GameScreen). Reads wager_consents via realtime; writes only through respond_wager.',
+  'src/lib/webAlert.ts':
+    'Maps Alert.alert to window.alert/confirm on web (react-native-web ships it empty). Imported first in index.ts; with 3+ buttons only the main and cancel actions survive.',
+};
+const NODE_KIND_BY_DIR = [
+  ['src/screens/', 'screen', 'gameplay_live_screens'],
+  ['src/components/', 'component', 'ui_components'],
+  ['src/lib/', 'service', 'backend_services'],
+];
+const graphedFiles = new Set(RAW_NODES.map((n) => n.file).filter(Boolean));
+CODE_FILES.filter((f) => !graphedFiles.has(f)).forEach((f) => {
+  const [, type, community] = NODE_KIND_BY_DIR.find(([dir]) => f.startsWith(dir)) || [null, 'code_file', 'core_router'];
+  RAW_NODES.push({
+    id: f,
+    label: path.basename(f),
+    type,
+    community,
+    file: f,
+    role: FILE_ROLES[f] || 'Auto-discovered file: describe it in FILE_ROLES.',
+  });
+});
+
+const codeRefs = { tables: new Set(), buckets: new Set(), rpcs: new Set() };
+CODE_FILES.forEach((f) => {
+  const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
+  for (const m of text.matchAll(/storage\s*\.from\(\s*['"`]([a-z0-9_]+)/g)) codeRefs.buckets.add(m[1]);
+  for (const m of text.matchAll(/\.from\(\s*['"`]([a-z0-9_]+)['"`]\s*\)/g)) codeRefs.tables.add(m[1]);
+  for (const m of text.matchAll(/\.rpc\(\s*['"`]([a-z0-9_]+)['"`]/g)) codeRefs.rpcs.add(m[1]);
+});
+codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
+
+const RPC_ROLES = {
+  propose_wager: 'Sends the VIP wager proposal to the 4 players (60s). Match must be unstarted.',
+  respond_wager: 'One player accepts/declines; on 4 accepts it re-checks balances and activates the wager.',
+  award_zapatero_maestro: 'Grants the Zapatero Maestro achievement after the server counts 3 zapatos given.',
+  invite_tournament_partner: 'Invites a partner; updates both participant rows and confirms crossed invitations.',
+  respond_tournament_partner: 'Accepts or rejects a pending tournament partner invitation.',
+  start_tournament: 'Creator/admin starts: pairs duos, builds round 1 and live matches.',
+  expire_tournament_registration: 'After 5 minutes starts the tournament or cancels and refunds.',
+};
+const TABLE_ROLES = {
+  wager_consents: 'One row per player/match for the VIP wager consent (status, team, expires_at). Written only by RPCs.',
+};
+const graphedIds = new Set(RAW_NODES.map((n) => n.id));
+codeRefs.tables.forEach((t) => {
+  if (graphedIds.has(`db:${t}`)) return;
+  RAW_NODES.push({ id: `db:${t}`, label: t, type: 'db_table', community: 'database_sql', role: TABLE_ROLES[t] || 'Auto-discovered table.' });
+});
+codeRefs.rpcs.forEach((r) => {
+  if (graphedIds.has(`rpc:${r}`)) return;
+  RAW_NODES.push({ id: `rpc:${r}`, label: r, type: 'db_rpc', community: 'database_sql', role: RPC_ROLES[r] || 'Auto-discovered RPC.' });
+});
+
+// What the SQL in this repo defines, and what each script is safe for
+const SQL_FILES = fs.readdirSync(ROOT).filter((f) => f.endsWith('.sql'));
+const sqlDefines = { functions: new Set(), tables: new Set() };
+SQL_FILES.forEach((f) => {
+  const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
+  for (const m of text.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z0-9_]+)/gi)) sqlDefines.functions.add(m[1].toLowerCase());
+  for (const m of text.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?([a-z0-9_]+)/gi)) sqlDefines.tables.add(m[1].toLowerCase());
+});
+const schemaDrift = {
+  rpcsNotInRepoSql: [...codeRefs.rpcs].filter((r) => !sqlDefines.functions.has(r)).sort(),
+  tablesNotInRepoSql: [...codeRefs.tables].filter((t) => !sqlDefines.tables.has(t)).sort(),
+};
+const SQL_STATUS = {
+  'fix_admin_pin_rpc.sql': 'OBSOLETE: never run (replaced by fix_admin_pin.sql)',
+  'delete_account_rpc.sql': 'OBSOLETE: never run (replaced by fix_delete_account.sql)',
+  'supabase_maintenance_fix.sql': 'SUPERSEDED: re-running reopens policies and grants closed by fix_points_security.sql',
+  'supabase_security_hardening.sql': 'SUPERSEDED: re-running replaces the profile protection trigger with its weaker version',
+};
+RAW_NODES.forEach((n) => {
+  if (n.type === 'sql_script' && SQL_STATUS[n.file]) n.sqlStatus = SQL_STATUS[n.file];
+});
+
 // Enrich file-backed nodes with live static analysis
 const NODES = RAW_NODES.map((node) => {
   if (node.file) {
@@ -1010,7 +1097,45 @@ const EDGES = [
   { source: 'src/screens/SplashAdScreen.tsx', target: 'db:ads', relation: 'fetches_active_ads' },
 ];
 
+// Data edges come from the code itself
+const nodeIds = new Set(NODES.map((n) => n.id));
+const edgeKeys = new Set(EDGES.map((e) => `${e.source}>${e.target}`));
+const addDerivedEdge = (source, target, relation) => {
+  const key = `${source}>${target}`;
+  if (edgeKeys.has(key) || !nodeIds.has(target)) return;
+  edgeKeys.add(key);
+  EDGES.push({ source, target, relation, derived: true });
+};
+NODES.filter((n) => n.file && CODE_FILES.includes(n.file)).forEach((n) => {
+  (n.supabaseTables || []).forEach((t) => {
+    addDerivedEdge(n.id, codeRefs.buckets.has(t) ? `storage:${t}` : `db:${t}`, 'uses_table');
+  });
+  (n.supabaseRpcs || []).forEach((r) => addDerivedEdge(n.id, `rpc:${r}`, 'calls_rpc'));
+  (n.imports || []).forEach((imp) => {
+    if (!imp.startsWith('.')) return;
+    const base = path.normalize(path.join(path.dirname(n.file), imp));
+    const target = [`${base}.ts`, `${base}.tsx`].find((c) => nodeIds.has(c));
+    if (target) addDerivedEdge(n.id, target, 'imports');
+  });
+});
+
 const HYPEREDGES = [
+  {
+    id: 'hyperedge_wager_consent',
+    name: 'VIP Wager Consent & Settlement',
+    nodes: [
+      'App.tsx',
+      'src/components/WagerConsent.tsx',
+      'src/screens/GameScreen.tsx',
+      'rpc:propose_wager',
+      'rpc:respond_wager',
+      'db:wager_consents',
+      'db:matches',
+      'db:profiles',
+    ],
+    description:
+      'The match starts without a wager; propose_wager asks the 4 players, respond_wager activates it when all accept in time, and resolve_match_wagers settles between those 4 even after substitutions.',
+  },
   {
     id: 'hyperedge_offline_match_lifecycle',
     name: 'Offline-First Match Creation, Scorepad Play & Outbox Flush Pipeline',
@@ -1056,7 +1181,7 @@ const HYPEREDGES = [
   },
   {
     id: 'hyperedge_betting_and_wager_settlement',
-    name: 'Spectator Odds Betting, VIP Match Wagers & Triple-Redundant Payout Settlement',
+    name: 'Spectator Odds Betting, VIP Match Wagers & Server-Side Payout Settlement',
     nodes: [
       'src/screens/LiveMatchScreen.tsx',
       'src/screens/SetupScreen.tsx',
@@ -1108,7 +1233,7 @@ const HYPEREDGES = [
 ];
 
 const QA_MATRIX = {
-  version: '3.0.0-full-system',
+  version: GRAPHIFY_VERSION,
   targetAgent: 'Claude Code (Frontend Design, Visual Polish & E2E QA)',
   backendBrain: 'Antigravity (Backend Architecture, SQL, Offline Sync, Realtime & Betting Engine)',
   runtimeBridgeObject: 'window.__DOMINO_GRAPHIFY__',
@@ -1147,7 +1272,7 @@ const QA_MATRIX = {
       steps: [
         'Verify Login, Register, and Forgot Password mode toggles.',
         'In Register mode, test invite code validation (valid codes: CAFETIN, PESIMISTAS, DOMINO, 0509, VIP) and open the 📷 Escanear QR modal.',
-        'Test "Entrar como Invitado (Solo Anotar)" and verify direct navigation to SetupScreen.',
+        'Test "🎲 Solo Contar Puntos" and verify direct navigation to SetupScreen in guest mode (no 4-slot picker, no Duelo VIP).',
         'Click footer legal links to verify LegalModal opens on the selected tab.',
       ],
     },
@@ -1182,7 +1307,7 @@ const QA_MATRIX = {
       screenOrModule: 'SetupScreen (route: setup)',
       file: 'src/screens/SetupScreen.tsx',
       navigateCommand: "window.__DOMINO_GRAPHIFY__.navigate('setup')",
-      focus: '2v2 & Individual Setup, Salida/Mano Order & VIP Wager Match',
+      focus: '2v2 Setup, Salida/Mano Order & VIP Wager Proposal',
       steps: [
         'Select 4 players for Team 1 and Team 2 (or create a guest player on the fly).',
         'Test the 2-step "¿Quién sale en la primera ronda?" and "¿Quién está a la derecha?" selector and verify the 1-2-3-4 turn order preview.',
@@ -1283,15 +1408,40 @@ const QA_MATRIX = {
         'Verify equipped titles, borders, and RainbowText render on sender badges.',
       ],
     },
+    {
+      id: 'QA-15',
+      screenOrModule: 'WagerConsent (SetupScreen, GameScreen, global prompt)',
+      file: 'src/components/WagerConsent.tsx',
+      navigateCommand: "window.__DOMINO_GRAPHIFY__.navigate('setup')",
+      focus: 'Consent of the 4 players, timeout, declined and scored-first paths',
+      steps: [
+        'Use 4 throwaway accounts on 4 sessions and turn Duelo VIP on in SetupScreen.',
+        'Verify the 60s prompt reaches the other 3 phones and WagerStatusBanner tracks each answer.',
+        'Verify a decline, a timeout, and scoring the first hand all leave the match without a wager.',
+        'Verify a wager with a substitute settles between the 4 who accepted.',
+      ],
+    },
+    {
+      id: 'QA-16',
+      screenOrModule: 'Account Deletion (ProfileScreen)',
+      file: 'src/screens/ProfileScreen.tsx',
+      navigateCommand: "window.__DOMINO_GRAPHIFY__.navigate('profile')",
+      focus: 'delete_user_account: full delete and anonymize paths',
+      steps: [
+        'Throwaway account without history: confirm the profile and login are gone.',
+        'Throwaway account with one match: confirm "Jugador eliminado", no photo or points, and blocked login.',
+      ],
+    },
   ],
 };
 
 const GRAPH_DATA = {
   metadata: {
     project: 'Domino VIP (PeSiMistas)',
-    version: '3.0.0-full-system',
+    version: GRAPHIFY_VERSION,
     generatedAt: new Date().toISOString(),
     generator: 'scripts/graphify.js (Full-System AST/Regex Analyzer)',
+    schemaDrift,
     summary: {
       totalCommunities: COMMUNITIES.length,
       totalNodes: NODES.length,
@@ -1314,19 +1464,91 @@ const GRAPH_DATA = {
 fs.writeFileSync(path.join(OUT_DIR, 'graph.json'), JSON.stringify(GRAPH_DATA, null, 2), 'utf8');
 fs.writeFileSync(path.join(OUT_DIR, 'qa_matrix.json'), JSON.stringify(QA_MATRIX, null, 2), 'utf8');
 
-// Run 12 Full-System Verification Checks
+// GRAPH_REPORT.md: the block between the markers is always rewritten
+const typeCount = (t) => NODES.filter((n) => n.type === t).length;
+const summaryRows = [
+  ['System Communities', COMMUNITIES.length],
+  ['Total Graph Nodes', NODES.length],
+  ['Directed Edges', `${EDGES.length} (${EDGES.filter((e) => e.derived).length} derived from code)`],
+  ['System Hyperedges', HYPEREDGES.length],
+  ['Screens', typeCount('screen')],
+  ['Components', typeCount('component')],
+  ['Services', typeCount('service')],
+  ['DB Tables & Buckets', typeCount('db_table')],
+  ['DB RPCs', typeCount('db_rpc')],
+  ['SQL Scripts', typeCount('sql_script')],
+  ['QA Test Suites', QA_MATRIX.suites.length],
+];
+const autoBlock = [
+  '| Metric | Count |',
+  '| :--- | :---: |',
+  ...summaryRows.map(([k, v]) => `| **${k}** | **${v}** |`),
+  '',
+  '**RPCs called by the app:** ' + [...codeRefs.rpcs].sort().map((r) => `\`${r}\``).join(', '),
+  '',
+  '**Tables used by the app:** ' + [...codeRefs.tables].sort().map((t) => `\`${t}\``).join(', '),
+  '',
+  '**Called by the app, but no definition in this repo\'s SQL:** ' +
+    ([...schemaDrift.rpcsNotInRepoSql, ...schemaDrift.tablesNotInRepoSql].map((x) => `\`${x}\``).join(', ') || 'none'),
+  '',
+  '**SQL scripts with restrictions:**',
+  ...Object.entries(SQL_STATUS).map(([file, status]) => `- \`${file}\`: ${status}`),
+].join('\n');
+
+const artifactProblems = [];
+const replaceBetween = (file, start, end, body) => {
+  const abs = path.join(OUT_DIR, file);
+  const text = fs.readFileSync(abs, 'utf8');
+  const a = text.indexOf(start);
+  const b = text.indexOf(end);
+  if (a < 0 || b < a) {
+    artifactProblems.push(`${file}: markers not found`);
+    return null;
+  }
+  return text.slice(0, a + start.length) + body + text.slice(b);
+};
+const report = replaceBetween('GRAPH_REPORT.md', '<!-- GRAPHIFY:AUTO:START -->', '<!-- GRAPHIFY:AUTO:END -->', `\n${autoBlock}\n`);
+if (report) fs.writeFileSync(path.join(OUT_DIR, 'GRAPH_REPORT.md'), report, 'utf8');
+
+// graph.html: same data as graph.json, escaped so a label can't close the script tag
+const toJs = (value) => JSON.stringify(value).replace(/</g, '\\u003c');
+const htmlData = [
+  `const COMMUNITIES = ${toJs(COMMUNITIES.map(({ id, name, color }) => ({ id, name, color })))};`,
+  `const NODES = ${toJs(NODES.map((n) => ({ id: n.id, label: n.label.replace(/\s*\(.*\)$/, ''), community: n.community, role: n.role || '' })))};`,
+  `const EDGES = ${toJs(EDGES.filter((e) => !e.derived).map((e) => [e.source, e.target]))};`,
+  `const HYPEREDGES = ${toJs(HYPEREDGES.map((h) => ({ name: h.name, desc: h.description })))};`,
+  `const QA_SUITES = ${toJs(QA_MATRIX.suites.map((q) => ({ id: `${q.id}: ${q.screenOrModule}`, cmd: q.navigateCommand, items: q.steps })))};`,
+].join('\n    ');
+let html = replaceBetween('graph.html', '/* GRAPHIFY:DATA:START */', '/* GRAPHIFY:DATA:END */', `\n    ${htmlData}\n    `);
+if (html) {
+  html = html
+    .replace(/\d+ Communities • [^<]*/, `${COMMUNITIES.length} Communities • ${NODES.length} Nodes • ${EDGES.length} Directed Edges • ${HYPEREDGES.length} Hyperedges • ${QA_MATRIX.suites.length} Claude Code QA Suites`)
+    .replace(/Graphify Explorer \(v[^)]*\)/, `Graphify Explorer (v${GRAPHIFY_VERSION})`)
+    .replace(/<span class="badge">[^<]*<\/span>/, `<span class="badge">v${GRAPHIFY_VERSION}</span>`);
+  fs.writeFileSync(path.join(OUT_DIR, 'graph.html'), html, 'utf8');
+}
+
+// Full-System Verification Checks
 const checks = [
   {
     name: `All Screens Indexed & Present (${NODES.filter((n) => n.type === 'screen').length})`,
     ok: NODES.filter((n) => n.type === 'screen').every((n) => n.exists),
   },
   {
-    name: 'All 5 Reusable UI Components Indexed & Present',
-    ok: NODES.filter((n) => n.type === 'component' && n.exists).length === 5,
+    name: `Every Code File Indexed (${CODE_FILES.length} files, ${typeCount('component')} components, ${typeCount('service')} services)`,
+    ok: CODE_FILES.every((f) => NODES.some((n) => n.file === f && n.exists)) && !NODES.some((n) => /Auto-discovered (file|RPC|table)/.test(n.role || '')),
   },
   {
-    name: 'All 7 Backend/Offline/Realtime/QA Services Indexed & Present',
-    ok: NODES.filter((n) => n.type === 'service' && n.exists).length === 7,
+    name: 'Every Table, Bucket & RPC Used by the App Is in the Graph',
+    ok: [...codeRefs.tables].every((t) => nodeIds.has(`db:${t}`)) && [...codeRefs.buckets].every((b) => nodeIds.has(`storage:${b}`)) && [...codeRefs.rpcs].every((r) => nodeIds.has(`rpc:${r}`)),
+  },
+  {
+    name: 'Every Edge & Hyperedge Points at a Real Node',
+    ok: EDGES.every((e) => nodeIds.has(e.source) && nodeIds.has(e.target)) && HYPEREDGES.every((h) => h.nodes.every((id) => nodeIds.has(id))),
+  },
+  {
+    name: 'GRAPH_REPORT.md & graph.html Regenerated',
+    ok: artifactProblems.length === 0,
   },
   {
     name: `Supabase Tables & Buckets Mapped (${NODES.filter((n) => n.type === 'db_table').length})`,
@@ -1357,7 +1579,7 @@ const checks = [
     ok: inspectFile('src/lib/graphifyBridge.ts').exists,
   },
   {
-    name: 'Offline-First Service Worker v3 Active (public/sw.js)',
+    name: `Offline-First Service Worker Active (public/sw.js, cache ${(fs.readFileSync(path.join(ROOT, 'public/sw.js'), 'utf8').match(/CACHE_NAME = '([^']+)'/) || [])[1]})`,
     ok: inspectFile('public/sw.js').exists,
   },
   {
@@ -1367,7 +1589,7 @@ const checks = [
 ];
 
 console.log('======================================================================');
-console.log(' 🎲 DOMINO VIP (PeSiMistas) — FULL-SYSTEM GRAPHIFY REPORT (v3.0.0)');
+console.log(` 🎲 DOMINO VIP (PeSiMistas) — FULL-SYSTEM GRAPHIFY REPORT (v${GRAPHIFY_VERSION})`);
 console.log('======================================================================');
 console.log(` • Communities : ${GRAPH_DATA.metadata.summary.totalCommunities}`);
 console.log(` • Total Nodes : ${GRAPH_DATA.metadata.summary.totalNodes} (${['screen', 'component', 'service', 'db_table', 'db_rpc', 'sql_script', 'config_file'].map((t) => `${NODES.filter((n) => n.type === t).length} ${t}`).join(', ')})`);
@@ -1380,6 +1602,12 @@ for (const c of checks) {
   if (!c.ok) allPassed = false;
   console.log(` ${icon} ${c.name}`);
 }
+if (schemaDrift.rpcsNotInRepoSql.length || schemaDrift.tablesNotInRepoSql.length) {
+  console.log('----------------------------------------------------------------------');
+  console.log(' ⚠️  Used by the app, but not defined in this repo\'s SQL (production only):');
+  [...schemaDrift.rpcsNotInRepoSql, ...schemaDrift.tablesNotInRepoSql].forEach((x) => console.log(`    • ${x}`));
+}
+artifactProblems.forEach((p) => console.log(` ❌ ${p}`));
 console.log('----------------------------------------------------------------------');
 console.log(' 📁 Generated Artifacts:');
 console.log('    • graphify-out/graph.json');

@@ -2,20 +2,22 @@
 
 ## 1. Agent Role Division
 - **Antigravity (Backend & Core Architecture Brain)**: Owns Supabase PostgreSQL schema & migrations ([`supabase_maintenance_fix.sql`](file:///home/lya/proyectos/Domino/supabase_maintenance_fix.sql)), Offline-First Outbox & SWR Caching ([`src/lib/offlineSync.ts`](file:///home/lya/proyectos/Domino/src/lib/offlineSync.ts)), Sub-100ms Hybrid WebSocket Broadcast + Postgres Realtime ([`src/lib/realtimeManager.ts`](file:///home/lya/proyectos/Domino/src/lib/realtimeManager.ts)), Atomic Betting & Self-Healing Payout Engine ([`src/lib/bettingService.ts`](file:///home/lya/proyectos/Domino/src/lib/bettingService.ts)), Pedir Mesa Queue Service ([`src/lib/waitlistService.ts`](file:///home/lya/proyectos/Domino/src/lib/waitlistService.ts)), and the Runtime Graphify Bridge ([`src/lib/graphifyBridge.ts`](file:///home/lya/proyectos/Domino/src/lib/graphifyBridge.ts)).
-- **Claude Code (Frontend Design, Visual Polish & E2E Testing Agent)**: Owns UI/UX polish, responsive layout inspection, component styling, and E2E verification across all 11 screens and 5 reusable components using the **Full-System Graphify** artifacts and `window.__DOMINO_GRAPHIFY__`.
+- **Claude Code (Frontend Design, Visual Polish & E2E Testing Agent)**: Owns UI/UX polish, responsive layout inspection, component styling, and E2E verification across all screens and reusable components using the **Full-System Graphify** artifacts and `window.__DOMINO_GRAPHIFY__`.
 
 ---
 
 ## 2. Always Start With the Full-System Graphify Artifacts
 Before running broad file searches, read the pre-indexed Full-System Graphify suite:
-1. **[`graphify-out/GRAPH_REPORT.md`](file:///home/lya/proyectos/Domino/graphify-out/GRAPH_REPORT.md)**: Exhaustive architectural manual covering all **8 system communities**, **13 routes**, **11 screens**, **5 components**, **7 services**, **11 database tables**, **4 RPCs**, **8 local storage keys**, and **navigation state machine**.
-2. **[`graphify-out/graph.json`](file:///home/lya/proyectos/Domino/graphify-out/graph.json)**: Machine-readable knowledge graph (`51 nodes`, `49 directed edges`, `6 hyperedges`) with exact props contracts, Supabase tables touched, RPCs invoked, storage keys, and sound effects per file.
-3. **[`graphify-out/qa_matrix.json`](file:///home/lya/proyectos/Domino/graphify-out/qa_matrix.json)**: Complete 14-suite E2E & Visual QA test matrix (`QA-01` through `QA-14`) with exact programmatic navigation commands.
+1. **[`graphify-out/GRAPH_REPORT.md`](file:///home/lya/proyectos/Domino/graphify-out/GRAPH_REPORT.md)**: Exhaustive architectural manual covering all the system communities, routes, screens, components, services, tables, RPCs, and navigation state machine (live counts at the top of the report).
+2. **[`graphify-out/graph.json`](file:///home/lya/proyectos/Domino/graphify-out/graph.json)**: Machine-readable knowledge graph with exact props contracts, Supabase tables touched, RPCs invoked, storage keys, and sound effects per file.
+3. **[`graphify-out/qa_matrix.json`](file:///home/lya/proyectos/Domino/graphify-out/qa_matrix.json)**: E2E & Visual QA test matrix with exact programmatic navigation commands.
 4. **[`graphify-out/graph.html`](file:///home/lya/proyectos/Domino/graphify-out/graph.html)**: Interactive visual knowledge graph & QA matrix explorer.
 5. **Regenerate / Verify Graph Anytime**:
    ```bash
    npm run graphify
    ```
+   It auto-discovers new files, tables and RPCs, rewrites all four artifacts, and exits 1 if anything is left out.
+6. **Type check**: use `npm run typecheck` (plain `npx tsc` overflows the stack on this project).
 
 ---
 
@@ -33,6 +35,7 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 - [`src/lib/realtimeManager.ts`](file:///home/lya/proyectos/Domino/src/lib/realtimeManager.ts) — Singleton `domino_waitlist_calls` channel + per-match `sync_match_<id>` hybrid broadcast/Postgres channel.
 - [`src/lib/bettingService.ts`](file:///home/lya/proyectos/Domino/src/lib/bettingService.ts) — `placeMatchBet`, `settleMatchBetsAndWagers`, and `reconcileUserPendingBets`.
 - [`src/lib/waitlistService.ts`](file:///home/lya/proyectos/Domino/src/lib/waitlistService.ts) — `fetchActiveWaitlist`, `joinOrUpdateWaitlist`, `removeWaitlistEntry`, `callWaitlistDuo`.
+- [`src/lib/webAlert.ts`](file:///home/lya/proyectos/Domino/src/lib/webAlert.ts) — `Alert.alert` on web.
 - [`src/lib/sounds.ts`](file:///home/lya/proyectos/Domino/src/lib/sounds.ts) — Audio feedback (`pop`, `slap`, `clap`, `chaching`) + mute toggle.
 - [`src/lib/graphifyBridge.ts`](file:///home/lya/proyectos/Domino/src/lib/graphifyBridge.ts) — Mounts `window.__DOMINO_GRAPHIFY__`.
 
@@ -43,12 +46,12 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 
 ### Community 4: Gameplay & Spectator Live Screens
 - [`src/screens/HomeScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/HomeScreen.tsx) (`route: 'home'`) — Club dashboard, daily streak (`+10 pts` at 7am), Pedir Mesa queue, and Individual/Duo rankings (`Hoy`/`Semana`/`Histórico`).
-- [`src/screens/SetupScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/SetupScreen.tsx) (`route: 'setup'`) — 2v2/Individual setup, 2-step Salida/Mano turn order, and VIP Wager toggle.
+- [`src/screens/SetupScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/SetupScreen.tsx) (`route: 'setup'`) — 2v2 setup (Individual stays off), 2-step Salida/Mano turn order, and VIP Wager toggle.
 - [`src/screens/GameScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/GameScreen.tsx) (`route: 'game'`) — Two-column scorepad, Mano indicator, substitutions (50-pt rule), Winner modal, Zapato `👟`, view-shot share, and "Llamar Siguiente Dúo".
 - [`src/screens/LiveMatchScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/LiveMatchScreen.tsx) (`route: 'live'`) — Real-time spectator scoreboard, dynamic odds betting (`1.20x - 3.50x`), Pedir Mesa modal, and `live_chat`.
 
 ### Community 5: Social, Economy, Achievements, Leaderboards & Tournaments
-- [`src/screens/ProfileScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/ProfileScreen.tsx) (`route: 'profile'`) — Stats, expandable VAR `MatchGraph`, Rivals, Duos, last 10 Bets, QR Invite Pass, and secret Admin PIN (`5 taps on avatar -> 0509`).
+- [`src/screens/ProfileScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/ProfileScreen.tsx) (`route: 'profile'`) — Stats, expandable VAR `MatchGraph`, Rivals, Duos, last 10 Bets, QR Invite Pass, and secret Admin PIN (7 taps on the avatar, checked on the server).
 - [`src/screens/StoreScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/StoreScreen.tsx) (`route: 'store'`) — 14 VIP cosmetics + 250,000-pt Custom Title creator.
 - [`src/screens/AchievementsScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/AchievementsScreen.tsx) (`route: 'achievements'`) — 50 unlockable achievements with point rewards.
 - [`src/screens/LeaderboardScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/LeaderboardScreen.tsx) (`route: 'leaderboard'`) — Top 100 `💰 Ricos`, `🏆 Ganadores`, and `🥾 Zapateros`.
@@ -61,6 +64,7 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 - [`src/components/QRScannerModal.tsx`](file:///home/lya/proyectos/Domino/src/components/QRScannerModal.tsx)
 - [`src/components/RainbowText.tsx`](file:///home/lya/proyectos/Domino/src/components/RainbowText.tsx)
 - [`src/components/LegalModal.tsx`](file:///home/lya/proyectos/Domino/src/components/LegalModal.tsx)
+- [`src/components/WagerConsent.tsx`](file:///home/lya/proyectos/Domino/src/components/WagerConsent.tsx)
 
 ---
 

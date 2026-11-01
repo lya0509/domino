@@ -1,4 +1,4 @@
-# Domino VIP (PeSiMistas) — Full-System Graphify Report (`v3.0.0-full-system`)
+# Domino VIP (PeSiMistas) — Full-System Graphify Report (`v3.1.0-full-system`)
 
 > **Target Consumer**: **Claude Code** (Frontend Design, Visual Polish & Automated E2E QA Agent)  
 > **Backend & Architecture Brain**: **Antigravity**  
@@ -11,13 +11,33 @@
 
 ## 1. Full-System Topology Summary
 
-| Metric | Count | Details |
-| :--- | :---: | :--- |
-| **System Communities** | **8** | Core Router, Backend Services, Onboarding/Auth, Gameplay/Live, Social/Economy, UI Components, Database/SQL, PWA/Build |
-| **Total Graph Nodes** | **51** | 11 Screens, 5 Components, 7 Services, 4 Core Files, 11 DB Tables, 4 DB RPCs, 4 SQL Scripts, 5 Config/PWA Files |
-| **Directed Edges** | **49** | Complete routing, component composition, service invocation, and database mutation edges |
-| **System Hyperedges** | **6** | End-to-end multi-node pipelines (Offline Outbox, <100ms Realtime, Pedir Mesa, Betting Payouts, Cosmetics Economy, Tournaments) |
-| **QA Test Suites** | **14** | 100% screen, modal, component, and backend service coverage (`QA-01` through `QA-14`) |
+<!-- GRAPHIFY:AUTO:START -->
+| Metric | Count |
+| :--- | :---: |
+| **System Communities** | **8** |
+| **Total Graph Nodes** | **109** |
+| **Directed Edges** | **188 (108 derived from code)** |
+| **System Hyperedges** | **7** |
+| **Screens** | **13** |
+| **Components** | **6** |
+| **Services** | **8** |
+| **DB Tables & Buckets** | **15** |
+| **DB RPCs** | **22** |
+| **SQL Scripts** | **32** |
+| **QA Test Suites** | **16** |
+
+**RPCs called by the app:** `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `delete_user_account`, `expire_tournament_registration`, `invite_tournament_partner`, `join_tournament_with_points`, `place_bet`, `propose_wager`, `respond_tournament_partner`, `respond_wager`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `update_player_streaks_for_match`, `verify_admin_pin`
+
+**Tables used by the app:** `ads`, `bets`, `duos`, `global_chat`, `live_chat`, `matches`, `profiles`, `system_config`, `tournament_brackets`, `tournament_participants`, `tournaments`, `wager_consents`, `waitlist`
+
+**Called by the app, but no definition in this repo's SQL:** `update_player_streaks_for_match`, `global_chat`, `live_chat`, `system_config`
+
+**SQL scripts with restrictions:**
+- `fix_admin_pin_rpc.sql`: OBSOLETE: never run (replaced by fix_admin_pin.sql)
+- `delete_account_rpc.sql`: OBSOLETE: never run (replaced by fix_delete_account.sql)
+- `supabase_maintenance_fix.sql`: SUPERSEDED: re-running reopens policies and grants closed by fix_points_security.sql
+- `supabase_security_hardening.sql`: SUPERSEDED: re-running replaces the profile protection trigger with its weaker version
+<!-- GRAPHIFY:AUTO:END -->
 
 ---
 
@@ -25,25 +45,26 @@
 
 ### Community 1: Core Router, State Machine & Design System (`core_router`)
 - **[`index.ts`](file:///home/lya/proyectos/Domino/index.ts)**: Expo root entry point (`registerRootComponent(App)`).
-- **[`App.tsx`](file:///home/lya/proyectos/Domino/App.tsx)** (`1,592 lines`): Central state machine managing all **13 `ScreenState` routes** (`splash`, `ad`, `auth`, `home`, `setup`, `game`, `live`, `profile`, `store`, `achievements`, `leaderboard`, `global_chat`, `tournaments`), browser `#hash` history synchronization, version check against `app_config`, password recovery interception, Offline Sync Status Banner, Global Chat/Bet Won animated toast, 30-second Urgent Waitlist Call Modal (`¡A LA MESA!`), and Graphify controller registration (`registerGraphifyControllers`).
+- **[`App.tsx`](file:///home/lya/proyectos/Domino/App.tsx)**: Central state machine managing all **13 `ScreenState` routes** (`splash`, `ad`, `auth`, `home`, `setup`, `game`, `live`, `profile`, `store`, `achievements`, `leaderboard`, `global_chat`, `tournaments`), browser `#hash` history synchronization, version check against `system_config.min_app_version`, password recovery interception, Offline Sync Status Banner, Global Chat/Bet Won animated toast, 30-second Urgent Waitlist Call Modal (`¡A LA MESA!`), and Graphify controller registration (`registerGraphifyControllers`).
 - **[`src/types.ts`](file:///home/lya/proyectos/Domino/src/types.ts)**: Core TypeScript interfaces (`Team`, `GameMode`, `Player`, `Round`, `Substitution`, `Match`, `Profile`).
 - **[`src/theme.ts`](file:///home/lya/proyectos/Domino/src/theme.ts)**: Dark-slate visual design tokens (`background: #0f172a`, `card: #1e293b`, `team1: #3b82f6`, `team2: #10b981`, `accent: #f59e0b`, `error: #ef4444`).
 
 ### Community 2: Backend, Offline Outbox, Realtime & Graphify Services (`backend_services`)
 - **[`src/lib/supabase.ts`](file:///home/lya/proyectos/Domino/src/lib/supabase.ts)**: Singleton `@supabase/supabase-js` client with `AsyncStorage` session persistence and Web URL token detection.
 - **[`src/lib/offlineSync.ts`](file:///home/lya/proyectos/Domino/src/lib/offlineSync.ts)**:
-  - **Stale-While-Revalidate (SWR) Cache**: Instant (<10ms) synchronous and asynchronous access to `profiles` (`@domino_cached_profiles_v1`) and `matches` (`@domino_cached_matches_v1`). `getProfiles()` returns a hybrid `Profile[] & { profiles, profileMap }`.
-  - **Persistent FIFO Offline Outbox (`@domino_offline_queue_v1`)**: Queues `CREATE_MATCH`, `UPDATE_MATCH`, and `COMPLETE_MATCH` operations while offline and flushes them in order when `window.ononline` triggers or `flushQueue()` is called.
+  - **Stale-While-Revalidate (SWR) Cache**: Instant (<10ms) synchronous and asynchronous access to `profiles` (`@domino_cache_profiles_v1`) and `matches` (`@domino_cache_matches_v1`). `getProfiles()` returns a hybrid `Profile[] & { profiles, profileMap }`.
+  - **Persistent FIFO Offline Outbox (`@domino_offline_queue_v1`)**: Queues `UPSERT_MATCH` and `COMPLETE_MATCH` operations while offline and flushes them in order when `window.ononline` triggers or `flushQueue()` is called.
 - **[`src/lib/realtimeManager.ts`](file:///home/lya/proyectos/Domino/src/lib/realtimeManager.ts)**:
   - **Waitlist Channel (`domino_waitlist_calls`)**: Singleton channel multiplexing `call_duo`, `proximity_alert`, `waitlist_refresh` broadcasts and `postgres_changes` on `public.waitlist`.
   - **Match Channel (`sync_match_<matchId>`)**: Combines <100ms WebSocket `broadcast` (`match_update`) with `postgres_changes` (`UPDATE` on `public.matches`).
 - **[`src/lib/bettingService.ts`](file:///home/lya/proyectos/Domino/src/lib/bettingService.ts)**:
-  - `placeMatchBet`: Verifies fresh balance, inserts `pending` bet into `public.bets`, deducts `betting_points` from `public.profiles`, and rolls back if deduction fails.
-  - `settleMatchBetsAndWagers`: Triple-redundant payout engine invoking `SECURITY DEFINER` RPCs (`resolve_match_bets` and `resolve_match_wagers`) + atomic client fallback (`status = 'pending' -> 'won'`) + idempotent VIP match wager transfers.
-  - `reconcileUserPendingBets`: Self-healing reconciler executed on login, `HomeScreen` load, and `ProfileScreen` load so any user with pending winning bets on completed matches immediately receives `FLOOR(amount_wagered * multiplier)` in `profiles.betting_points`.
+  - `placeMatchBet`: Calls the `place_bet` RPC, which checks the balance, sets the multiplier and deducts the points in one transaction. The client cannot write `bets` or `betting_points`.
+  - `settleMatchBetsAndWagers`: Safety net that calls `settle_completed_match`. Settlement really happens in the server trigger when a match row becomes `completed`; the server reads the winner from the match.
+  - `reconcileUserPendingBets`: Calls `settle_my_pending_bets` on login, HomeScreen and ProfileScreen load.
 - **[`src/lib/waitlistService.ts`](file:///home/lya/proyectos/Domino/src/lib/waitlistService.ts)**:
   - `fetchActiveWaitlist`: Queries `public.waitlist` (`status = 'waiting'`) and enriches `player1` and `player2` via `offlineSync` profile cache (eliminating PostgREST foreign-key join failures).
   - `joinOrUpdateWaitlist`, `removeWaitlistEntry`, and `callWaitlistDuo`: Full lifecycle for "✋ Pedir Mesa".
+- **[`src/lib/webAlert.ts`](file:///home/lya/proyectos/Domino/src/lib/webAlert.ts)**: Maps `Alert.alert` to `window.alert`/`confirm` on web.
 - **[`src/lib/sounds.ts`](file:///home/lya/proyectos/Domino/src/lib/sounds.ts)**: Audio manager for `pop.mp3`, `slap.mp3`, `clap.mp3`, and `chaching.mp3` with persistent mute state.
 - **[`src/lib/graphifyBridge.ts`](file:///home/lya/proyectos/Domino/src/lib/graphifyBridge.ts)**: Exposes `window.__DOMINO_GRAPHIFY__` on Web for Claude Code E2E testing, programmatic navigation, UI modal triggers, and live backend diagnostics.
 
@@ -56,17 +77,17 @@
 3. **[`src/screens/AuthScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/AuthScreen.tsx)** (`route: 'auth'`):
    - Modes: `login`, `register`, `forgot_password`, `update_password`.
    - Registration requires a valid Club Invite Code (`CAFETIN`, `PESIMISTAS`, `DOMINO`, `0509`, `VIP`) typed manually, parsed from URL `?invite=`, or scanned via [`QRScannerModal.tsx`](file:///home/lya/proyectos/Domino/src/components/QRScannerModal.tsx).
-   - Includes **Guest Mode ("Entrar como Invitado - Solo Anotar")** and footer links to [`LegalModal.tsx`](file:///home/lya/proyectos/Domino/src/components/LegalModal.tsx).
+   - Includes **Guest Mode ("🎲 Solo Contar Puntos")** and footer links to [`LegalModal.tsx`](file:///home/lya/proyectos/Domino/src/components/LegalModal.tsx).
 
 ### Community 4: Lobby, Match Setup, Scorepad Gameplay & Spectator Live Screens (`gameplay_live_screens`)
 4. **[`src/screens/HomeScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/HomeScreen.tsx)** (`route: 'home'`):
    - **Header & Daily Streak**: Displays avatar, equipped border/title/color, daily streak counter `🔥`, and grants `+10 pts` daily login bonus after 7:00 AM (`last_streak_date`).
    - **Quick Actions Grid**: `🛍️ Tienda`, `🏅 Logros`, `💎 Top Ricos`, `🏆 Torneos VIP`, `💬 Lobby Global`.
-   - **Active & Live Matches**: Rejoin banner for active local match + horizontal list of live club tables (`status = 'playing'`).
+   - **Active & Live Matches**: Rejoin banner for active local match + horizontal list of live club tables (`status = 'active'`).
    - **📋 Lista de Espera ("✋ Pedir Mesa")**: Shows waiting duos in FIFO order with `"✋ Pedir Mesa"` modal, `"🎲 Pasar"` (starts match in `SetupScreen` with waiting duo), `"📢 Llamar"` (triggers 30s urgent alert), and `"✕"` (cancel/remove).
    - **Individual & Duo Rankings**: Filtered by `Hoy`, `Semana`, `Histórico`, computing Win Rate, Puntos Jugados, Zapatos, and dynamic badges (`🥾 Zapatero`, `🤡 Cliente Frecuente`, `🔥 Imparable`).
 5. **[`src/screens/SetupScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/SetupScreen.tsx)** (`route: 'setup'`):
-   - Configures **Equipos (2 vs 2)** or **Individual** matches, 4 searchable player slots + on-the-fly guest profile creation, target score (`100` or `200`), 2-step **Salida/Mano** turn order configurator, and **💰 Apuesta de Puntos VIP** (`is_wager_match`, `wager_amount`).
+   - Configures **Equipos (2 vs 2)** matches (Individual stays off by club decision), 4 searchable player slots, target score (`50/100/150/200/500`), 2-step **Salida/Mano** turn order configurator, and **Duelo VIP**, a proposal that all 4 players must accept (`propose_wager`, `respond_wager`).
 6. **[`src/screens/GameScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/GameScreen.tsx)** (`route: 'game'`):
    - Two-column scorepad with equipped table felt color (`table_color`), rotating **Mano ✋** indicator, [`ProgressChart.tsx`](file:///home/lya/proyectos/Domino/src/components/ProgressChart.tsx), normal/trancado (`🔒`)/empate (`🤝`) round entry, Undo Last Round (`↩`), Mid-Game Player Substitution (`🔄`, enforcing the 50-point rule where a subbed-out player keeps credit only if `teamScoreAtSub >= 50`), proximity alert broadcast at `limitScore - 10`, Winner Celebration Modal with **Zapato 👟** detection (loser score === 0), `react-native-view-shot` receipt sharing, official **Duo (`public.duos`)** registration prompt, and **"🚨 Llamar Siguiente Dúo"**.
 7. **[`src/screens/LiveMatchScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/LiveMatchScreen.tsx)** (`route: 'live'`):
@@ -74,7 +95,7 @@
 
 ### Community 5: Social Profiles, Store, 50 Achievements, Leaderboards & Tournaments (`social_economy_screens`)
 8. **[`src/screens/ProfileScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/ProfileScreen.tsx)** (`route: 'profile'`):
-   - Avatar upload (`avatars` storage bucket), equipped cosmetics, stats summary, **🎟️ Pase de Invitación al Club (QR)**, **Últimas 5 Partidas** with expandable **"📈 El VAR del Dominó"** ([`MatchGraph.tsx`](file:///home/lya/proyectos/Domino/src/components/MatchGraph.tsx)), **Rivalidades** (`😤 Me han ganado más` / `😎 Yo más les he ganado`), **Mis Dúos** (active/inactive toggle), **Mis Apuestas** (last 10 bets), and **Secret Admin PIN Unlock** (tap avatar 5 times -> enter PIN `0509` -> sets `@domino_admin_override = 'true'`).
+   - Avatar upload (`avatars` storage bucket), equipped cosmetics, stats summary, **🎟️ Pase de Invitación al Club (QR)**, **Últimas 5 Partidas** with expandable **"📈 El VAR del Dominó"** ([`MatchGraph.tsx`](file:///home/lya/proyectos/Domino/src/components/MatchGraph.tsx)), **Rivalidades** (`😤 Me han ganado más` / `😎 Yo más les he ganado`), **Mis Dúos** (active/inactive toggle), **Mis Apuestas** (last 10 bets), and **Secret Admin PIN Unlock** (tap the avatar 7 times; the server checks the PIN in `verify_admin_pin` and sets `is_admin`).
 9. **[`src/screens/StoreScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/StoreScreen.tsx)** (`route: 'store'`):
    - 14 cosmetic `STORE_ITEMS` (`title`, `color`, `border`, `table_color`) from `1,000 pts` to `100,000 pts` + **✍️ Custom Title Creator** (`250,000 pts`, max 20 chars).
 10. **[`src/screens/AchievementsScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/AchievementsScreen.tsx)** (`route: 'achievements'`):
@@ -92,14 +113,15 @@
 - **[`src/components/QRScannerModal.tsx`](file:///home/lya/proyectos/Domino/src/components/QRScannerModal.tsx)**: WebRTC camera stream + HTML5 Canvas + `jsQR` + image upload fallback.
 - **[`src/components/RainbowText.tsx`](file:///home/lya/proyectos/Domino/src/components/RainbowText.tsx)**: Animated CSS rainbow gradient text for VIP players.
 - **[`src/components/LegalModal.tsx`](file:///home/lya/proyectos/Domino/src/components/LegalModal.tsx)**: 5-tab legal modal (`terms`, `privacy`, `rules`, `cookies`, `contact`).
+- **[`src/components/WagerConsent.tsx`](file:///home/lya/proyectos/Domino/src/components/WagerConsent.tsx)**: VIP wager prompt on each phone (60s) and status banner in GameScreen.
 
-### Community 7: Supabase Database Schema, 11 Tables, 4 RPCs & Maintenance SQL (`database_sql`)
-- **SQL Scripts**: [`supabase_schema.sql`](file:///home/lya/proyectos/Domino/supabase_schema.sql), [`supabase_maintenance_fix.sql`](file:///home/lya/proyectos/Domino/supabase_maintenance_fix.sql), [`clean_today.sql`](file:///home/lya/proyectos/Domino/clean_today.sql), [`clean_only_tests.sql`](file:///home/lya/proyectos/Domino/clean_only_tests.sql).
-- **11 Database Tables**: `profiles`, `matches`, `waitlist`, `bets`, `duos`, `live_chat`, `global_chat`, `tournaments`, `tournament_participants`, `tournament_brackets`, `ads` (+ optional `app_config`).
-- **4 Database RPCs**: `resolve_match_bets` (`SECURITY DEFINER`), `resolve_match_wagers` (`SECURITY DEFINER`), `update_player_streaks_for_match`, `clean_old_tournaments`.
+### Community 7: Supabase Database Schema, Tables, RPCs & Maintenance SQL (`database_sql`)
+- **SQL Scripts**: all `.sql` files at the repo root are indexed. Which ones are restricted is listed in the summary at the top of this report.
+- **Tables**: the full list used by the app is in the summary at the top of this report.
+- **RPCs**: the full list called by the app is in the summary at the top of this report. `resolve_match_bets` and `resolve_match_wagers` are internal: the app cannot call them.
 
 ### Community 8: PWA Service Worker, Build Pipeline & Deployment Config (`pwa_build_config`)
-- **[`public/sw.js`](file:///home/lya/proyectos/Domino/public/sw.js)**: Offline-First Service Worker (`domino-pwa-v3`, `domino-runtime-v3`).
+- **[`public/sw.js`](file:///home/lya/proyectos/Domino/public/sw.js)**: Offline-First Service Worker (`pesimistas-domino-pwa-v2`).
 - **[`public/manifest.json`](file:///home/lya/proyectos/Domino/public/manifest.json)**, **[`scripts/postbuild.js`](file:///home/lya/proyectos/Domino/scripts/postbuild.js)**, **[`vercel.json`](file:///home/lya/proyectos/Domino/vercel.json)**, **[`package.json`](file:///home/lya/proyectos/Domino/package.json)**, and **[`scripts/graphify.js`](file:///home/lya/proyectos/Domino/scripts/graphify.js)**.
 
 ---
@@ -118,7 +140,7 @@ stateDiagram-v2
     ad --> home: 5s Countdown / Skip (authenticated)
 
     auth --> home: Login / Invite Register Success
-    auth --> setup: Guest Mode ("Entrar como Invitado")
+    auth --> setup: Guest Mode ("Solo Contar Puntos")
 
     home --> setup: "Nueva Partida" OR Waitlist "🎲 Pasar"
     home --> game: "Continuar Partida en Curso"
@@ -131,7 +153,7 @@ stateDiagram-v2
     home --> global_chat: Tap "💬 Lobby Global"
     home --> auth: Logout
 
-    setup --> game: onStartMatch (Team 2v2 or Individual)
+    setup --> game: onStartMatch (Team 2v2)
     setup --> home: onCancel (Authenticated)
     setup --> auth: onCancel (Guest Mode)
 

@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T01:13:00.503Z",
+    "generatedAt": "2026-11-01T01:38:25.082Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [
@@ -1576,8 +1576,8 @@
       "file": "package.json",
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
-      "lines": 50,
-      "bytes": 1543,
+      "lines": 52,
+      "bytes": 1636,
       "exports": [],
       "imports": [],
       "supabaseTables": [],

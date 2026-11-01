@@ -31,6 +31,7 @@
     "react-native-web": "^0.21.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.14",
     "@types/react": "~19.1.10",
     "typescript": "~5.9.2"
   },
@@ -43,7 +44,8 @@
     "export": "expo export --platform web && node scripts/postbuild.js",
     "graphify": "node scripts/graphify.js",
     "typecheck": "node --stack-size=30000 node_modules/typescript/bin/tsc --noEmit",
-    "test": "node --test tests/"
+    "test": "node --test tests/*.test.mjs",
+    "test:db": "node tests/db/permisos.mjs"
   },
   "private": true
 }

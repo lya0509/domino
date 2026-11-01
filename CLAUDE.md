@@ -35,6 +35,7 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 - [`src/lib/realtimeManager.ts`](file:///home/lya/proyectos/Domino/src/lib/realtimeManager.ts) — Singleton `domino_waitlist_calls` channel + per-match `sync_match_<id>` channel, both Postgres Changes only (no Broadcast, which can't prove the sender).
 - [`src/lib/bettingService.ts`](file:///home/lya/proyectos/Domino/src/lib/bettingService.ts) — `placeMatchBet`, `settleMatchBetsAndWagers`, and `reconcileUserPendingBets`.
 - [`src/lib/waitlistService.ts`](file:///home/lya/proyectos/Domino/src/lib/waitlistService.ts) — `fetchActiveWaitlist`, `joinOrUpdateWaitlist`, `removeWaitlistEntry`, `callWaitlistDuo`.
+- [`src/lib/pushNotifications.ts`](file:///home/lya/proyectos/Domino/src/lib/pushNotifications.ts) — Web Push device registration; sending lives in `supabase/functions/send-push`.
 - [`src/lib/webAlert.ts`](file:///home/lya/proyectos/Domino/src/lib/webAlert.ts) — `Alert.alert` on web.
 - [`src/lib/sounds.ts`](file:///home/lya/proyectos/Domino/src/lib/sounds.ts) — Audio feedback (`pop`, `slap`, `clap`, `chaching`) + mute toggle.
 - [`src/lib/graphifyBridge.ts`](file:///home/lya/proyectos/Domino/src/lib/graphifyBridge.ts) — Mounts `window.__DOMINO_GRAPHIFY__`.

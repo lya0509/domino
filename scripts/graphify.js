@@ -922,8 +922,10 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/lib/pushNotifications.ts':
+    'Registers this device for Web Push (permission, PushManager, save_push_subscription) and removes it on logout. The server sends through the send-push Edge Function.',
   'src/components/ClubNotices.tsx':
-    'Global, no UI: toasts while the app is open when a match starts, someone bets, or your duo becomes first in line.',
+    'Global, no UI: toasts while the app is open when a match starts, someone bets, or your duo becomes first in line. Also keeps this device registered for push.',
   'src/components/PointsHistory.tsx':
     'Own-profile list of the last 30 point movements from points_ledger.',
   'src/components/ResultConfirmationPrompt.tsx':
@@ -967,6 +969,8 @@ CODE_FILES.forEach((f) => {
 codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
 
 const RPC_ROLES = {
+  save_push_subscription: 'Registers a device for push notifications under the signed-in user.',
+  remove_push_subscription: 'Removes the signed-in user\'s device from push notifications on logout.',
   finish_expired_match: 'Closes a normal match whose countdown ended; the server checks the time and that nothing is at stake.',
   call_waitlist_duo: 'Someone at a table or an admin calls a duo; the phones listen to the waitlist row the server writes.',
   notify_near_turn: 'A table warns the first duo in line when it is 10 points from the end, using the score stored on the server.',

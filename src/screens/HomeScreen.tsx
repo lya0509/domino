@@ -10,6 +10,7 @@ import { realtimeManager } from '../lib/realtimeManager';
 import { fetchActiveWaitlist, joinOrUpdateWaitlist, removeWaitlistEntry, callWaitlistDuo } from '../lib/waitlistService';
 import { reconcileUserPendingBets } from '../lib/bettingService';
 import { PendingConfirmations } from '../components/PendingConfirmations';
+import { activatePushNotifications } from '../lib/pushNotifications';
 
 interface Props {
   onNewMatch: () => void;
@@ -28,6 +29,8 @@ interface Props {
 
 type RankingPeriod = 'today' | 'week' | 'all';
 type RankingTab = 'individual' | 'duos';
+
+const REFRESH_MS = 15000;
 
 export const HomeScreen: React.FC<Props> = ({
   onNewMatch,
@@ -58,6 +61,7 @@ export const HomeScreen: React.FC<Props> = ({
   );
   const [loading, setLoading] = useState(true);
   const [liveMatches, setLiveMatches] = useState<any[]>([]);
+  const liveMatchesKey = useRef<string | null>(null);
   const [waitlist, setWaitlist] = useState<any[]>([]);
   const [activeUserMatch, setActiveUserMatch] = useState<any | null>(null);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
@@ -444,17 +448,33 @@ export const HomeScreen: React.FC<Props> = ({
 
   // Fetch live matches and subscribe to Realtime
   useEffect(() => {
-    const fetchLiveMatches = async () => {
-      if (!offlineSync.getIsOnline()) return;
+    const fetchLiveMatches = async (): Promise<boolean> => {
+      if (!offlineSync.getIsOnline()) return false;
       const { data } = await supabase
         .from('matches')
         .select('id, status, team1_player1, team1_player2, team2_player1, team2_player2, players_json, team1_total, team2_total, limit_score, game_mode, rounds, substitutions, wager_amount, is_wager_match, tournament_id, created_by')
         .eq('status', 'active');
       setLiveMatches(data || []);
+      const key = (data || []).map((m: any) => `${m.id}:${m.team1_total}:${m.team2_total}`).join('|');
+      const changed = liveMatchesKey.current !== null && liveMatchesKey.current !== key;
+      liveMatchesKey.current = key;
+      return changed;
     };
 
     fetchLiveMatches();
     fetchWaitlist();
+
+    // Realtime drops while a phone sleeps, so this screen also checks by itself
+    const refreshIfChanged = async () => {
+      if (Platform.OS === 'web' && typeof document !== 'undefined' && document.hidden) return;
+      if (await fetchLiveMatches()) fetchData();
+      fetchWaitlist();
+    };
+    const refreshTimer = setInterval(refreshIfChanged, REFRESH_MS);
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', refreshIfChanged);
+      window.addEventListener('focus', refreshIfChanged);
+    }
     // Unique topic per mount: reusing a fixed name returns the old, still-closing channel and .on() throws
 
 
@@ -486,6 +506,11 @@ export const HomeScreen: React.FC<Props> = ({
     });
 
     return () => {
+      clearInterval(refreshTimer);
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', refreshIfChanged);
+        window.removeEventListener('focus', refreshIfChanged);
+      }
       supabase.removeChannel(matchesChannel);
       supabase.removeChannel(waitlistChannel);
       unsubWaitlistBroadcast();
@@ -573,17 +598,9 @@ export const HomeScreen: React.FC<Props> = ({
             <TouchableOpacity
               style={{ backgroundColor: '#2563eb', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
               onPress={() => {
-                if (typeof window !== 'undefined' && 'Notification' in window) {
-                  Notification.requestPermission().then(perm => {
-                    setNotifPermission(perm);
-                    if (perm === 'granted') {
-                      new Notification('✅ Notificaciones Activadas', {
-                        body: 'Te avisaremos de inmediato cuando sea tu turno en la mesa.',
-                        icon: '/favicon.ico'
-                      });
-                    }
-                  });
-                }
+                activatePushNotifications().then((permission) => {
+                  if (permission) setNotifPermission(permission);
+                });
               }}
             >
               <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>Activar</Text>

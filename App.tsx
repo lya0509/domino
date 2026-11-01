@@ -9,6 +9,7 @@ import { GameScreen } from './src/screens/GameScreen';
 import { WagerConsentPrompt } from './src/components/WagerConsent';
 import { ResultConfirmationPrompt } from './src/components/ResultConfirmationPrompt';
 import { ClubNotices } from './src/components/ClubNotices';
+import { removePushSubscription } from './src/lib/pushNotifications';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LiveMatchScreen } from './src/screens/LiveMatchScreen';
@@ -483,16 +484,6 @@ export default function App() {
       const isCalled = currentUserProfileId && (currentUserProfileId === data.p1Id || currentUserProfileId === data.p2Id);
       if (isCalled) {
         sounds.playSound('slap');
-        if (Platform.OS === 'web' && 'Notification' in window && Notification.permission === 'granted') {
-          try {
-            new Notification('🚨 ¡A LA MESA! Tu dúo ha sido llamado', {
-              body: `${data.callerName} te ha llamado a la mesa. ¡Tienes 30 segundos!`,
-              icon: '/favicon.ico'
-            });
-          } catch (e) {
-            console.warn('Notif error', e);
-          }
-        }
 
         const nameOf = (id: string, fallback: string) =>
           offlineSync.getCachedProfilesSync().find((p) => p.id === id)?.display_name || fallback;
@@ -519,17 +510,6 @@ export default function App() {
               '#f59e0b',
               6000
             );
-
-            if (Platform.OS === 'web' && 'Notification' in window && Notification.permission === 'granted') {
-              try {
-                new Notification('⏳ ¡Casi es su turno en Dominó!', {
-                  body: `La partida en la mesa va por ${data.highestScore}/${data.limitScore} pts. ¡Prepárense para entrar!`,
-                  icon: '/favicon.ico'
-                });
-              } catch (e) {
-                console.warn('Notif error', e);
-              }
-            }
           }
         }
       } catch (err) {
@@ -1095,6 +1075,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    await removePushSubscription().catch((e) => console.warn('Push removal failed:', e));
     await supabase.auth.signOut();
     setIsAuthenticated(false);
     setIsGuestMode(false);

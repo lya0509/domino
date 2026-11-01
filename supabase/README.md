@@ -25,10 +25,15 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 | `20261101_07_cola_diaria.sql` | Ejecutada en producción |
 | `20261101_08_confirmacion_todas.sql` | Ejecutada en producción |
 | `20261101_09_confirmacion_1_minuto.sql` | Ejecutada en producción |
+| `20261101_10_notificaciones_push.sql` | Pendiente |
 
 ## Cómo se prueba
 
 `npm run test:db` levanta un Postgres local (PGlite) con la migración base y las nuevas, e imita los roles de Supabase. No toca producción. El esquema base se genera con `npm run baseline` a partir de `archive/`.
+
+## Función de envío
+
+`functions/send-push/` entrega los avisos de `notification_queue`. Necesita los secretos `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY` en Supabase. Se publica sin exigir sesión, porque no recibe datos: solo envía lo que la base de datos dejó en cola.
 
 ## Tareas automáticas de producción
 
@@ -36,6 +41,7 @@ Corren con `pg_cron`, en hora UTC (Venezuela va 4 horas atrás):
 
 - `limpiar_partidas_zombies`, a las 03:00: partidas abiertas por más de 6 horas.
 - `confirmar-partidas-normales`, cada minuto.
+- `enviar-notificaciones`, cada minuto: reenvía lo que quedó en cola.
 - `vencer-rachas`, a las 11:05.
 - `vaciar-cola-diaria`, a las 11:10.
 - `cleanup_global_chat`, a las 00:00: borra el chat global con más de 2 días.

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { realtimeManager } from '../lib/realtimeManager';
 import { fetchActiveWaitlist } from '../lib/waitlistService';
+import { syncPushSubscription } from '../lib/pushNotifications';
 import { sounds } from '../lib/sounds';
 import { betPlacedNotice, firstInLineNotice, matchStartedNotice, Notice } from '../lib/matchRivals';
 
@@ -15,8 +15,8 @@ const NOTICE_COLOR = '#f59e0b';
 const NOTICE_MS = 6000;
 
 /**
- * Club-wide notices while the app is open: a match started, someone bet, you're first in line.
- * With the app closed nothing arrives; that needs real push.
+ * Toasts while the app is open: a match started, someone bet, you're first in line.
+ * The phone's notifications come from the server, so it also keeps this device registered.
  */
 export const ClubNotices = ({ currentUserProfileId, showToast }: Props) => {
   const wasFirst = useRef<boolean | null>(null);
@@ -24,16 +24,11 @@ export const ClubNotices = ({ currentUserProfileId, showToast }: Props) => {
   useEffect(() => {
     if (!currentUserProfileId) return;
 
+    syncPushSubscription().catch((e) => console.warn('Push sync failed:', e));
+
     const announce = ({ title, text }: Notice) => {
       sounds.playSound('pop');
       showToast(title, text, NOTICE_COLOR, NOTICE_MS);
-      if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        try {
-          new Notification(title, { body: text, icon: '/favicon.ico' });
-        } catch (e) {
-          console.warn('Notif error', e);
-        }
-      }
     };
 
     const onBet = async (bet: any) => {

@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T19:54:46.793Z",
+    "generatedAt": "2026-11-01T20:24:59.336Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,14 +10,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 134,
-      "totalEdges": 217,
+      "totalNodes": 138,
+      "totalEdges": 223,
       "totalHyperedges": 7,
       "totalScreens": 13,
       "totalComponents": 10,
-      "totalServices": 10,
+      "totalServices": 11,
       "totalDatabaseTables": 17,
-      "totalDatabaseRpcs": 28,
+      "totalDatabaseRpcs": 30,
       "totalQaSuites": 16
     }
   },
@@ -123,8 +123,8 @@
         "Outdated Version Gate Screen"
       ],
       "exists": true,
-      "lines": 1582,
-      "bytes": 60357,
+      "lines": 1563,
+      "bytes": 59592,
       "exports": [
         "App"
       ],
@@ -140,6 +140,7 @@
         "./src/components/WagerConsent",
         "./src/components/ResultConfirmationPrompt",
         "./src/components/ClubNotices",
+        "./src/lib/pushNotifications",
         "./src/screens/AuthScreen",
         "./src/screens/HomeScreen",
         "./src/screens/LiveMatchScreen",
@@ -616,8 +617,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1424,
-      "bytes": 51969,
+      "lines": 1441,
+      "bytes": 52832,
       "exports": [
         "HomeScreen"
       ],
@@ -633,7 +634,8 @@
         "../lib/realtimeManager",
         "../lib/waitlistService",
         "../lib/bettingService",
-        "../components/PendingConfirmations"
+        "../components/PendingConfirmations",
+        "../lib/pushNotifications"
       ],
       "supabaseTables": [
         "matches",
@@ -1510,8 +1512,8 @@
       "file": "public/sw.js",
       "role": "Caches app shell & static bundles (Cache-First + Stale-While-Revalidate) so the web app boots and plays matches 100% offline.",
       "exists": true,
-      "lines": 71,
-      "bytes": 2179,
+      "lines": 96,
+      "bytes": 2907,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1583,7 +1585,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 53,
-      "bytes": 1838,
+      "bytes": 1864,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1654,8 +1656,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1643,
-      "bytes": 78861,
+      "lines": 1647,
+      "bytes": 79311,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2377,24 +2379,42 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261101_10_notificaciones_push.sql",
+      "label": "20261101_10_notificaciones_push.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261101_10_notificaciones_push.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 315,
+      "bytes": 11724,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/ClubNotices.tsx",
       "label": "ClubNotices.tsx",
       "type": "component",
       "community": "ui_components",
       "file": "src/components/ClubNotices.tsx",
-      "role": "Global, no UI: toasts while the app is open when a match starts, someone bets, or your duo becomes first in line.",
+      "role": "Global, no UI: toasts while the app is open when a match starts, someone bets, or your duo becomes first in line. Also keeps this device registered for push.",
       "exists": true,
-      "lines": 80,
-      "bytes": 3154,
+      "lines": 75,
+      "bytes": 2971,
       "exports": [
         "ClubNotices"
       ],
       "imports": [
         "react",
-        "react-native",
         "../lib/supabase",
         "../lib/realtimeManager",
         "../lib/waitlistService",
+        "../lib/pushNotifications",
         "../lib/sounds",
         "../lib/matchRivals"
       ],
@@ -2477,8 +2497,8 @@
       "file": "src/components/ResultConfirmationPrompt.tsx",
       "role": "Full-screen window mounted in App.tsx: asks the rival team to confirm or reject a finished match, with the 1-minute countdown on normal matches.",
       "exists": true,
-      "lines": 203,
-      "bytes": 8035,
+      "lines": 196,
+      "bytes": 7671,
       "exports": [
         "ResultConfirmationPrompt"
       ],
@@ -2592,6 +2612,34 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/pushNotifications.ts",
+      "label": "pushNotifications.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/pushNotifications.ts",
+      "role": "Registers this device for Web Push (permission, PushManager, save_push_subscription) and removes it on logout. The server sends through the send-push Edge Function.",
+      "exists": true,
+      "lines": 67,
+      "bytes": 2619,
+      "exports": [
+        "syncPushSubscription",
+        "activatePushNotifications",
+        "removePushSubscription"
+      ],
+      "imports": [
+        "react-native",
+        "./supabase"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [
+        "save_push_subscription",
+        "remove_push_subscription"
+      ],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/webAlert.ts",
       "label": "webAlert.ts",
       "type": "service",
@@ -2680,6 +2728,20 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "Closes a normal match whose countdown ended; the server checks the time and that nothing is at stake."
+    },
+    {
+      "id": "rpc:save_push_subscription",
+      "label": "save_push_subscription",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Registers a device for push notifications under the signed-in user."
+    },
+    {
+      "id": "rpc:remove_push_subscription",
+      "label": "remove_push_subscription",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Removes the signed-in user's device from push notifications on logout."
     },
     {
       "id": "rpc:call_waitlist_duo",
@@ -3187,6 +3249,12 @@
     },
     {
       "source": "App.tsx",
+      "target": "src/lib/pushNotifications.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "App.tsx",
       "target": "src/types.ts",
       "relation": "imports",
       "derived": true
@@ -3392,6 +3460,12 @@
     {
       "source": "src/screens/HomeScreen.tsx",
       "target": "src/components/PendingConfirmations.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/pushNotifications.ts",
       "relation": "imports",
       "derived": true
     },
@@ -3817,6 +3891,12 @@
     },
     {
       "source": "src/components/ClubNotices.tsx",
+      "target": "src/lib/pushNotifications.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/ClubNotices.tsx",
       "target": "src/lib/sounds.ts",
       "relation": "imports",
       "derived": true
@@ -3944,6 +4024,24 @@
     {
       "source": "src/components/WagerConsent.tsx",
       "target": "src/lib/offlineSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/pushNotifications.ts",
+      "target": "rpc:save_push_subscription",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/pushNotifications.ts",
+      "target": "rpc:remove_push_subscription",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/pushNotifications.ts",
+      "target": "src/lib/supabase.ts",
       "relation": "imports",
       "derived": true
     }

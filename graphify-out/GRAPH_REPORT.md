@@ -15,18 +15,18 @@
 | Metric | Count |
 | :--- | :---: |
 | **System Communities** | **8** |
-| **Total Graph Nodes** | **134** |
-| **Directed Edges** | **217 (137 derived from code)** |
+| **Total Graph Nodes** | **138** |
+| **Directed Edges** | **223 (143 derived from code)** |
 | **System Hyperedges** | **7** |
 | **Screens** | **13** |
 | **Components** | **10** |
-| **Services** | **10** |
+| **Services** | **11** |
 | **DB Tables & Buckets** | **17** |
-| **DB RPCs** | **28** |
-| **SQL Scripts** | **43** |
+| **DB RPCs** | **30** |
+| **SQL Scripts** | **44** |
 | **QA Test Suites** | **16** |
 
-**RPCs called by the app:** `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `call_waitlist_duo`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `confirm_match_result`, `delete_user_account`, `dispute_match_result`, `expire_tournament_registration`, `finish_expired_match`, `invite_tournament_partner`, `join_tournament_with_points`, `notify_near_turn`, `place_bet`, `propose_wager`, `respond_tournament_partner`, `respond_wager`, `seat_waitlist_entry`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `verify_admin_pin`
+**RPCs called by the app:** `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `call_waitlist_duo`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `confirm_match_result`, `delete_user_account`, `dispute_match_result`, `expire_tournament_registration`, `finish_expired_match`, `invite_tournament_partner`, `join_tournament_with_points`, `notify_near_turn`, `place_bet`, `propose_wager`, `remove_push_subscription`, `respond_tournament_partner`, `respond_wager`, `save_push_subscription`, `seat_waitlist_entry`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `verify_admin_pin`
 
 **Tables used by the app:** `ads`, `bets`, `duos`, `global_chat`, `live_chat`, `matches`, `points_ledger`, `profiles`, `system_config`, `tournament_brackets`, `tournament_participants`, `tournament_payouts`, `tournaments`, `wager_consents`, `waitlist`
 

@@ -68,3 +68,28 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Arrives from the server even with the app closed
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'PeSiMistas', {
+      body: data.body || '',
+      tag: data.tag,
+      renotify: !!data.tag,
+      icon: '/icon.png',
+      badge: '/icon.png',
+      vibrate: [200, 100, 200],
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      if (windows.length > 0) return windows[0].focus();
+      return self.clients.openWindow('/');
+    })
+  );
+});

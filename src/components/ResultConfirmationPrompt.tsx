@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
 import { confirmMatchResult, disputeMatchResult, finishExpiredMatch } from '../lib/bettingService';
@@ -78,13 +78,6 @@ export const ResultConfirmationPrompt: React.FC<{ currentUserProfileId: string |
     if (!match || announced.current.has(match.id)) return;
     announced.current.add(match.id);
     sounds.playSound('slap');
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification('🏁 Confirma el resultado', { body: 'Tu partida terminó. Revisa quién ganó.', icon: '/favicon.ico' });
-      } catch (e) {
-        console.warn('Notif error', e);
-      }
-    }
   }, [match?.id]);
 
   if (!match) return null;

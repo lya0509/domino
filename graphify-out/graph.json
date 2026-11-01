@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T22:57:19.388Z",
+    "generatedAt": "2026-11-01T23:33:45.603Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,12 +10,12 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 154,
-      "totalEdges": 260,
+      "totalNodes": 157,
+      "totalEdges": 266,
       "totalHyperedges": 7,
       "totalScreens": 14,
-      "totalComponents": 14,
-      "totalServices": 14,
+      "totalComponents": 15,
+      "totalServices": 16,
       "totalDatabaseTables": 18,
       "totalDatabaseRpcs": 34,
       "totalQaSuites": 17
@@ -619,8 +619,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1618,
-      "bytes": 59171,
+      "lines": 1586,
+      "bytes": 58169,
       "exports": [
         "HomeScreen"
       ],
@@ -640,7 +640,10 @@
         "../lib/pushNotifications",
         "../lib/tableGames",
         "../components/LiveTableGames",
-        "../components/TableGameRanking"
+        "../components/TableGameRanking",
+        "../components/GameDock",
+        "../lib/gameTabs",
+        "../lib/useGameSwipe"
       ],
       "supabaseTables": [
         "matches",
@@ -1662,8 +1665,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1683,
-      "bytes": 82105,
+      "lines": 1689,
+      "bytes": 82501,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2492,6 +2495,32 @@
       ]
     },
     {
+      "id": "src/components/GameDock.tsx",
+      "label": "GameDock.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/GameDock.tsx",
+      "role": "Home bottom bar with one tab per game. The lit tile slides to the chosen game and takes its colour.",
+      "exists": true,
+      "lines": 129,
+      "bytes": 4569,
+      "exports": [
+        "GameDock"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "react-native-svg",
+        "../theme",
+        "../lib/gameTabs"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/InviteQr.tsx",
       "label": "InviteQr.tsx",
       "type": "component",
@@ -2734,6 +2763,31 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/gameTabs.ts",
+      "label": "gameTabs.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/gameTabs.ts",
+      "role": "The games in the bottom bar and the swipe rules. Covered by tests/gameTabs.test.mjs.",
+      "exists": true,
+      "lines": 39,
+      "bytes": 1605,
+      "exports": [
+        "GameTab",
+        "GAME_TABS",
+        "tabIndex",
+        "isHorizontalSwipe",
+        "tabAfterSwipe",
+        "dragOffset"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/inviteQr.ts",
       "label": "inviteQr.ts",
       "type": "service",
@@ -2905,6 +2959,30 @@
         "isConnectionError"
       ],
       "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/useGameSwipe.ts",
+      "label": "useGameSwipe.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/useGameSwipe.ts",
+      "role": "Swipe between games in Home: the content follows the finger and settles in from the side it came from.",
+      "exists": true,
+      "lines": 64,
+      "bytes": 2228,
+      "exports": [
+        "useGameSwipe"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "./gameTabs"
+      ],
       "supabaseTables": [],
       "supabaseRpcs": [],
       "realtimeChannels": [],
@@ -3846,6 +3924,24 @@
       "derived": true
     },
     {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/components/GameDock.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/gameTabs.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/useGameSwipe.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/screens/SetupScreen.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -4290,6 +4386,18 @@
       "derived": true
     },
     {
+      "source": "src/components/GameDock.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/GameDock.tsx",
+      "target": "src/lib/gameTabs.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/InviteQr.tsx",
       "target": "src/lib/inviteQr.ts",
       "relation": "imports",
@@ -4562,6 +4670,12 @@
     {
       "source": "src/lib/tableGameService.ts",
       "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/useGameSwipe.ts",
+      "target": "src/lib/gameTabs.ts",
       "relation": "imports",
       "derived": true
     },

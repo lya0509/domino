@@ -14,6 +14,9 @@ import { activatePushNotifications } from '../lib/pushNotifications';
 import { TABLE_GAMES, TableGameKind } from '../lib/tableGames';
 import { LiveTableGames } from '../components/LiveTableGames';
 import { TableGameRanking } from '../components/TableGameRanking';
+import { GameDock } from '../components/GameDock';
+import { GAME_TABS, GameTab } from '../lib/gameTabs';
+import { useGameSwipe } from '../lib/useGameSwipe';
 
 interface Props {
   onNewMatch: () => void;
@@ -33,13 +36,7 @@ interface Props {
 
 type RankingPeriod = 'today' | 'week' | 'all';
 type RankingTab = 'individual' | 'duos';
-type GameTab = 'domino' | 'uno' | 'poker';
-
-const GAME_TABS: { key: GameTab; label: string; note?: string }[] = [
-  { key: 'domino', label: '🎲 Dominó' },
-  { key: 'uno', label: '🃏 UNO' },
-  { key: 'poker', label: '♠ Póker', note: 'En proceso' },
-];
+const UNO_COLOR = GAME_TABS[1].color;
 
 // Home unmounts when another screen opens: coming back from a game must land on its tab
 let lastGameTab: GameTab = 'domino';
@@ -72,6 +69,10 @@ export const HomeScreen: React.FC<Props> = ({
   const [allProfiles, setAllProfiles] = useState<Profile[]>(() => offlineSync.getCachedProfilesSync());
   const [rankings, setRankings] = useState<PlayerStats[]>([]);
   const [gameTab, setGameTab] = useState<GameTab>(lastGameTab);
+  const { panHandlers, goTo, contentStyle } = useGameSwipe(gameTab, (tab) => {
+    lastGameTab = tab;
+    setGameTab(tab);
+  });
   const [unoVariant, setUnoVariant] = useState<TableGameKind>('uno');
   const [duoRankings, setDuoRankings] = useState<DuoStats[]>([]);
   const [period, setPeriod] = useState<RankingPeriod>('today');
@@ -535,11 +536,6 @@ export const HomeScreen: React.FC<Props> = ({
     };
   }, [fetchWaitlist, fetchData]);
 
-  const selectGameTab = (tab: GameTab) => {
-    lastGameTab = tab;
-    setGameTab(tab);
-  };
-
   const onRefresh = () => {
     setRefreshing(true);
     fetchWaitlist();
@@ -568,6 +564,7 @@ export const HomeScreen: React.FC<Props> = ({
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.swipeArea} {...panHandlers}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
@@ -780,22 +777,7 @@ export const HomeScreen: React.FC<Props> = ({
 
         <LiveTableGames currentUserProfileId={currentUserProfileId} onOpen={onOpenUno} />
 
-        {/* One tab per game */}
-        <View style={styles.gameTabs} accessibilityRole="tablist">
-          {GAME_TABS.map(({ key, label, note }) => (
-            <TouchableOpacity
-              key={key}
-              style={[styles.gameTab, gameTab === key && styles.gameTabActive]}
-              onPress={() => selectGameTab(key)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: gameTab === key }}
-            >
-              <Text style={[styles.gameTabText, gameTab === key && styles.gameTabTextActive]}>{label}</Text>
-              {note && <Text style={[styles.gameTabNote, gameTab === key && styles.gameTabTextActive]}>{note}</Text>}
-            </TouchableOpacity>
-          ))}
-        </View>
-
+        <Animated.View style={contentStyle}>
         {/* The queue only matters with a table in play; anyone already waiting stays visible */}
         {gameTab === 'domino' && (liveMatches.length > 0 || waitlist.length > 0) && (
           <View style={styles.waitlistContainer}>
@@ -916,16 +898,16 @@ export const HomeScreen: React.FC<Props> = ({
 
             {/* Each UNO variant has its own ranking */}
             {gameTab === 'uno' && (
-              <View style={styles.gameSelector}>
+              <View style={styles.variantTabs}>
                 {TABLE_GAMES.map(({ key, label }) => (
                   <TouchableOpacity
                     key={key}
-                    style={[styles.gameChip, unoVariant === key && styles.gameChipActive]}
+                    style={[styles.variantTab, unoVariant === key && styles.variantTabActive]}
                     onPress={() => setUnoVariant(key)}
                     accessibilityRole="button"
                     accessibilityState={{ selected: unoVariant === key }}
                   >
-                    <Text style={[styles.periodText, unoVariant === key && styles.periodTextActive]}>{label}</Text>
+                    <Text style={[styles.variantText, unoVariant === key && styles.variantTextActive]}>{label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -1018,7 +1000,11 @@ export const HomeScreen: React.FC<Props> = ({
             )}
           </View>
         )}
+        </Animated.View>
       </ScrollView>
+      </View>
+
+      <GameDock active={gameTab} onSelect={goTo} />
 
       {/* Modal para Pedir Mesa / Editar Pareja */}
       <Modal
@@ -1281,43 +1267,15 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 10,
   },
-  unoMatchBtn: {
-    backgroundColor: theme.colors.secondary,
-    borderColor: '#a78bfa',
-    shadowColor: theme.colors.secondary,
-  },
-  gameTabs: {
-    flexDirection: 'row',
-    gap: theme.spacing.xs,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: theme.borderRadius.m,
-    padding: theme.spacing.xs,
-    marginBottom: theme.spacing.m,
-  },
-  gameTab: {
+  swipeArea: {
     flex: 1,
-    minHeight: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: theme.borderRadius.s,
-    paddingHorizontal: theme.spacing.xs,
-  },
-  gameTabActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  gameTabText: {
-    color: theme.colors.textDim,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  gameTabTextActive: {
-    color: '#fff',
-  },
-  gameTabNote: {
-    color: theme.colors.accent,
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 1,
+    // The browser keeps vertical scrolling and leaves sideways drags to the swipe
+    touchAction: 'pan-y',
+  } as any,
+  unoMatchBtn: {
+    backgroundColor: UNO_COLOR,
+    borderColor: '#f08a8d',
+    shadowColor: UNO_COLOR,
   },
   gameNotice: {
     color: theme.colors.textDim,
@@ -1347,21 +1305,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: theme.spacing.xs,
   },
-  gameSelector: {
+  variantTabs: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.xs,
-    marginBottom: theme.spacing.s,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.cardBorder,
+    marginBottom: theme.spacing.m,
   },
-  gameChip: {
-    minHeight: 40,
+  variantTab: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing.m,
-    borderRadius: theme.borderRadius.s,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    marginBottom: -1,
   },
-  gameChipActive: {
-    backgroundColor: theme.colors.primary,
+  variantTabActive: {
+    borderBottomColor: UNO_COLOR,
+  },
+  variantText: {
+    color: theme.colors.textDim,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  variantTextActive: {
+    color: theme.colors.text,
   },
   newMatchIcon: {
     fontSize: 24,

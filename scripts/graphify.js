@@ -922,6 +922,12 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/components/GameDock.tsx':
+    'Home bottom bar with one tab per game. The lit tile slides to the chosen game and takes its colour.',
+  'src/lib/gameTabs.ts':
+    'The games in the bottom bar and the swipe rules. Covered by tests/gameTabs.test.mjs.',
+  'src/lib/useGameSwipe.ts':
+    'Swipe between games in Home: the content follows the finger and settles in from the side it came from.',
   'src/screens/UnoScreen.tsx':
     'Route uno: choose the variant and players (with or without an account), play, mark the winner, wait for confirmation and rematch. Also the live view for the rest of the club and the list of recent games.',
   'src/lib/tableGames.ts':

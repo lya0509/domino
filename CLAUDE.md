@@ -46,7 +46,7 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 - [`src/screens/AuthScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/AuthScreen.tsx) (`route: 'auth'`) — Login, Invite Code (`CAFETIN`, `PESIMISTAS`, `DOMINO`, `0509`, `VIP`) / QR registration, password recovery, and Guest Mode.
 
 ### Community 4: Gameplay & Spectator Live Screens
-- [`src/screens/HomeScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/HomeScreen.tsx) (`route: 'home'`) — Club dashboard, daily streak (`+10 pts` at 7am), one tab per game (Dominó, UNO, Póker "En proceso"), Pedir Mesa queue, and rankings per game (`Hoy`/`Semana`/`Histórico`).
+- [`src/screens/HomeScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/HomeScreen.tsx) (`route: 'home'`) — Club dashboard, daily streak (`+10 pts` at 7am), a bottom bar with one tab per game (Dominó, UNO, Póker "En proceso"), reached by tap or sideways swipe, Pedir Mesa queue, and rankings per game (`Hoy`/`Semana`/`Histórico`).
 - [`src/screens/SetupScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/SetupScreen.tsx) (`route: 'setup'`) — 2v2 setup (Individual stays off), 2-step Salida/Mano turn order, and VIP Wager toggle.
 - [`src/screens/GameScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/GameScreen.tsx) (`route: 'game'`) — Two-column scorepad, Mano indicator, substitutions (50-pt rule), Winner modal, Zapato `👟`, and view-shot share. The next duo is offered after "Terminar Partida" (App.tsx), only when someone is waiting.
 - [`src/screens/LiveMatchScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/LiveMatchScreen.tsx) (`route: 'live'`) — Real-time spectator scoreboard, dynamic odds betting (`1.20x - 3.50x`), Pedir Mesa modal, and `live_chat`.

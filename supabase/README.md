@@ -24,7 +24,7 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 | `20261101_06_partidas_abandonadas.sql` | Ejecutada en producción |
 | `20261101_07_cola_diaria.sql` | Ejecutada en producción |
 | `20261101_08_confirmacion_todas.sql` | Ejecutada en producción |
-| `20261101_09_confirmacion_1_minuto.sql` | Pendiente |
+| `20261101_09_confirmacion_1_minuto.sql` | Ejecutada en producción |
 
 ## Cómo se prueba
 

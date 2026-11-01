@@ -109,8 +109,13 @@ BEGIN
 
   -- Cerrada no se edita. Se devuelve la fila sin cambios y sin error para que una
   -- cola sin conexión que reintenta no se quede atascada.
-  IF OLD.status IN ('completed', 'pending_confirmation') THEN
+  IF OLD.status IN ('completed', 'pending_confirmation', 'cancelled') THEN
     RETURN OLD;
+  END IF;
+
+  -- Desde la app una partida solo sigue activa o se cierra
+  IF NEW.status NOT IN ('active', 'completed', 'pending_confirmation') THEN
+    NEW.status := OLD.status;
   END IF;
 
   IF NEW.status IN ('completed', 'pending_confirmation') THEN

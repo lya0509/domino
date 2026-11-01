@@ -1,7 +1,7 @@
 # CLAUDE.md — Full-System Graphify & QA Guide for Claude Code
 
 ## 1. Agent Role Division
-- **Antigravity (Backend & Core Architecture Brain)**: Owns Supabase PostgreSQL schema & migrations ([`supabase_maintenance_fix.sql`](file:///home/lya/proyectos/Domino/supabase_maintenance_fix.sql)), Offline-First Outbox & SWR Caching ([`src/lib/offlineSync.ts`](file:///home/lya/proyectos/Domino/src/lib/offlineSync.ts)), Sub-100ms Hybrid WebSocket Broadcast + Postgres Realtime ([`src/lib/realtimeManager.ts`](file:///home/lya/proyectos/Domino/src/lib/realtimeManager.ts)), Atomic Betting & Self-Healing Payout Engine ([`src/lib/bettingService.ts`](file:///home/lya/proyectos/Domino/src/lib/bettingService.ts)), Pedir Mesa Queue Service ([`src/lib/waitlistService.ts`](file:///home/lya/proyectos/Domino/src/lib/waitlistService.ts)), and the Runtime Graphify Bridge ([`src/lib/graphifyBridge.ts`](file:///home/lya/proyectos/Domino/src/lib/graphifyBridge.ts)).
+- **Antigravity (Backend & Core Architecture Brain)**: Owns Supabase PostgreSQL schema & migrations ([`supabase_maintenance_fix.sql`](file:///home/lya/proyectos/Domino/supabase_maintenance_fix.sql)), Offline-First Outbox & SWR Caching ([`src/lib/offlineSync.ts`](file:///home/lya/proyectos/Domino/src/lib/offlineSync.ts)), Postgres Realtime channels ([`src/lib/realtimeManager.ts`](file:///home/lya/proyectos/Domino/src/lib/realtimeManager.ts)), Atomic Betting & Self-Healing Payout Engine ([`src/lib/bettingService.ts`](file:///home/lya/proyectos/Domino/src/lib/bettingService.ts)), Pedir Mesa Queue Service ([`src/lib/waitlistService.ts`](file:///home/lya/proyectos/Domino/src/lib/waitlistService.ts)), and the Runtime Graphify Bridge ([`src/lib/graphifyBridge.ts`](file:///home/lya/proyectos/Domino/src/lib/graphifyBridge.ts)).
 - **Claude Code (Frontend Design, Visual Polish & E2E Testing Agent)**: Owns UI/UX polish, responsive layout inspection, component styling, and E2E verification across all screens and reusable components using the **Full-System Graphify** artifacts and `window.__DOMINO_GRAPHIFY__`.
 
 ---
@@ -32,7 +32,7 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 ### Community 2: Backend, Offline Outbox, Realtime & QA Services (`src/lib/`)
 - [`src/lib/supabase.ts`](file:///home/lya/proyectos/Domino/src/lib/supabase.ts) — Supabase client.
 - [`src/lib/offlineSync.ts`](file:///home/lya/proyectos/Domino/src/lib/offlineSync.ts) — Stale-While-Revalidate profile/match cache + persistent FIFO Offline Outbox (`@domino_offline_queue_v1`).
-- [`src/lib/realtimeManager.ts`](file:///home/lya/proyectos/Domino/src/lib/realtimeManager.ts) — Singleton `domino_waitlist_calls` channel + per-match `sync_match_<id>` hybrid broadcast/Postgres channel.
+- [`src/lib/realtimeManager.ts`](file:///home/lya/proyectos/Domino/src/lib/realtimeManager.ts) — Singleton `domino_waitlist_calls` channel + per-match `sync_match_<id>` channel, both Postgres Changes only (no Broadcast, which can't prove the sender).
 - [`src/lib/bettingService.ts`](file:///home/lya/proyectos/Domino/src/lib/bettingService.ts) — `placeMatchBet`, `settleMatchBetsAndWagers`, and `reconcileUserPendingBets`.
 - [`src/lib/waitlistService.ts`](file:///home/lya/proyectos/Domino/src/lib/waitlistService.ts) — `fetchActiveWaitlist`, `joinOrUpdateWaitlist`, `removeWaitlistEntry`, `callWaitlistDuo`.
 - [`src/lib/webAlert.ts`](file:///home/lya/proyectos/Domino/src/lib/webAlert.ts) — `Alert.alert` on web.

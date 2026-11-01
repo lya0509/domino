@@ -107,7 +107,7 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
     }
   }, [totals, match.limitScore, winnerData]);
 
-  // Proximity Alert Helper (Match DB sync is handled in App.tsx handleUpdateMatch with offline queue + broadcast)
+  // Proximity Alert Helper (Match DB sync is handled in App.tsx handleUpdateMatch with offline queue)
   const syncToSupabase = async (updatedMatch: Match) => {
     if (updatedMatch.isGuestMode || !updatedMatch.id || !updatedMatch.id.includes('-')) return;
     try {
@@ -132,20 +132,16 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
         highestScore >= updatedMatch.limitScore - 10 &&
         offlineSync.getIsOnline()
       ) {
-        proximityAlertSent.current = true;
-        await realtimeManager.broadcastProximityAlert({
-          matchId: updatedMatch.id,
-          highestScore,
-          limitScore: updatedMatch.limitScore,
-          pointsLeft: Math.max(1, updatedMatch.limitScore - highestScore),
-        });
+        // The server reads the score itself; false means this hand hasn't reached it yet
+        const { data: sent } = await supabase.rpc('notify_near_turn', { p_match_id: updatedMatch.id });
+        if (sent) proximityAlertSent.current = true;
       }
     } catch (e) {
       console.error('Error checking proximity alert:', e);
     }
   };
 
-  // Realtime Subscription (Broadcast + Postgres Changes)
+  // Realtime Subscription (Postgres Changes)
   useEffect(() => {
     if (match.isGuestMode || !match.id || !match.id.includes('-')) return;
 
@@ -378,7 +374,7 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
       const p1Name = nextDuo.player1?.display_name || 'Jugador 1';
       const p2Name = nextDuo.player2?.display_name || 'Jugador 2';
 
-      await callWaitlistDuo(nextDuo, 'La Mesa');
+      await callWaitlistDuo(nextDuo);
       sounds.playSound('pop');
       Alert.alert(
         '🚨 ¡Dúo Llamado a la Mesa!',

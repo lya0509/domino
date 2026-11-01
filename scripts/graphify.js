@@ -113,7 +113,7 @@ const COMMUNITIES = [
     name: '2. Backend, Offline Outbox, Realtime & Graphify Services',
     color: '#10b981',
     description:
-      '8 core services in src/lib/: Supabase client, Offline-First Outbox & SWR profile cache, WebSocket Broadcast + Postgres Changes manager, Atomic Betting & Wager Settlement, Waitlist Queue manager, Sound synthesizer, and Claude Code Graphify Bridge.',
+      '8 core services in src/lib/: Supabase client, Offline-First Outbox & SWR profile cache, Postgres Changes realtime manager, Atomic Betting & Wager Settlement, Waitlist Queue manager, Sound synthesizer, and Claude Code Graphify Bridge.',
   },
   {
     id: 'onboarding_auth_screens',
@@ -237,11 +237,11 @@ const RAW_NODES = [
   },
   {
     id: 'src/lib/realtimeManager.ts',
-    label: 'realtimeManager.ts (Multiplexed Broadcast & Postgres Realtime)',
+    label: 'realtimeManager.ts (Postgres Realtime Channels)',
     type: 'service',
     community: 'backend_services',
     file: 'src/lib/realtimeManager.ts',
-    role: 'Manages singleton waitlist channel (domino_waitlist_calls) and per-match channels (sync_match_<id>) combining <100ms WebSocket Broadcast with Postgres Changes.',
+    role: 'Manages the singleton waitlist channel (domino_waitlist_calls) and per-match channels (sync_match_<id>). Everything comes from Postgres Changes: table calls and near-turn notices are waitlist columns only the server writes, so nobody can spoof them.',
   },
   {
     id: 'src/lib/bettingService.ts',
@@ -257,7 +257,7 @@ const RAW_NODES = [
     type: 'service',
     community: 'backend_services',
     file: 'src/lib/waitlistService.ts',
-    role: 'Fetches active waitlist enriched with cached profiles (avoiding PostgREST FK join errors), validates duplicate entries, inserts/updates/cancels queue turns, and broadcasts 30s urgent calls.',
+    role: 'Fetches active waitlist enriched with cached profiles (avoiding PostgREST FK join errors), validates duplicate entries, inserts/updates/cancels queue turns, and asks the server to make 30s urgent calls (call_waitlist_duo).',
   },
   {
     id: 'src/lib/sounds.ts',
@@ -417,7 +417,7 @@ const RAW_NODES = [
     route: 'live',
     community: 'gameplay_live_screens',
     file: 'src/screens/LiveMatchScreen.tsx',
-    role: 'Real-time spectator screen receiving <100ms broadcast & Postgres updates, calculating dynamic win-rate multipliers (multiplierT1/multiplierT2), allowing spectators to place bets, auto-settling payouts on match end, joining the waitlist, and chatting in live_chat.',
+    role: 'Real-time spectator screen receiving Postgres realtime updates, calculating dynamic win-rate multipliers (multiplierT1/multiplierT2), allowing spectators to place bets, auto-settling payouts on match end, joining the waitlist, and chatting in live_chat.',
     propsContract: [
       'matchId: string',
       'currentUserId: string | null',
@@ -956,6 +956,9 @@ CODE_FILES.forEach((f) => {
 codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
 
 const RPC_ROLES = {
+  call_waitlist_duo: 'Someone at a table or an admin calls a duo; the phones listen to the waitlist row the server writes.',
+  notify_near_turn: 'A table warns the first duo in line when it is 10 points from the end, using the score stored on the server.',
+  seat_waitlist_entry: 'Marks a duo as playing: the duo, an admin, or the creator of the match they sit at.',
   confirm_match_result: 'A rival or admin accepts a pending result; marks it completed and pays in one transaction.',
   dispute_match_result: 'A rival or admin rejects a pending result; removes the last hand and reopens the match.',
   propose_wager: 'Sends the VIP wager proposal to the 4 players (60s). Match must be unstarted.',
@@ -967,6 +970,7 @@ const RPC_ROLES = {
   expire_tournament_registration: 'After 5 minutes starts the tournament or cancels and refunds.',
 };
 const TABLE_ROLES = {
+  tournament_payouts: 'Private bank data for tournament payouts, readable only by its owner and admins. Filled by a trigger from tournament_participants.payout_details.',
   wager_consents: 'One row per player/match for the VIP wager consent (status, team, expires_at). Written only by RPCs.',
 };
 const graphedIds = new Set(RAW_NODES.map((n) => n.id));
@@ -1061,7 +1065,7 @@ const EDGES = [
   { source: 'src/screens/HomeScreen.tsx', target: 'src/lib/realtimeManager.ts', relation: 'listens_waitlist_updates' },
   { source: 'src/screens/HomeScreen.tsx', target: 'src/lib/bettingService.ts', relation: 'reconciles_user_bets' },
   { source: 'src/screens/SetupScreen.tsx', target: 'src/lib/offlineSync.ts', relation: 'reads_and_creates_profiles' },
-  { source: 'src/screens/GameScreen.tsx', target: 'src/lib/realtimeManager.ts', relation: 'broadcasts_proximity_and_waitlist_calls' },
+  { source: 'src/screens/GameScreen.tsx', target: 'src/lib/realtimeManager.ts', relation: 'subscribes_to_match_updates' },
   { source: 'src/screens/GameScreen.tsx', target: 'src/lib/waitlistService.ts', relation: 'calls_next_waiting_duo' },
   { source: 'src/screens/GameScreen.tsx', target: 'src/lib/bettingService.ts', relation: 'settles_match_bets_on_win' },
   { source: 'src/screens/LiveMatchScreen.tsx', target: 'src/lib/realtimeManager.ts', relation: 'subscribes_live_match_channel' },
@@ -1166,7 +1170,7 @@ const HYPEREDGES = [
   },
   {
     id: 'hyperedge_realtime_score_and_spectator_sync',
-    name: 'Sub-100ms Hybrid Match Score Broadcast & Spectator Sync',
+    name: 'Live Match Score & Spectator Sync',
     nodes: [
       'App.tsx',
       'src/screens/GameScreen.tsx',
@@ -1175,7 +1179,7 @@ const HYPEREDGES = [
       'db:matches',
     ],
     description:
-      'Dual-channel synchronization: every round scored in GameScreen immediately broadcasts over WebSocket channel sync_match_<id> (<100ms) while persisting to public.matches.',
+      'Every round scored in GameScreen is saved to public.matches; spectators receive it through Postgres Changes on channel sync_match_<id>. Broadcast is not used because it cannot prove who sent a message.',
   },
   {
     id: 'hyperedge_pedir_mesa_waitlist_flow',
@@ -1576,7 +1580,7 @@ const checks = [
     ok: inspectFile('src/lib/offlineSync.ts').exists,
   },
   {
-    name: 'Multiplexed Realtime Broadcast & Postgres Manager Active (src/lib/realtimeManager.ts)',
+    name: 'Postgres Realtime Manager Active (src/lib/realtimeManager.ts)',
     ok: inspectFile('src/lib/realtimeManager.ts').exists,
   },
   {

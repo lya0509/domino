@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T16:36:48.044Z",
+    "generatedAt": "2026-11-01T16:44:25.876Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [
@@ -16,14 +16,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 113,
-      "totalEdges": 197,
+      "totalNodes": 117,
+      "totalEdges": 200,
       "totalHyperedges": 7,
       "totalScreens": 13,
       "totalComponents": 7,
       "totalServices": 10,
-      "totalDatabaseTables": 15,
-      "totalDatabaseRpcs": 24,
+      "totalDatabaseTables": 16,
+      "totalDatabaseRpcs": 27,
       "totalQaSuites": 16
     }
   },
@@ -38,7 +38,7 @@
       "id": "backend_services",
       "name": "2. Backend, Offline Outbox, Realtime & Graphify Services",
       "color": "#10b981",
-      "description": "8 core services in src/lib/: Supabase client, Offline-First Outbox & SWR profile cache, WebSocket Broadcast + Postgres Changes manager, Atomic Betting & Wager Settlement, Waitlist Queue manager, Sound synthesizer, and Claude Code Graphify Bridge."
+      "description": "8 core services in src/lib/: Supabase client, Offline-First Outbox & SWR profile cache, Postgres Changes realtime manager, Atomic Betting & Wager Settlement, Waitlist Queue manager, Sound synthesizer, and Claude Code Graphify Bridge."
     },
     {
       "id": "onboarding_auth_screens",
@@ -129,8 +129,8 @@
         "Outdated Version Gate Screen"
       ],
       "exists": true,
-      "lines": 1572,
-      "bytes": 59257,
+      "lines": 1563,
+      "bytes": 59076,
       "exports": [
         "App"
       ],
@@ -165,13 +165,14 @@
       "supabaseTables": [
         "profiles",
         "system_config",
-        "waitlist",
         "matches",
         "tournaments",
-        "tournament_brackets"
+        "tournament_brackets",
+        "waitlist"
       ],
       "supabaseRpcs": [
         "propose_wager",
+        "seat_waitlist_entry",
         "update_player_streaks_for_match",
         "award_zapatero_maestro"
       ],
@@ -311,14 +312,14 @@
     },
     {
       "id": "src/lib/realtimeManager.ts",
-      "label": "realtimeManager.ts (Multiplexed Broadcast & Postgres Realtime)",
+      "label": "realtimeManager.ts (Postgres Realtime Channels)",
       "type": "service",
       "community": "backend_services",
       "file": "src/lib/realtimeManager.ts",
-      "role": "Manages singleton waitlist channel (domino_waitlist_calls) and per-match channels (sync_match_<id>) combining <100ms WebSocket Broadcast with Postgres Changes.",
+      "role": "Manages the singleton waitlist channel (domino_waitlist_calls) and per-match channels (sync_match_<id>). Everything comes from Postgres Changes: table calls and near-turn notices are waitlist columns only the server writes, so nobody can spoof them.",
       "exists": true,
-      "lines": 203,
-      "bytes": 6121,
+      "lines": 147,
+      "bytes": 4669,
       "exports": [
         "realtimeManager"
       ],
@@ -374,10 +375,10 @@
       "type": "service",
       "community": "backend_services",
       "file": "src/lib/waitlistService.ts",
-      "role": "Fetches active waitlist enriched with cached profiles (avoiding PostgREST FK join errors), validates duplicate entries, inserts/updates/cancels queue turns, and broadcasts 30s urgent calls.",
+      "role": "Fetches active waitlist enriched with cached profiles (avoiding PostgREST FK join errors), validates duplicate entries, inserts/updates/cancels queue turns, and asks the server to make 30s urgent calls (call_waitlist_duo).",
       "exists": true,
-      "lines": 204,
-      "bytes": 6283,
+      "lines": 186,
+      "bytes": 5952,
       "exports": [
         "WaitlistEntry",
         "fetchActiveWaitlist",
@@ -388,13 +389,14 @@
       "imports": [
         "./supabase",
         "./offlineSync",
-        "./realtimeManager",
         "../types"
       ],
       "supabaseTables": [
         "waitlist"
       ],
-      "supabaseRpcs": [],
+      "supabaseRpcs": [
+        "call_waitlist_duo"
+      ],
       "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
@@ -429,8 +431,8 @@
       "file": "src/lib/graphifyBridge.ts",
       "role": "Exposes window.__DOMINO_GRAPHIFY__ with FULL_SYSTEM_GRAPH_MANIFEST, programmatic navigate(screen, opts), uiTestHelpers (toast/waitlist modal triggers), direct service hooks, and runDiagnostics().",
       "exists": true,
-      "lines": 357,
-      "bytes": 15104,
+      "lines": 355,
+      "bytes": 14940,
       "exports": [
         "GraphifyRuntimeState",
         "GraphifyNavigateOptions",
@@ -621,7 +623,7 @@
       ],
       "exists": true,
       "lines": 1498,
-      "bytes": 55023,
+      "bytes": 55008,
       "exports": [
         "HomeScreen"
       ],
@@ -722,8 +724,8 @@
         "🚨 Llamar Siguiente Dúo Waitlist Trigger Button"
       ],
       "exists": true,
-      "lines": 921,
-      "bytes": 42449,
+      "lines": 917,
+      "bytes": 42368,
       "exports": [
         "GameScreen"
       ],
@@ -746,7 +748,9 @@
         "profiles",
         "duos"
       ],
-      "supabaseRpcs": [],
+      "supabaseRpcs": [
+        "notify_near_turn"
+      ],
       "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": [
@@ -762,7 +766,7 @@
       "route": "live",
       "community": "gameplay_live_screens",
       "file": "src/screens/LiveMatchScreen.tsx",
-      "role": "Real-time spectator screen receiving <100ms broadcast & Postgres updates, calculating dynamic win-rate multipliers (multiplierT1/multiplierT2), allowing spectators to place bets, auto-settling payouts on match end, joining the waitlist, and chatting in live_chat.",
+      "role": "Real-time spectator screen receiving Postgres realtime updates, calculating dynamic win-rate multipliers (multiplierT1/multiplierT2), allowing spectators to place bets, auto-settling payouts on match end, joining the waitlist, and chatting in live_chat.",
       "propsContract": [
         "matchId: string",
         "currentUserId: string | null",
@@ -776,7 +780,7 @@
       ],
       "exists": true,
       "lines": 947,
-      "bytes": 46391,
+      "bytes": 46458,
       "exports": [
         "LiveMatchScreen"
       ],
@@ -1020,8 +1024,8 @@
         "Admin Panel: Create Tournament + Approve/Reject Participant Receipts"
       ],
       "exists": true,
-      "lines": 1718,
-      "bytes": 85193,
+      "lines": 1725,
+      "bytes": 85717,
       "exports": [
         "TournamentsScreen"
       ],
@@ -1041,6 +1045,7 @@
         "tournaments",
         "matches",
         "tournament_participants",
+        "tournament_payouts",
         "receipts"
       ],
       "supabaseRpcs": [
@@ -1582,7 +1587,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 52,
-      "bytes": 1666,
+      "bytes": 1697,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1653,8 +1658,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1635,
-      "bytes": 77465,
+      "lines": 1639,
+      "bytes": 78062,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2191,7 +2196,7 @@
       "role": "WagerConsentPrompt (60s accept/decline shown on each of the 4 phones, mounted globally in App.tsx) and WagerStatusBanner (live proposal state in GameScreen). Reads wager_consents via realtime; writes only through respond_wager.",
       "exists": true,
       "lines": 254,
-      "bytes": 9823,
+      "bytes": 9893,
       "exports": [
         "WagerConsentPrompt",
         "WagerStatusBanner"
@@ -2289,11 +2294,25 @@
       "role": "One row per player/match for the VIP wager consent (status, team, expires_at). Written only by RPCs."
     },
     {
+      "id": "db:tournament_payouts",
+      "label": "tournament_payouts",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Private bank data for tournament payouts, readable only by its owner and admins. Filled by a trigger from tournament_participants.payout_details."
+    },
+    {
       "id": "rpc:propose_wager",
       "label": "propose_wager",
       "type": "db_rpc",
       "community": "database_sql",
       "role": "Sends the VIP wager proposal to the 4 players (60s). Match must be unstarted."
+    },
+    {
+      "id": "rpc:seat_waitlist_entry",
+      "label": "seat_waitlist_entry",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Marks a duo as playing: the duo, an admin, or the creator of the match they sit at."
     },
     {
       "id": "rpc:award_zapatero_maestro",
@@ -2322,6 +2341,20 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "A rival or admin rejects a pending result; removes the last hand and reopens the match."
+    },
+    {
+      "id": "rpc:call_waitlist_duo",
+      "label": "call_waitlist_duo",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Someone at a table or an admin calls a duo; the phones listen to the waitlist row the server writes."
+    },
+    {
+      "id": "rpc:notify_near_turn",
+      "label": "notify_near_turn",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "A table warns the first duo in line when it is 10 points from the end, using the score stored on the server."
     },
     {
       "id": "rpc:invite_tournament_partner",
@@ -2531,7 +2564,7 @@
     {
       "source": "src/screens/GameScreen.tsx",
       "target": "src/lib/realtimeManager.ts",
-      "relation": "broadcasts_proximity_and_waitlist_calls"
+      "relation": "subscribes_to_match_updates"
     },
     {
       "source": "src/screens/GameScreen.tsx",
@@ -2761,12 +2794,6 @@
     },
     {
       "source": "App.tsx",
-      "target": "db:waitlist",
-      "relation": "uses_table",
-      "derived": true
-    },
-    {
-      "source": "App.tsx",
       "target": "db:matches",
       "relation": "uses_table",
       "derived": true
@@ -2785,7 +2812,19 @@
     },
     {
       "source": "App.tsx",
+      "target": "db:waitlist",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "App.tsx",
       "target": "rpc:propose_wager",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "App.tsx",
+      "target": "rpc:seat_waitlist_entry",
       "relation": "calls_rpc",
       "derived": true
     },
@@ -2875,6 +2914,12 @@
     },
     {
       "source": "src/lib/waitlistService.ts",
+      "target": "rpc:call_waitlist_duo",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/waitlistService.ts",
       "target": "src/lib/supabase.ts",
       "relation": "imports",
       "derived": true
@@ -2882,12 +2927,6 @@
     {
       "source": "src/lib/waitlistService.ts",
       "target": "src/lib/offlineSync.ts",
-      "relation": "imports",
-      "derived": true
-    },
-    {
-      "source": "src/lib/waitlistService.ts",
-      "target": "src/lib/realtimeManager.ts",
       "relation": "imports",
       "derived": true
     },
@@ -3039,6 +3078,12 @@
       "source": "src/screens/GameScreen.tsx",
       "target": "db:profiles",
       "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/screens/GameScreen.tsx",
+      "target": "rpc:notify_near_turn",
+      "relation": "calls_rpc",
       "derived": true
     },
     {
@@ -3283,6 +3328,12 @@
     },
     {
       "source": "src/screens/TournamentsScreen.tsx",
+      "target": "db:tournament_payouts",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
       "target": "rpc:clean_old_tournaments",
       "relation": "calls_rpc",
       "derived": true
@@ -3488,7 +3539,7 @@
     },
     {
       "id": "hyperedge_realtime_score_and_spectator_sync",
-      "name": "Sub-100ms Hybrid Match Score Broadcast & Spectator Sync",
+      "name": "Live Match Score & Spectator Sync",
       "nodes": [
         "App.tsx",
         "src/screens/GameScreen.tsx",
@@ -3496,7 +3547,7 @@
         "src/lib/realtimeManager.ts",
         "db:matches"
       ],
-      "description": "Dual-channel synchronization: every round scored in GameScreen immediately broadcasts over WebSocket channel sync_match_<id> (<100ms) while persisting to public.matches."
+      "description": "Every round scored in GameScreen is saved to public.matches; spectators receive it through Postgres Changes on channel sync_match_<id>. Broadcast is not used because it cannot prove who sent a message."
     },
     {
       "id": "hyperedge_pedir_mesa_waitlist_flow",

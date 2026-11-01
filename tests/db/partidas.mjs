@@ -157,6 +157,12 @@ r = await as('authenticated', A, `UPDATE public.matches SET winner_team=2, statu
 ok('una partida terminada no se edita y no da error', r.rows?.[0]?.status === 'completed' && r.rows?.[0]?.winner_team === 1, JSON.stringify(r));
 r = await as('authenticated', ADM, `UPDATE public.matches SET winner_team=2 WHERE id='${m}' RETURNING winner_team`);
 ok('tampoco desde la app de un admin', r.rows?.[0]?.winner_team === 1, JSON.stringify(r));
+const cancelada = await crear();
+r = await as('authenticated', A, `UPDATE public.matches SET status='cancelled' WHERE id='${cancelada}' RETURNING status`);
+ok('la app no cancela una partida con un estado inventado', r.rows?.[0]?.status === 'active', JSON.stringify(r));
+await db.query(`UPDATE public.matches SET status='cancelled' WHERE id='${cancelada}'`);
+r = await as('authenticated', A, `UPDATE public.matches SET status='active' WHERE id='${cancelada}' RETURNING status`);
+ok('una partida cancelada no revive', r.rows?.[0]?.status === 'cancelled', JSON.stringify(r));
 await db.query(`UPDATE public.matches SET winner_team=2 WHERE id='${m}'`);
 ok('el dueño sí corrige desde el editor SQL', (await partida(m)).winner_team === 2);
 

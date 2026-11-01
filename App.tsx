@@ -474,7 +474,7 @@ export default function App() {
     };
   }, [session, showToast]);
 
-  // Waitlist Call Realtime Broadcast & Countdown via singleton realtimeManager
+  // Waitlist call & countdown via singleton realtimeManager
   useEffect(() => {
     const unsubCall = realtimeManager.onCallDuo((data) => {
       if (!data) return;
@@ -492,9 +492,11 @@ export default function App() {
           }
         }
 
+        const nameOf = (id: string, fallback: string) =>
+          offlineSync.getCachedProfilesSync().find((p) => p.id === id)?.display_name || fallback;
         setWaitlistCall({
-          p1Name: data.p1Name,
-          p2Name: data.p2Name,
+          p1Name: nameOf(data.p1Id, 'Jugador 1'),
+          p2Name: nameOf(data.p2Id, 'Jugador 2'),
           callerName: data.callerName,
           timeLeft: 30
         });
@@ -774,8 +776,8 @@ export default function App() {
 
     if (waitlistId && isAuthenticated) {
       if (offlineSync.getIsOnline()) {
-        supabase.from('waitlist').update({ status: 'playing' }).eq('id', waitlistId).then(() => {
-          realtimeManager.notifyWaitlistRefresh();
+        supabase.rpc('seat_waitlist_entry', { p_entry_id: waitlistId, p_match_id: matchId }).then(({ error }) => {
+          if (error) console.warn('Could not seat the waitlist duo:', error.message);
         });
       }
     }
@@ -826,17 +828,6 @@ export default function App() {
       const team1Players = matchToSave.players.filter(p => p.teamNumber === 1);
       const team2Players = matchToSave.players.filter(p => p.teamNumber === 2);
       const getValidId = (id?: string) => id && !id.startsWith('guest-') ? id : null;
-
-      // Broadcast instant update (<100ms) to spectators and other devices
-      realtimeManager.broadcastMatchUpdate(matchToSave.id, {
-        id: matchToSave.id,
-        status: newStatus,
-        rounds: matchToSave.rounds,
-        players_json: matchToSave.players,
-        substitutions: matchToSave.substitutions || [],
-        team1_total: totals.team1,
-        team2_total: totals.team2,
-      });
 
       await offlineSync.syncActiveMatch({
         id: matchToSave.id,

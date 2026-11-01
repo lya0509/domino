@@ -1,21 +1,24 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
-type BroadcastHandler = (payload: any) => void;
+type SignalHandler = (payload: any) => void;
+
+// A row update can carry an old notice: anything older than this was already handled
+const SIGNAL_MAX_AGE_MS = 10 * 60 * 1000;
 
 class RealtimeManager {
   private waitlistChannel: RealtimeChannel | null = null;
-  private waitlistSubscribed = false;
-  private callDuoListeners: Set<BroadcastHandler> = new Set();
-  private proximityListeners: Set<BroadcastHandler> = new Set();
+  private seenCalls: Map<string, string> = new Map();
+  private seenNearTurns: Map<string, string> = new Map();
+  private callDuoListeners: Set<SignalHandler> = new Set();
+  private proximityListeners: Set<SignalHandler> = new Set();
   private waitlistChangeListeners: Set<() => void> = new Set();
 
   private matchChannels: Map<string, RealtimeChannel> = new Map();
-  private matchListeners: Map<string, Set<(newData: any, source: 'broadcast' | 'postgres') => void>> = new Map();
-  private matchSubscribed: Set<string> = new Set();
+  private matchListeners: Map<string, Set<(newData: any) => void>> = new Map();
 
   /**
-   * Initializes or returns the singleton waitlist broadcast & postgres channel.
+   * Initializes or returns the singleton waitlist channel.
    */
   ensureWaitlistChannel(): RealtimeChannel {
     if (this.waitlistChannel) {
@@ -23,42 +26,22 @@ class RealtimeManager {
     }
 
     const channel = supabase
-      .channel('domino_waitlist_calls', {
-        config: {
-          broadcast: { self: true },
-        },
-      })
-      .on('broadcast', { event: 'call_duo' }, (msg) => {
-        const data = msg?.payload;
-        if (data) {
-          this.callDuoListeners.forEach((cb) => cb(data));
-        }
-      })
-      .on('broadcast', { event: 'proximity_alert' }, (msg) => {
-        const data = msg?.payload;
-        if (data) {
-          this.proximityListeners.forEach((cb) => cb(data));
-        }
-      })
-      .on('broadcast', { event: 'waitlist_refresh' }, () => {
-        this.waitlistChangeListeners.forEach((cb) => cb());
-      })
+      .channel('domino_waitlist_calls')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'waitlist' },
-        () => {
+        (payload: any) => {
           this.waitlistChangeListeners.forEach((cb) => cb());
+          if (payload?.eventType === 'UPDATE' && payload.new) this.emitQueueSignals(payload.new);
         }
       )
-      .subscribe((status) => {
-        this.waitlistSubscribed = status === 'SUBSCRIBED';
-      });
+      .subscribe();
 
     this.waitlistChannel = channel;
     return channel;
   }
 
-  onCallDuo(cb: BroadcastHandler): () => void {
+  onCallDuo(cb: SignalHandler): () => void {
     this.ensureWaitlistChannel();
     this.callDuoListeners.add(cb);
     return () => {
@@ -66,7 +49,7 @@ class RealtimeManager {
     };
   }
 
-  onProximityAlert(cb: BroadcastHandler): () => void {
+  onProximityAlert(cb: SignalHandler): () => void {
     this.ensureWaitlistChannel();
     this.proximityListeners.add(cb);
     return () => {
@@ -82,43 +65,39 @@ class RealtimeManager {
     };
   }
 
-  async sendWaitlistBroadcast(
-    event: 'call_duo' | 'proximity_alert' | 'waitlist_refresh',
-    payload: any
-  ): Promise<boolean> {
-    try {
-      const channel = this.ensureWaitlistChannel();
-      // Wait briefly if channel is still connecting
-      if (!this.waitlistSubscribed) {
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      }
-      await channel.send({
-        type: 'broadcast',
-        event,
-        payload,
-      });
-      return true;
-    } catch (e) {
-      console.warn(`Error sending broadcast ${event}:`, e);
-      return false;
+  /**
+   * Table calls and near-turn notices come from waitlist columns only the server can write.
+   * Broadcast is not used for them: anyone with the public key could send one.
+   */
+  private emitQueueSignals(row: any) {
+    if (row.status !== 'waiting') return;
+    const isFresh = (at: string) => Date.now() - new Date(at).getTime() < SIGNAL_MAX_AGE_MS;
+
+    if (row.called_at && isFresh(row.called_at) && this.seenCalls.get(row.id) !== row.called_at) {
+      this.seenCalls.set(row.id, row.called_at);
+      const data = {
+        duoId: row.id,
+        p1Id: row.player1_id,
+        p2Id: row.player2_id,
+        callerName: row.called_by_name || 'La Mesa',
+      };
+      this.callDuoListeners.forEach((cb) => cb(data));
     }
-  }
 
-  async broadcastCallDuo(payload: any): Promise<boolean> {
-    return this.sendWaitlistBroadcast('call_duo', payload);
-  }
-
-  async broadcastProximityAlert(payload: any): Promise<boolean> {
-    return this.sendWaitlistBroadcast('proximity_alert', payload);
-  }
-
-  async notifyWaitlistRefresh(): Promise<boolean> {
-    return this.sendWaitlistBroadcast('waitlist_refresh', { timestamp: Date.now() });
+    if (row.near_turn_at && isFresh(row.near_turn_at) && this.seenNearTurns.get(row.id) !== row.near_turn_at) {
+      this.seenNearTurns.set(row.id, row.near_turn_at);
+      const data = {
+        highestScore: row.near_turn_score,
+        limitScore: row.near_turn_limit,
+        pointsLeft: Math.max(1, row.near_turn_limit - row.near_turn_score),
+      };
+      this.proximityListeners.forEach((cb) => cb(data));
+    }
   }
 
   /**
    * One long-lived channel per match topic, shared by every screen via listener sets.
-   * The topic must stay fixed (peers broadcast on it), and supabase.channel(topic) returns a
+   * supabase.channel(topic) returns a
    * still-closing channel after removeChannel(), where adding .on() throws — so we never recreate it.
    */
   private ensureMatchChannel(matchId: string): RealtimeChannel {
@@ -126,20 +105,11 @@ class RealtimeManager {
     const existing = this.matchChannels.get(topic);
     if (existing) return existing;
 
-    const listeners = new Set<(newData: any, source: 'broadcast' | 'postgres') => void>();
+    const listeners = new Set<(newData: any) => void>();
     this.matchListeners.set(topic, listeners);
 
     const channel = supabase
-      .channel(topic, {
-        config: {
-          broadcast: { self: false },
-        },
-      })
-      .on('broadcast', { event: 'match_update' }, (msg) => {
-        if (msg?.payload) {
-          listeners.forEach((cb) => cb(msg.payload, 'broadcast'));
-        }
-      })
+      .channel(topic)
       .on(
         'postgres_changes',
         {
@@ -150,52 +120,26 @@ class RealtimeManager {
         },
         (payload) => {
           if (payload?.new) {
-            listeners.forEach((cb) => cb(payload.new, 'postgres'));
+            listeners.forEach((cb) => cb(payload.new));
           }
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') this.matchSubscribed.add(topic);
-      });
+      .subscribe();
 
     this.matchChannels.set(topic, channel);
     return channel;
   }
 
   /**
-   * Subscribes to ultra-low-latency match updates (both Broadcast and Postgres Changes).
+   * Live score updates. Only database changes count: the server already checked who wrote them.
    */
-  subscribeToMatch(
-    matchId: string,
-    onMatchUpdate: (newData: any, source: 'broadcast' | 'postgres') => void
-  ): () => void {
+  subscribeToMatch(matchId: string, onMatchUpdate: (newData: any) => void): () => void {
     this.ensureMatchChannel(matchId);
     const listeners = this.matchListeners.get(`sync_match_${matchId}`)!;
     listeners.add(onMatchUpdate);
     return () => {
       listeners.delete(onMatchUpdate);
     };
-  }
-
-  /**
-   * Broadcasts instant match state to all connected peers (<100ms latency)
-   * alongside the database update.
-   */
-  async broadcastMatchUpdate(matchId: string, matchPayload: any) {
-    try {
-      const topic = `sync_match_${matchId}`;
-      const channel = this.ensureMatchChannel(matchId);
-      if (!this.matchSubscribed.has(topic)) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-      }
-      await channel.send({
-        type: 'broadcast',
-        event: 'match_update',
-        payload: matchPayload,
-      });
-    } catch (e) {
-      // Ignore broadcast errors; Postgres changes + DB sync still persist
-    }
   }
 }
 

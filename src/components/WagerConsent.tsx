@@ -83,7 +83,7 @@ export const WagerConsentPrompt: React.FC<{ currentUserProfileId: string | null 
       if (error) throw error;
       setConsent(null);
       if (data?.status === 'active') {
-        Alert.alert('💰 Apuesta Activa', `Los 4 aceptaron. Se juega por ${data.amount} pts cada uno.`);
+        Alert.alert('💰 Apuesta Activa', `Los 4 aceptaron. Se apartaron ${data.amount} pts de cada saldo; el equipo ganador se los lleva y vuelven si la partida se anula.`);
       } else if (data?.status === 'expired') {
         Alert.alert('⏱️ Muy tarde', 'La propuesta venció o la partida ya empezó. Se juega sin apuesta.');
       } else if (data?.status === 'insufficient') {

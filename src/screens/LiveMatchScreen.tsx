@@ -108,7 +108,8 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
           data.team1_player1, data.team1_player2,
           data.team2_player1, data.team2_player2
         ].filter(Boolean);
-        setIsParticipant(participants.includes(currentUserProfileId));
+        // Whoever scores without playing is part of the table too: the server won't take their bets
+        setIsParticipant(participants.includes(currentUserProfileId) || data.created_by === currentUserProfileId);
 
         await refreshUserPointsAndBets();
         calculateMultipliers(data);
@@ -217,7 +218,6 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
     fetchChatMessages();
     fetchWaitlistAndProfiles();
 
-    // Dual-channel match subscription (Instant Broadcast + Postgres Changes)
     const unsubMatch = realtimeManager.subscribeToMatch(matchId, (incoming) => {
       setMatchData((prev: any) => {
         const merged = { ...(prev || {}), ...incoming };

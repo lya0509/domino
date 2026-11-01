@@ -487,7 +487,7 @@ export const HomeScreen: React.FC<Props> = ({
       const p1Name = item.player1?.display_name || 'Jugador 1';
       const p2Name = item.player2?.display_name || 'Jugador 2';
 
-      await callWaitlistDuo(item, currentUser?.display_name || 'La Mesa');
+      await callWaitlistDuo(item);
       sounds.playSound('pop');
       Alert.alert(
         '📢 Dúo Llamado a Mesa',
@@ -495,7 +495,7 @@ export const HomeScreen: React.FC<Props> = ({
       );
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'No se pudo enviar la llamada');
+      Alert.alert('Error', (e as Error)?.message || 'No se pudo enviar la llamada');
     }
   };
 

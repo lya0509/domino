@@ -38,6 +38,8 @@ CREATE TABLE public.bets(id uuid primary key default gen_random_uuid(), user_id 
 CREATE TABLE public.tournaments(id uuid primary key default gen_random_uuid(), name text not null, entry_fee numeric not null default 0, prize_pool numeric default 0, max_participants int not null default 8, status text not null default 'registration', created_by uuid references public.profiles(id), created_at timestamptz default now(), tournament_type text default 'brackets', entry_points numeric default 0, prize_paid boolean default false);
 CREATE TABLE public.tournament_participants(id uuid primary key default gen_random_uuid(), tournament_id uuid references public.tournaments(id) on delete cascade, user_id uuid, partner_id uuid, partner_status text, payment_status text default 'pending', payout_details text);
 CREATE TABLE public.tournament_brackets(id uuid primary key default gen_random_uuid(), tournament_id uuid references public.tournaments(id) on delete cascade, round_number int not null, match_number int not null, team1_player1 uuid, team1_player2 uuid, team2_player1 uuid, team2_player2 uuid, winner_team int, next_match_id uuid, live_match_id uuid references public.matches(id) on delete set null, created_at timestamptz default now());
+CREATE TABLE public.waitlist(id uuid primary key default gen_random_uuid(), created_at timestamptz not null default now(), creator_id uuid not null references public.profiles(id), player1_id uuid not null references public.profiles(id), player2_id uuid not null references public.profiles(id), status text not null default 'waiting');
+CREATE TABLE public.live_chat(id uuid primary key default gen_random_uuid(), user_id uuid, message text);
 CREATE TABLE public.chat_messages(id uuid primary key default gen_random_uuid(), message text);
 CREATE TABLE public.duos(id uuid primary key default gen_random_uuid(), player1_id uuid, player2_id uuid, is_active boolean default true);
 CREATE TABLE storage.buckets(id text primary key, public boolean, file_size_limit bigint, allowed_mime_types text[]);
@@ -61,7 +63,10 @@ export async function crearBase() {
   await db.exec(between(m, 'CREATE OR REPLACE FUNCTION public.trg_fn_settle_match_on_complete()', 'END;\n$$;'));
   await db.exec(between(m, 'DROP TRIGGER IF EXISTS trg_auto_resolve_match_bets', 'EXECUTE FUNCTION public.trg_fn_settle_match_on_complete();'));
 
-  await db.exec(`GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;`);
+  await db.exec(`GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+    ALTER TABLE public.waitlist ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY "Waitlist visible para todos" ON public.waitlist FOR SELECT USING (true);
+    CREATE POLICY "Cualquiera con sesion edita" ON public.waitlist FOR UPDATE TO authenticated USING (true);`);
   await db.exec(`INSERT INTO public.profiles(id,display_name,initials,is_admin) VALUES
     ('${IDS.A}','A','A',false),('${IDS.B}','B','B',false),('${IDS.C}','C','C',false),
     ('${IDS.D}','D','D',false),('${IDS.X}','X','X',false),('${IDS.ADM}','Adm','AD',true);`);

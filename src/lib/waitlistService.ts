@@ -1,6 +1,5 @@
 import { supabase } from './supabase';
 import { offlineSync } from './offlineSync';
-import { realtimeManager } from './realtimeManager';
 import { Profile } from '../types';
 
 export interface WaitlistEntry {
@@ -108,16 +107,20 @@ export const joinOrUpdateWaitlist = async (params: {
     }
 
     if (editingEntryId) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('waitlist')
         .update({
           player1_id: userId,
           player2_id: partnerId,
         })
-        .eq('id', editingEntryId);
+        .eq('id', editingEntryId)
+        .select('id');
 
       if (error) {
         return { ok: false, success: false, error: error.message };
+      }
+      if (!data || data.length === 0) {
+        return { ok: false, success: false, error: 'Solo puedes cambiar tu propia entrada de la cola.' };
       }
     } else {
       // Try inserting with creator_id first, fallback without creator_id if column is absent
@@ -141,9 +144,6 @@ export const joinOrUpdateWaitlist = async (params: {
       }
     }
 
-    await realtimeManager.sendWaitlistBroadcast('waitlist_refresh', {
-      timestamp: Date.now(),
-    });
     return { ok: true, success: true };
   } catch (e: any) {
     return {
@@ -159,45 +159,27 @@ export const removeWaitlistEntry = async (
 ): Promise<{ ok: boolean; success: boolean; error?: string }> => {
   if (!entryId) return { ok: false, success: false, error: 'ID inválido' };
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('waitlist')
       .update({ status: 'cancelled' })
-      .eq('id', entryId);
+      .eq('id', entryId)
+      .select('id');
 
     if (error) {
-      // Fallback: delete row if status check or RLS prefers delete
-      const { error: delErr } = await supabase
-        .from('waitlist')
-        .delete()
-        .eq('id', entryId);
-      if (delErr) {
-        return { ok: false, success: false, error: delErr.message };
-      }
+      return { ok: false, success: false, error: error.message };
+    }
+    if (!data || data.length === 0) {
+      return { ok: false, success: false, error: 'Solo puedes quitar tu propia entrada de la cola.' };
     }
 
-    await realtimeManager.sendWaitlistBroadcast('waitlist_refresh', {
-      timestamp: Date.now(),
-    });
     return { ok: true, success: true };
   } catch (e: any) {
     return { ok: false, success: false, error: e?.message || 'No se pudo salir de la fila.' };
   }
 };
 
-export const callWaitlistDuo = async (
-  entry: WaitlistEntry,
-  callerName: string
-): Promise<boolean> => {
-  const p1Name = entry.player1?.display_name || 'Jugador 1';
-  const p2Name = entry.player2?.display_name || 'Jugador 2';
-
-  return await realtimeManager.sendWaitlistBroadcast('call_duo', {
-    duoId: entry.id,
-    p1Id: entry.player1_id || entry.player1?.id,
-    p2Id: entry.player2_id || entry.player2?.id,
-    p1Name,
-    p2Name,
-    callerName: callerName || 'La Mesa',
-    timestamp: Date.now(),
-  });
+/** The server checks that the caller is at a table and writes the call the duo's phones listen to. */
+export const callWaitlistDuo = async (entry: WaitlistEntry): Promise<void> => {
+  const { error } = await supabase.rpc('call_waitlist_duo', { p_entry_id: entry.id });
+  if (error) throw new Error(error.message);
 };

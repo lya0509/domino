@@ -279,10 +279,8 @@ export function initGraphifyBridge() {
       getCachedMatches: () => offlineSync.getCachedMatches(),
     },
     realtimeManager: {
-      broadcastMatchUpdate: (matchId: string, matchData: any) =>
-        realtimeManager.broadcastMatchUpdate(matchId, matchData),
-      broadcastCallDuo: (payload: any) => realtimeManager.broadcastCallDuo(payload),
-      notifyWaitlistRefresh: () => realtimeManager.notifyWaitlistRefresh(),
+      subscribeToMatch: (matchId: string, cb: (newData: any) => void) =>
+        realtimeManager.subscribeToMatch(matchId, cb),
     },
     betting: {
       placeMatchBet,

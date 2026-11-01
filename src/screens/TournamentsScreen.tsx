@@ -222,7 +222,14 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
           .select('*, profiles!tournament_participants_user_id_fkey(display_name, initials)')
           .or('payment_status.eq.pending,payout_details.not.is.null');
         if (pErr) throw pErr;
-        setParticipants(pData as any[]);
+        // Bank data lives in a private table only owners and admins can read
+        const { data: payouts } = await supabase.from('tournament_payouts').select('participant_id, details');
+        const detailsById = new Map((payouts || []).map((row: any) => [row.participant_id, row.details]));
+        setParticipants((pData as any[]).map((row) => {
+          const details = detailsById.get(row.id);
+          if (!details) return row;
+          return { ...row, payout_details: JSON.stringify({ ...details, ...parsePayout(row.payout_details) }) };
+        }));
       }
     } catch (error) {
       console.error(error);

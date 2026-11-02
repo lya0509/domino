@@ -1021,6 +1021,7 @@ CODE_FILES.forEach((f) => {
 codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
 
 const RPC_ROLES = {
+  get_my_bet_profit_left: 'How much bet winnings the caller can still collect today under the daily cap (system_config.max_bet_profit_per_day). Shown in the bet modal.',
   set_poker_seat: 'A player moves their own chips, or the dealer writes for someone without a phone. Each seat is written alone with an exact total, so phones never overwrite each other.',
   start_poker_game: 'Starts a poker game with its starting chips and entry, using a phone-made id so the offline outbox can resend it.',
   save_poker_hand: 'Saves a whole hand. Only the dealer writes it, and a closed hand must hand out exactly the pot.',

@@ -123,7 +123,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         offlineSync.getIsOnline()
           ? supabase
               .from('bets')
-              .select('id, amount_wagered, multiplier, bet_on_team, status, created_at, match_id')
+              .select('id, amount_wagered, multiplier, payout, bet_on_team, status, created_at, match_id')
               .eq('user_id', profileId)
               .order('created_at', { ascending: false })
               .limit(10)

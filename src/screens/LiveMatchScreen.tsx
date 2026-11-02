@@ -49,6 +49,8 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
   const [betTeam, setBetTeam] = useState<1 | 2>(1);
   const [betAmount, setBetAmount] = useState('10');
   const [placingBet, setPlacingBet] = useState(false);
+  // Daily cap on bet winnings (migration 16); null while unknown
+  const [profitLeft, setProfitLeft] = useState<{ cap: number; left: number } | null>(null);
   const [lastMessageTime, setLastMessageTime] = useState(0);
   const settledMatchRef = useRef(false);
 
@@ -62,6 +64,16 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
     if (betsData) setActiveBets(betsData);
     if (prof) setBettingPoints(prof.betting_points || 0);
   };
+
+  const fetchProfitLeft = async () => {
+    if (!currentUserProfileId) return;
+    const { data, error } = await supabase.rpc('get_my_bet_profit_left');
+    setProfitLeft(error || !data ? null : { cap: Number(data.cap), left: Number(data.left) });
+  };
+
+  useEffect(() => {
+    if (showBetModal) fetchProfitLeft();
+  }, [showBetModal]);
 
   const fetchBets = async () => {
     if (!currentUserProfileId) return;
@@ -351,7 +363,15 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
       setShowBetModal(false);
       fetchBets();
       sounds.playSound('pop');
-      Alert.alert('Apuesta Registrada', `Has apostado ${amount} pts al Equipo ${betTeam} con multiplicador x${finalMult}. ¡Si ganan recibirás ${Math.floor(amount * finalMult)} pts automáticamente!`);
+      const full = Math.floor(amount * finalMult);
+      const capped = profitLeft ? Math.min(full, amount + profitLeft.left) : full;
+      Alert.alert(
+        'Apuesta Registrada',
+        `Has apostado ${amount} pts al Equipo ${betTeam} con multiplicador x${finalMult}. ` +
+          (capped < full
+            ? `Por el tope diario, si ganan recibirás hasta ${capped} pts.`
+            : `¡Si ganan recibirás ${full} pts automáticamente!`),
+      );
     }
   };
 
@@ -471,7 +491,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
                 {activeBets.map(b => {
                   const isWon = b.status === 'won';
                   const isLost = b.status === 'lost';
-                  const payout = Math.floor(b.amount_wagered * b.multiplier);
+                  const payout = isWon && b.payout != null ? Number(b.payout) : Math.floor(b.amount_wagered * b.multiplier);
                   return (
                     <View key={b.id} style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)'}}>
                       <View>
@@ -692,6 +712,13 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
             </Text>
             <Text style={{color: theme.colors.text, marginTop: 10, alignSelf: 'flex-start'}}>¿Cuántos puntos deseas apostar?</Text>
             <Text style={{color: theme.colors.textDim, fontSize: 12, marginBottom: 10, alignSelf: 'flex-start'}}>Saldo disponible: {bettingPoints}</Text>
+            {profitLeft && (
+              <Text style={styles.betTopUpNote}>
+                {profitLeft.left > 0
+                  ? `Tope diario: hoy puedes ganar ${profitLeft.left} pts más con apuestas (máximo ${profitLeft.cap} al día).`
+                  : `Ya llegaste al tope de ${profitLeft.cap} pts de hoy: si ganas, solo recuperas lo apostado. Mañana se renueva.`}
+              </Text>
+            )}
             {myPendingOnTeam > 0 && (
               <Text style={styles.betTopUpNote}>
                 Ya llevas {myPendingOnTeam} pts en el Eq. {betTeam}. Lo que pongas ahora se suma con la cuota actual.

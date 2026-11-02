@@ -48,6 +48,7 @@ export const BetHistoryRow: React.FC<Props> = ({ bet, match, own, expanded, onTo
       : []),
     { label: 'Puntos apostados', value: `${bet.amount_wagered} pts` },
     { label: 'Multiplicador', value: multiplier },
+    ...(outcome.capped ? [{ label: 'Cobrado', value: `${outcome.payout} pts (tope diario)` }] : []),
   ];
 
   return (

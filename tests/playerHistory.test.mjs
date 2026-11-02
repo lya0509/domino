@@ -84,7 +84,7 @@ test('a match without a partner has none to show', () => {
 
 test('a refunded bet is not a lost bet', () => {
   const bet = { status: 'refunded', amount_wagered: 100, multiplier: 1.5 };
-  assert.deepEqual(betOutcome(bet), { kind: 'refunded', multiplier: 1.5, payout: 0, text: 'Reembolsado (+100 pts)' });
+  assert.deepEqual(betOutcome(bet), { kind: 'refunded', multiplier: 1.5, payout: 0, capped: false, text: 'Reembolsado (+100 pts)' });
 });
 
 test('a cancelled bet reads the same as a refunded one', () => {
@@ -112,4 +112,16 @@ test('a bet without a multiplier falls back to the same x2 as the server', () =>
   const outcome = betOutcome({ status: 'won', amount_wagered: 50, multiplier: 0 });
   assert.equal(outcome.multiplier, 2);
   assert.equal(outcome.payout, 100);
+});
+
+test('a won bet shows what the server really paid under the daily cap', () => {
+  const outcome = betOutcome({ status: 'won', amount_wagered: 400, multiplier: 2, payout: 500 });
+  assert.equal(outcome.payout, 500);
+  assert.equal(outcome.capped, true);
+  assert.equal(outcome.text, '+500 pts');
+});
+
+test('a won bet paid in full is not marked as capped', () => {
+  const outcome = betOutcome({ status: 'won', amount_wagered: 400, multiplier: 2, payout: 800 });
+  assert.equal(outcome.capped, false);
 });

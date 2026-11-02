@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T07:44:17.700Z",
+    "generatedAt": "2026-11-02T20:12:37.727Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,14 +10,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 177,
-      "totalEdges": 331,
+      "totalNodes": 179,
+      "totalEdges": 332,
       "totalHyperedges": 7,
       "totalScreens": 15,
       "totalComponents": 27,
       "totalServices": 18,
       "totalDatabaseTables": 19,
-      "totalDatabaseRpcs": 36,
+      "totalDatabaseRpcs": 37,
       "totalQaSuites": 18
     }
   },
@@ -784,8 +784,8 @@
         "💬 Chat de la Mesa (Realtime live_chat with 2s anti-spam cooldown)"
       ],
       "exists": true,
-      "lines": 947,
-      "bytes": 46494,
+      "lines": 974,
+      "bytes": 47708,
       "exports": [
         "LiveMatchScreen"
       ],
@@ -809,7 +809,9 @@
         "matches",
         "live_chat"
       ],
-      "supabaseRpcs": [],
+      "supabaseRpcs": [
+        "get_my_bet_profit_left"
+      ],
       "realtimeChannels": [
         "match-live-aux-${matchId}-${Date.now()}",
         "live-waitlist-${matchId}-${Date.now()}"
@@ -842,7 +844,7 @@
       ],
       "exists": true,
       "lines": 1473,
-      "bytes": 61288,
+      "bytes": 61296,
       "exports": [
         "ProfileScreen"
       ],
@@ -1600,7 +1602,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 54,
-      "bytes": 1979,
+      "bytes": 2014,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1671,8 +1673,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1741,
-      "bytes": 86603,
+      "lines": 1742,
+      "bytes": 86773,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2502,6 +2504,24 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261102_16_tope_apuestas.sql",
+      "label": "20261102_16_tope_apuestas.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261102_16_tope_apuestas.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 142,
+      "bytes": 5431,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/BetHistoryRow.tsx",
       "label": "BetHistoryRow.tsx",
       "type": "component",
@@ -2509,8 +2529,8 @@
       "file": "src/components/BetHistoryRow.tsx",
       "role": "One bet in the profile. On tap it shows the match, the side, the score, the multiplier and how it ended.",
       "exists": true,
-      "lines": 114,
-      "bytes": 4780,
+      "lines": 115,
+      "bytes": 4881,
       "exports": [
         "BetHistoryRow"
       ],
@@ -3241,8 +3261,8 @@
       "file": "src/lib/playerHistory.ts",
       "role": "Pure rules of a profile: matches against a rival, matches next to a partner, won/lost record and how a bet ended. Covered by tests/playerHistory.test.mjs.",
       "exists": true,
-      "lines": 97,
-      "bytes": 3646,
+      "lines": 102,
+      "bytes": 4032,
       "exports": [
         "HistoryMatch",
         "HistoryBet",
@@ -3716,6 +3736,13 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "A table warns the first duo in line when it is 10 points from the end, using the score stored on the server."
+    },
+    {
+      "id": "rpc:get_my_bet_profit_left",
+      "label": "get_my_bet_profit_left",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "How much bet winnings the caller can still collect today under the daily cap (system_config.max_bet_profit_per_day). Shown in the bet modal."
     },
     {
       "id": "rpc:invite_tournament_partner",
@@ -4586,6 +4613,12 @@
       "source": "src/screens/LiveMatchScreen.tsx",
       "target": "db:matches",
       "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/screens/LiveMatchScreen.tsx",
+      "target": "rpc:get_my_bet_profit_left",
+      "relation": "calls_rpc",
       "derived": true
     },
     {

@@ -30,9 +30,10 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 | `20261101_12_aviso_turno_antes_del_limite.sql` | Ejecutada en producción |
 | `20261101_13_uno.sql` | Ejecutada en producción |
 | `20261101_14_poker.sql` | Ejecutada en producción |
-| `20261102_15_poker_reglas.sql` | Pendiente. Pegarla después de publicar la app que manda `reopen` al corregir una mano |
+| `20261102_15_poker_reglas.sql` | Ejecutada en producción |
+| `20261102_16_tope_apuestas.sql` | Ejecutada en producción. Tope diario a la ganancia por apuestas (500 al empezar, en `system_config.max_bet_profit_per_day`) |
 
-`mantenimiento/reinicio_del_club.sql` no es una migración: borra partidas, apuestas y puntos y deja a todos con 1.000. Se ejecuta a mano, una sola vez, cuando el dueño lo decida. Guarda una copia en el esquema `respaldo_reinicio` y se detiene si ya existe. Lo cubre `tests/db/reinicio.mjs`.
+`mantenimiento/reinicio_del_club.sql` no es una migración: borra partidas, apuestas y puntos y deja a todos con 1.000. Se ejecuta a mano, una sola vez, cuando el dueño lo decida. Guarda una copia en el esquema `respaldo_reinicio` y se detiene si ya existe. Lo cubre `tests/db/reinicio.mjs`. Se ejecutó en producción el 2026-11-02.
 
 ## Cómo se prueba
 

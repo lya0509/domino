@@ -22,6 +22,8 @@ export interface HistoryBet {
   status: string;
   amount_wagered: number | string;
   multiplier?: number | string | null;
+  /** What the server really paid (migration 16); missing on older bets */
+  payout?: number | string | null;
 }
 
 export type BetOutcomeKind = 'pending' | 'won' | 'lost' | 'refunded';
@@ -30,6 +32,8 @@ export interface BetOutcome {
   kind: BetOutcomeKind;
   multiplier: number;
   payout: number;
+  /** The daily cap on bet winnings paid less than amount x multiplier */
+  capped: boolean;
   text: string;
 }
 
@@ -85,12 +89,13 @@ export const betOutcome = (bet: HistoryBet): BetOutcome => {
   const amount = Number(bet.amount_wagered || 0);
   const multiplier = Number(bet.multiplier) > 0 ? Number(bet.multiplier) : 2;
   if (bet.status === 'won') {
-    const payout = Math.floor(amount * multiplier);
-    return { kind: 'won', multiplier, payout, text: `+${payout} pts` };
+    const full = Math.floor(amount * multiplier);
+    const paid = bet.payout === null || bet.payout === undefined || bet.payout === '' ? full : Number(bet.payout);
+    return { kind: 'won', multiplier, payout: paid, capped: paid < full, text: `+${paid} pts` };
   }
-  if (bet.status === 'lost') return { kind: 'lost', multiplier, payout: 0, text: `-${amount} pts` };
+  if (bet.status === 'lost') return { kind: 'lost', multiplier, payout: 0, capped: false, text: `-${amount} pts` };
   if (bet.status === 'refunded' || bet.status === 'cancelled') {
-    return { kind: 'refunded', multiplier, payout: 0, text: `Reembolsado (+${amount} pts)` };
+    return { kind: 'refunded', multiplier, payout: 0, capped: false, text: `Reembolsado (+${amount} pts)` };
   }
-  return { kind: 'pending', multiplier, payout: 0, text: 'En curso' };
+  return { kind: 'pending', multiplier, payout: 0, capped: false, text: 'En curso' };
 };

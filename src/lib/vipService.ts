@@ -17,6 +17,10 @@ export interface VipInfo {
   vip_until: string;
   media_path: string | null;
   tagline: string | null;
+  // Migration 19; missing before it is run
+  streak_months?: number | null;
+  ring_style?: string | null;
+  founder_number?: number | null;
 }
 
 export interface MyVip {
@@ -83,10 +87,15 @@ export const refreshVips = (force = false): Promise<void> => {
   if (inFlight) return inFlight;
   inFlight = (async () => {
     try {
-      const { data, error } = await supabase
+      const since = new Date().toISOString();
+      const full = await supabase
         .from('vip_members')
-        .select('user_id, vip_until, media_path, tagline')
-        .gt('vip_until', new Date().toISOString());
+        .select('user_id, vip_until, media_path, tagline, streak_months, ring_style, founder_number')
+        .gt('vip_until', since);
+      // Before migration 19 those columns do not exist: read the basic ones
+      const { data, error } = full.error
+        ? await supabase.from('vip_members').select('user_id, vip_until, media_path, tagline').gt('vip_until', since)
+        : full;
       // Before migration 17 the table does not exist: nobody is VIP
       if (!error && data) {
         vipMap = Object.fromEntries((data as VipInfo[]).map((v) => [v.user_id, v]));
@@ -220,6 +229,12 @@ export const submitVipMedia = async (userId: string, image: PickedImage, keep: (
   const { data: files } = await supabase.storage.from('vip-media').list(userId);
   const stale = (files || []).map((f) => `${userId}/${f.name}`).filter((p) => p !== path && !keep.includes(p));
   if (stale.length) await supabase.storage.from('vip-media').remove(stale);
+};
+
+export const setVipRingStyle = async (style: string) => {
+  const { error } = await supabase.rpc('set_vip_ring_style', { p_style: style });
+  rpcError(error);
+  await refreshVips(true);
 };
 
 export const setVipTagline = async (text: string) => {

@@ -29,3 +29,27 @@ test('an expired VIP has zero days left', () => {
   assert.equal(vipDaysLeft(at(-5 * DAY), now), 0);
   assert.equal(vipDaysLeft(null, now), 0);
 });
+
+import { ringStyleOf, seniorityBadge, founderBadge, RING_STYLES } from '../src/lib/vip.ts';
+
+test('an unknown or missing ring style falls back to gold', () => {
+  assert.equal(ringStyleOf(null), 'oro');
+  assert.equal(ringStyleOf('plata'), 'oro');
+  assert.equal(ringStyleOf('fuego'), 'fuego');
+  assert.equal(Object.keys(RING_STYLES).length, 4);
+});
+
+test('seniority badges step at 1, 3, 6 and 12 months', () => {
+  assert.equal(seniorityBadge(0), null);
+  assert.deepEqual(seniorityBadge(1), { icon: '🥉', text: '1 mes VIP' });
+  assert.equal(seniorityBadge(2).icon, '🥉');
+  assert.equal(seniorityBadge(3).icon, '🥈');
+  assert.equal(seniorityBadge(6).icon, '🥇');
+  assert.deepEqual(seniorityBadge(14), { icon: '💎', text: '14 meses VIP' });
+});
+
+test('only founders 1 to 10 get the seal', () => {
+  assert.equal(founderBadge(3), 'Fundador #3');
+  assert.equal(founderBadge(null), null);
+  assert.equal(founderBadge(11), null);
+});

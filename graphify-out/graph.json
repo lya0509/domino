@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T21:52:13.361Z",
+    "generatedAt": "2026-11-02T22:06:17.165Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,14 +10,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 207,
-      "totalEdges": 397,
+      "totalNodes": 209,
+      "totalEdges": 401,
       "totalHyperedges": 7,
       "totalScreens": 15,
       "totalComponents": 34,
       "totalServices": 24,
       "totalDatabaseTables": 23,
-      "totalDatabaseRpcs": 46,
+      "totalDatabaseRpcs": 47,
       "totalQaSuites": 18
     }
   },
@@ -853,8 +853,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1703,
-      "bytes": 71070,
+      "lines": 1734,
+      "bytes": 72305,
       "exports": [
         "ProfileScreen"
       ],
@@ -878,6 +878,7 @@
         "../lib/offlineSync",
         "../lib/bettingService",
         "../lib/vipService",
+        "../lib/vip",
         "../components/VipCard",
         "../components/VipRing",
         "../components/VipOfferModal",
@@ -1638,7 +1639,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 54,
-      "bytes": 2066,
+      "bytes": 2098,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1709,8 +1710,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1781,
-      "bytes": 90339,
+      "lines": 1782,
+      "bytes": 90434,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2594,6 +2595,24 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261102_19_vip_extras.sql",
+      "label": "20261102_19_vip_extras.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261102_19_vip_extras.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 144,
+      "bytes": 6728,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/BetHistoryRow.tsx",
       "label": "BetHistoryRow.tsx",
       "type": "component",
@@ -3248,8 +3267,8 @@
       "file": "src/components/VipCard.tsx",
       "role": "The VIP card: floats, flips with a sideways swipe or a tap; the back shows the photo or GIF, name and phrase.",
       "exists": true,
-      "lines": 254,
-      "bytes": 9935,
+      "lines": 275,
+      "bytes": 10685,
       "exports": [
         "VipBack",
         "VipCard"
@@ -3331,8 +3350,8 @@
       "file": "src/components/VipRing.tsx",
       "role": "Golden ring that turns around a VIP avatar, with a crown; VipCrown puts the crown next to a name.",
       "exists": true,
-      "lines": 92,
-      "bytes": 2968,
+      "lines": 107,
+      "bytes": 3455,
       "exports": [
         "VIP_GOLD",
         "VipRing",
@@ -3342,7 +3361,8 @@
       "imports": [
         "react",
         "react-native",
-        "../lib/vipService"
+        "../lib/vipService",
+        "../lib/vip"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3358,8 +3378,8 @@
       "file": "src/components/VipStudio.tsx",
       "role": "The VIP corner of the profile: days left, renew, photo or GIF for the card (waits for approval) and the phrase.",
       "exists": true,
-      "lines": 135,
-      "bytes": 5434,
+      "lines": 183,
+      "bytes": 7370,
       "exports": [
         "VipStudio"
       ],
@@ -3368,7 +3388,8 @@
         "react-native",
         "../theme",
         "./VipRing",
-        "../lib/vipService"
+        "../lib/vipService",
+        "../lib/vip"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3721,8 +3742,8 @@
       "file": "src/lib/shareVipCard.ts",
       "role": "Draws the VIP card as a 1080x1350 picture on a canvas and shares it (Web Share) or downloads it.",
       "exists": true,
-      "lines": 222,
-      "bytes": 7526,
+      "lines": 232,
+      "bytes": 7950,
       "exports": [
         "VipCardPicture",
         "ShareOutcome",
@@ -3856,11 +3877,16 @@
       "file": "src/lib/vip.ts",
       "role": "Pure VIP rules shared with the unit tests: is a VIP still active, and whole days left.",
       "exists": true,
-      "lines": 9,
-      "bytes": 498,
+      "lines": 35,
+      "bytes": 2097,
       "exports": [
         "isVipActive",
-        "vipDaysLeft"
+        "vipDaysLeft",
+        "RingStyle",
+        "RING_STYLES",
+        "ringStyleOf",
+        "seniorityBadge",
+        "founderBadge"
       ],
       "imports": [],
       "supabaseTables": [],
@@ -3877,8 +3903,8 @@
       "file": "src/lib/vipService.ts",
       "role": "Monthly VIP: the shared list of active VIPs (useVip), image picking that keeps GIFs animated, receipt and card uploads, and the member and admin RPCs.",
       "exists": true,
-      "lines": 267,
-      "bytes": 9848,
+      "lines": 282,
+      "bytes": 10490,
       "exports": [
         "VipInfo",
         "MyVip",
@@ -3896,6 +3922,7 @@
         "getMyVip",
         "requestVip",
         "submitVipMedia",
+        "setVipRingStyle",
         "setVipTagline",
         "listVipRequests",
         "reviewVipRequest",
@@ -3920,6 +3947,7 @@
         "get_my_vip",
         "request_vip",
         "set_vip_media",
+        "set_vip_ring_style",
         "set_vip_tagline",
         "list_vip_requests",
         "review_vip_request",
@@ -4215,6 +4243,13 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "An active VIP proposes the card photo or GIF; it waits for an admin."
+    },
+    {
+      "id": "rpc:set_vip_ring_style",
+      "label": "set_vip_ring_style",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "An active VIP picks the ring style: oro, diamante, fuego or arcoiris."
     },
     {
       "id": "rpc:set_vip_tagline",
@@ -5320,6 +5355,12 @@
     },
     {
       "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/lib/vip.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
       "target": "src/components/VipCard.tsx",
       "relation": "imports",
       "derived": true
@@ -6177,6 +6218,12 @@
       "derived": true
     },
     {
+      "source": "src/components/VipRing.tsx",
+      "target": "src/lib/vip.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/VipStudio.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -6191,6 +6238,12 @@
     {
       "source": "src/components/VipStudio.tsx",
       "target": "src/lib/vipService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipStudio.tsx",
+      "target": "src/lib/vip.ts",
       "relation": "imports",
       "derived": true
     },
@@ -6395,6 +6448,12 @@
     {
       "source": "src/lib/vipService.ts",
       "target": "rpc:set_vip_media",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:set_vip_ring_style",
       "relation": "calls_rpc",
       "derived": true
     },

@@ -1,17 +1,20 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import { useVip } from '../lib/vipService';
+import { RING_STYLES, ringStyleOf } from '../lib/vip';
 
 export const VIP_GOLD = '#fbbf24';
 const useNative = Platform.OS !== 'web';
 
 /** A golden ring that turns around an avatar, with a small crown. Only for VIPs. */
-export const VipRing: React.FC<{ active: boolean; size: number; children: React.ReactNode; crown?: boolean }> = ({
+export const VipRing: React.FC<{ active: boolean; size: number; children: React.ReactNode; crown?: boolean; ringStyle?: string | null }> = ({
   active,
   size,
   children,
   crown = true,
+  ringStyle,
 }) => {
+  const look = RING_STYLES[ringStyleOf(ringStyle)];
   const spin = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -31,16 +34,28 @@ export const VipRing: React.FC<{ active: boolean; size: number; children: React.
 
   return (
     <View style={{ width: ring, height: ring, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={[styles.base, { width: ring, height: ring, borderRadius: ring / 2 }]} />
+      <View style={[styles.base, { width: ring, height: ring, borderRadius: ring / 2, borderColor: look.soft }]} />
       <Animated.View
         pointerEvents="none"
-        style={[styles.arc, { width: ring, height: ring, borderRadius: ring / 2, transform: [{ rotate }] }]}
+        style={[
+          styles.arc,
+          {
+            width: ring,
+            height: ring,
+            borderRadius: ring / 2,
+            borderTopColor: look.arc[0],
+            borderRightColor: look.arc[1],
+            borderBottomColor: look.arc[2],
+            borderLeftColor: look.arc[3],
+            transform: [{ rotate }],
+          },
+        ]}
       />
       {children}
       {crown && (
         <View
           pointerEvents="none"
-          style={[styles.badge, { width: badge, height: badge, borderRadius: badge / 2, top: -2, right: -2 }]}
+          style={[styles.badge, { width: badge, height: badge, borderRadius: badge / 2, top: -2, right: -2, backgroundColor: look.main }]}
           accessibilityLabel="VIP"
         >
           <Text style={{ fontSize: badge * 0.62, color: '#1a1205', lineHeight: badge * 0.8 }}>♛</Text>
@@ -56,7 +71,7 @@ export const VipAvatarRing: React.FC<{ userId?: string | null; size: number; chi
   ...rest
 }) => {
   const vip = useVip(userId);
-  return <VipRing active={!!vip} {...rest} />;
+  return <VipRing active={!!vip} ringStyle={vip?.ring_style} {...rest} />;
 };
 
 /** A small golden crown next to a name, only when the player is VIP. */

@@ -12,6 +12,9 @@ export interface VipCardPicture {
   avatarUrl?: string | null;
   mediaUrl?: string | null;
   tagline?: string | null;
+  badges?: string[];
+  /** Color of the ring style the VIP picked (gold by default). */
+  accent?: string;
   memberId: string;
   points?: number | null;
 }
@@ -100,8 +103,9 @@ export const drawVipCard = async (card: VipCardPicture): Promise<Blob> => {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // Gold frame
-  ctx.strokeStyle = GOLD;
+  const accent = card.accent || GOLD;
+  // Frame in the VIP's ring color
+  ctx.strokeStyle = accent;
   ctx.lineWidth = 10;
   ctx.shadowColor = 'rgba(251,191,36,0.6)';
   ctx.shadowBlur = 30;
@@ -144,7 +148,7 @@ export const drawVipCard = async (card: VipCardPicture): Promise<Blob> => {
   ctx.restore();
   ctx.shadowColor = 'rgba(0,0,0,0.85)';
   ctx.shadowBlur = 12;
-  ctx.strokeStyle = GOLD;
+  ctx.strokeStyle = accent;
   ctx.lineWidth = 14;
   ctx.beginPath();
   ctx.arc(cx, cy, r + 8, 0, Math.PI * 2);
@@ -161,10 +165,16 @@ export const drawVipCard = async (card: VipCardPicture): Promise<Blob> => {
     wrap(ctx, `“${card.tagline}”`, W - 240, 2).forEach((l, i) => ctx.fillText(l, W / 2, 950 + i * 62));
   }
 
+  if (card.badges?.length) {
+    ctx.fillStyle = GOLD;
+    ctx.font = '800 40px system-ui, -apple-system, Roboto, "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+    ctx.fillText(card.badges.join('   ·   '), W / 2, card.tagline ? 1065 : 1010);
+  }
+
   if (card.points != null) {
     ctx.fillStyle = GOLD;
     ctx.font = '800 48px system-ui, -apple-system, Roboto, sans-serif';
-    ctx.fillText(`🪙 ${card.points} pts`, W / 2, 1110);
+    ctx.fillText(`🪙 ${card.points} pts`, W / 2, 1130);
   }
 
   const season = currentSeason();
@@ -177,12 +187,12 @@ export const drawVipCard = async (card: VipCardPicture): Promise<Blob> => {
     ctx.fillText(d, W - 110, H - 80);
     ctx.font = '800 40px system-ui, -apple-system, Roboto, sans-serif';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(season.label, W / 2, 1170);
+    ctx.fillText(season.label, W / 2, 1186);
   }
 
   ctx.font = '700 34px system-ui, -apple-system, Roboto, sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  ctx.fillText(`#CAF-${card.memberId.substring(0, 8).toUpperCase()}`, W / 2, 1230);
+  ctx.fillText(`#CAF-${card.memberId.substring(0, 8).toUpperCase()}`, W / 2, 1244);
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No se pudo crear la imagen.'))), 'image/png'),

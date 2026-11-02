@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
 import { VIP_GOLD } from './VipRing';
-import { MyVip, pickImage, setVipTagline, submitVipMedia, vipDaysLeft, vipMediaUrl } from '../lib/vipService';
+import { MyVip, pickImage, setVipRingStyle, setVipTagline, submitVipMedia, useVip, vipDaysLeft, vipMediaUrl } from '../lib/vipService';
+import { RING_STYLES, RingStyle, ringStyleOf } from '../lib/vip';
+import { VipRing } from './VipRing';
 
 /** The VIP's own corner: days left, renew, photo or GIF for the card, and the phrase. */
 export const VipStudio: React.FC<{ userId: string; myVip: MyVip; onChanged: () => void; onRenew: () => void }> = ({
@@ -12,7 +14,21 @@ export const VipStudio: React.FC<{ userId: string; myVip: MyVip; onChanged: () =
   onRenew,
 }) => {
   const [tagline, setTagline] = useState(myVip.tagline ?? '');
-  const [busy, setBusy] = useState<'media' | 'tagline' | null>(null);
+  const [busy, setBusy] = useState<'media' | 'tagline' | 'ring' | null>(null);
+  const shared = useVip(userId);
+  const currentStyle = ringStyleOf(shared?.ring_style);
+
+  const pickStyle = async (style: RingStyle) => {
+    if (style === currentStyle || busy) return;
+    setBusy('ring');
+    try {
+      await setVipRingStyle(style);
+    } catch (e: any) {
+      Alert.alert('No se pudo cambiar el borde', e?.message || 'Intenta de nuevo.');
+    } finally {
+      setBusy(null);
+    }
+  };
 
   useEffect(() => setTagline(myVip.tagline ?? ''), [myVip.tagline]);
 
@@ -62,6 +78,26 @@ export const VipStudio: React.FC<{ userId: string; myVip: MyVip; onChanged: () =
         </TouchableOpacity>
       )}
 
+      <Text style={styles.section}>Tu borde</Text>
+      <View style={styles.ringRow}>
+        {(Object.keys(RING_STYLES) as RingStyle[]).map((style) => (
+          <TouchableOpacity
+            key={style}
+            style={[styles.ringOption, style === currentStyle && { borderColor: RING_STYLES[style].main }]}
+            onPress={() => pickStyle(style)}
+            disabled={busy === 'ring'}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: style === currentStyle }}
+            accessibilityLabel={`Borde ${RING_STYLES[style].label}`}
+          >
+            <VipRing active size={30} ringStyle={style} crown={false}>
+              <View style={styles.ringDot} />
+            </VipRing>
+            <Text style={[styles.ringLabel, style === currentStyle && { color: RING_STYLES[style].main }]}>{RING_STYLES[style].label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <Text style={styles.section}>Foto o GIF de tu tarjeta</Text>
       {pendingUrl ? (
         <View style={styles.pendingRow}>
@@ -106,6 +142,18 @@ const styles = StyleSheet.create({
   renew: { alignSelf: 'flex-start', backgroundColor: VIP_GOLD, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 14, marginTop: 10 },
   renewText: { color: '#1a1205', fontWeight: '900' },
   section: { color: VIP_GOLD, fontWeight: '800', marginTop: 16, marginBottom: 6 },
+  ringRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
+  ringOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  ringDot: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#3b82f6' },
+  ringLabel: { color: theme.colors.textDim, fontSize: 11, fontWeight: '700', marginTop: 4 },
   pendingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   thumb: { width: 48, height: 48, borderRadius: 8, borderWidth: 1, borderColor: VIP_GOLD },
   mediaBtn: {

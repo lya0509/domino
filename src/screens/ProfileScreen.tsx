@@ -20,6 +20,7 @@ import { InviteQr } from '../components/InviteQr';
 import { offlineSync } from '../lib/offlineSync';
 import { reconcileUserPendingBets } from '../lib/bettingService';
 import { getMyVip, MyVip, refreshVips, useVip, vipMediaUrl } from '../lib/vipService';
+import { founderBadge, RING_STYLES, ringStyleOf, seniorityBadge } from '../lib/vip';
 import { VipCard } from '../components/VipCard';
 import { VIP_GOLD, VipRing } from '../components/VipRing';
 import { VipOfferModal } from '../components/VipOfferModal';
@@ -78,6 +79,12 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const vip = useVip(profileId);
+  const vipLook = RING_STYLES[ringStyleOf(vip?.ring_style)];
+  const vipBadges = vip
+    ? [founderBadge(vip.founder_number) && `♛ ${founderBadge(vip.founder_number)}`, seniorityBadge(vip.streak_months) && `${seniorityBadge(vip.streak_months)!.icon} ${seniorityBadge(vip.streak_months)!.text}`].filter(
+        (b): b is string => !!b,
+      )
+    : [];
   const [myVip, setMyVip] = useState<MyVip | null>(null);
   const [showVipOffer, setShowVipOffer] = useState(false);
   const [showVipAdmin, setShowVipAdmin] = useState(false);
@@ -132,6 +139,8 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           avatarUrl: profile?.avatar_url,
           mediaUrl: vipMediaUrl(vip.media_path),
           tagline: vip.tagline,
+          badges: vipBadges,
+          accent: vipLook.main,
           memberId: profileId,
           points: profile?.betting_points ?? null,
         },
@@ -704,7 +713,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           {/* Central Avatar & Info */}
           <View style={styles.credentialBody}>
             <View style={{ marginBottom: vip ? theme.spacing.m : 0 }}>
-            <VipRing active={!!vip} size={80}>
+            <VipRing active={!!vip} size={80} ringStyle={vip?.ring_style}>
             <TouchableOpacity
               style={[
                 styles.avatar,
@@ -745,6 +754,14 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                 </Text>
               )}
             </TouchableOpacity>
+
+            {vipBadges.length > 0 && (
+              <View style={styles.vipBadgeRow}>
+                {vipBadges.map((b) => (
+                  <Text key={b} style={[styles.vipBadge, { borderColor: vipLook.main }]}>{b}</Text>
+                ))}
+              </View>
+            )}
 
             {profile?.equipped_items?.title && (
               <Text style={{ color: '#fbbf24', fontWeight: '800', marginTop: 4, fontSize: 13, letterSpacing: 0.5 }}>
@@ -789,12 +806,14 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
             <View style={{ marginBottom: theme.spacing.m }}>
               <VipCard
                 front={credential}
+                accent={vipLook.main}
                 mediaUrl={vipMediaUrl(vip.media_path)}
                 back={{
                   name: profile?.display_name || 'Socio',
                   initials: profile?.initials,
                   avatarUrl: profile?.avatar_url,
                   tagline: vip.tagline,
+                  badges: vipBadges,
                 }}
               />
               {isOwnProfile && (
@@ -1381,6 +1400,18 @@ const styles = StyleSheet.create({
   statTabText: { color: theme.colors.textDim, fontWeight: '700', fontSize: 13 },
   statTabTextOn: { color: '#fff' },
   statSwipeHint: { color: theme.colors.textDim, fontSize: 11, textAlign: 'center', marginTop: 10 },
+  vipBadgeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 6 },
+  vipBadge: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    overflow: 'hidden',
+  },
   vipShareRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 2 },
   vipShareBtn: {
     flex: 1,

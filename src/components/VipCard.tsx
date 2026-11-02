@@ -10,6 +10,7 @@ export interface VipBack {
   initials?: string | null;
   avatarUrl?: string | null;
   tagline?: string | null;
+  badges?: string[];
 }
 
 /** Stand-in for a member's GIF in the sample card: glows and pieces drifting. */
@@ -99,7 +100,8 @@ export const VipCard: React.FC<{
   sample?: boolean;
   autoFlip?: boolean;
   showHint?: boolean;
-}> = ({ front, back, mediaUrl, sample = false, autoFlip = false, showHint = true }) => {
+  accent?: string;
+}> = ({ front, back, mediaUrl, sample = false, autoFlip = false, showHint = true, accent = VIP_GOLD }) => {
   const flip = useRef(new Animated.Value(0)).current;
   const float = useRef(new Animated.Value(0)).current;
   const flipped = useRef(false);
@@ -148,19 +150,19 @@ export const VipCard: React.FC<{
   return (
     <View>
       <Animated.View {...pan.panHandlers} style={{ transform: [{ translateY: lift }] }}>
-        <Animated.View style={[styles.face, styles.frame, { transform: [{ perspective: 1200 }, { rotateY: frontRotate }] }]}>
+        <Animated.View style={[styles.face, styles.frame, { borderColor: accent }, { transform: [{ perspective: 1200 }, { rotateY: frontRotate }] }]}>
           <Backdrop mediaUrl={mediaUrl} sample={sample} />
           {front}
           <SeasonCorners season={season} />
         </Animated.View>
         <Animated.View
-          style={[styles.face, styles.frame, styles.back, { transform: [{ perspective: 1200 }, { rotateY: backRotate }] }]}
+          style={[styles.face, styles.frame, styles.back, { borderColor: accent }, { transform: [{ perspective: 1200 }, { rotateY: backRotate }] }]}
           pointerEvents={flipped.current ? 'auto' : 'none'}
         >
           <Backdrop mediaUrl={mediaUrl} sample={sample} />
           <View style={styles.backInner}>
             <Text style={styles.backTag}>♛ SOCIO VIP</Text>
-            <View style={styles.photo}>
+            <View style={[styles.photo, { borderColor: accent }]}>
               {back.avatarUrl ? (
                 <Image source={{ uri: back.avatarUrl }} style={styles.photoImg} resizeMode="cover" />
               ) : (
@@ -169,6 +171,13 @@ export const VipCard: React.FC<{
             </View>
             <Text style={styles.backName} numberOfLines={1}>{back.name}</Text>
             {!!back.tagline && <Text style={styles.backPhrase} numberOfLines={2}>“{back.tagline}”</Text>}
+            {!!back.badges?.length && (
+              <View style={styles.badgeRow}>
+                {back.badges.map((b) => (
+                  <Text key={b} style={[styles.badge, { borderColor: accent }]}>{b}</Text>
+                ))}
+              </View>
+            )}
             {season && (
               <View style={[styles.seasonPill, { borderColor: season.accent }]}>
                 <Text style={styles.seasonText}>{season.glyphs[0]} {season.label}</Text>
@@ -238,6 +247,18 @@ const styles = StyleSheet.create({
     textShadowRadius: 6,
   },
   corner: { position: 'absolute', fontSize: 20, opacity: 0.9 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 8 },
+  badge: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    overflow: 'hidden',
+  },
   seasonPill: {
     marginTop: 10,
     borderWidth: 1.5,

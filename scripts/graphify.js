@@ -1049,6 +1049,7 @@ CODE_FILES.forEach((f) => {
 codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
 
 const RPC_ROLES = {
+  set_vip_ring_style: 'An active VIP picks the ring style: oro, diamante, fuego or arcoiris.',
   get_my_vip: 'The caller VIP state, card, photo waiting for approval and last request.',
   request_vip: 'A member asks for VIP with the payment reference and the receipt they uploaded. Admins get a push.',
   review_vip_request: 'Admin approves (adds vip_days, extending an active VIP) or rejects with a reason. The member gets a push.',

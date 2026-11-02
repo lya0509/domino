@@ -57,6 +57,7 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 
 ### Community 5: Social, Economy, Achievements, Leaderboards & Tournaments
 - [`src/screens/ProfileScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/ProfileScreen.tsx) (`route: 'profile'`) — Stats, expandable VAR `MatchGraph`, Rivals and Duos that open every match on tap (`PlayerMatchesSheet`), last 10 Bets that open their match on tap (`BetHistoryRow`), QR Invite Pass, and secret Admin PIN (7 taps on the avatar, checked on the server).
+- **VIP mensual** ([`src/lib/vipService.ts`](file:///home/lya/proyectos/Domino/src/lib/vipService.ts)) — Purely cosmetic: golden ring and crown (`VipRing`, `VipCrown`) wherever a VIP shows up, and a card that flips (`VipCard`) on the profile. Members pay the advisor and send a reference + receipt (`VipOfferModal`); admins approve in the VIP panel (`VipAdminModal`, from the profile). 30 days, warning 3 days before, card wiped 3 days after expiry. Written only through RPCs (migration 17).
 - [`src/screens/StoreScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/StoreScreen.tsx) (`route: 'store'`) — 14 VIP cosmetics + 250,000-pt Custom Title creator.
 - [`src/screens/AchievementsScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/AchievementsScreen.tsx) (`route: 'achievements'`) — 50 unlockable achievements with point rewards.
 - [`src/screens/LeaderboardScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/LeaderboardScreen.tsx) (`route: 'leaderboard'`) — Top 100 `💰 Ricos`, `🏆 Ganadores`, and `🥾 Zapateros`.

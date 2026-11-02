@@ -56,6 +56,10 @@ TRUNCATE
   public.tournament_payouts, public.tournament_participants, public.tournament_brackets,
   public.matches, public.tournaments;
 
+-- El historial de puntos arranca con el saldo de cada cuenta
+INSERT INTO public.points_ledger(user_id, delta, balance, reason)
+SELECT id, COALESCE(betting_points, 0), COALESCE(betting_points, 0), 'Reinicio del club' FROM public.profiles;
+
 COMMIT;
 
 -- ==============================================================================
@@ -67,5 +71,5 @@ SELECT
   (SELECT count(*) FROM public.matches) AS partidas,
   (SELECT count(*) FROM public.bets) AS apuestas,
   (SELECT count(*) FROM public.table_games) AS partidas_de_mesa,
-  (SELECT count(*) FROM public.points_ledger) AS movimientos,
+  (SELECT count(*) FROM public.points_ledger WHERE reason <> 'Reinicio del club') AS movimientos,
   (SELECT count(*) FROM public.duos) AS duos;

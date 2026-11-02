@@ -19,6 +19,12 @@ import { PointsHistory } from '../components/PointsHistory';
 import { InviteQr } from '../components/InviteQr';
 import { offlineSync } from '../lib/offlineSync';
 import { reconcileUserPendingBets } from '../lib/bettingService';
+import { getMyVip, MyVip, refreshVips, useVip, vipMediaUrl } from '../lib/vipService';
+import { VipCard } from '../components/VipCard';
+import { VIP_GOLD, VipRing } from '../components/VipRing';
+import { VipOfferModal } from '../components/VipOfferModal';
+import { VipStudio } from '../components/VipStudio';
+import { VipAdminModal } from '../components/VipAdminModal';
 import {
   HistoryMatch, MATCH_HISTORY_COLUMNS, matchesAgainst, matchesTogether, matchRecord, wonMatch,
 } from '../lib/playerHistory';
@@ -68,6 +74,22 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const vip = useVip(profileId);
+  const [myVip, setMyVip] = useState<MyVip | null>(null);
+  const [showVipOffer, setShowVipOffer] = useState(false);
+  const [showVipAdmin, setShowVipAdmin] = useState(false);
+
+  const loadMyVip = useCallback(async () => {
+    if (!isOwnProfile) return;
+    const mine = await getMyVip();
+    setMyVip(mine);
+    // Just approved, renewed or expired: the shared list catches up
+    await refreshVips(true);
+  }, [isOwnProfile]);
+
+  useEffect(() => {
+    loadMyVip();
+  }, [loadMyVip, profileId]);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [secretTaps, setSecretTaps] = useState(0);
   const [showSecretPin, setShowSecretPin] = useState(false);
@@ -591,7 +613,9 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       >
 
         {/* Credencial Digital de Socio VIP */}
-        <View style={styles.vipCredentialCard}>
+        {(() => {
+          const credential = (
+        <View style={[styles.vipCredentialCard, vip && styles.vipCredentialCardGold]}>
           {/* Header of Credential */}
           <TouchableOpacity activeOpacity={0.9} onPress={handleProfileSecretTap} style={styles.credentialHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -601,17 +625,35 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                 <Text style={styles.credentialSub}>CREDENCIAL OFICIAL DE SOCIO</Text>
               </View>
             </View>
-            <View style={styles.credentialChip}>
-              <Text style={styles.credentialChipText}>💳 VIP</Text>
-            </View>
+            {vip ? (
+              <View style={[styles.credentialChip, styles.credentialChipVip]}>
+                <Text style={[styles.credentialChipText, { color: '#1a1205' }]}>♛ VIP</Text>
+              </View>
+            ) : isOwnProfile ? (
+              <TouchableOpacity
+                style={styles.credentialChip}
+                onPress={() => setShowVipOffer(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Hazte VIP"
+              >
+                <Text style={styles.credentialChipText}>{myVip?.request?.status === 'pending' ? '⏳ VIP' : '💳 VIP'}</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.credentialChip}>
+                <Text style={styles.credentialChipText}>💳 VIP</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {/* Central Avatar & Info */}
           <View style={styles.credentialBody}>
+            <View style={{ marginBottom: vip ? theme.spacing.m : 0 }}>
+            <VipRing active={!!vip} size={80}>
             <TouchableOpacity
               style={[
                 styles.avatar,
-                profile?.equipped_items?.border && { borderWidth: 4, borderColor: profile.equipped_items.border, padding: 2 }
+                profile?.equipped_items?.border && { borderWidth: 4, borderColor: profile.equipped_items.border, padding: 2 },
+                vip && { marginBottom: 0 },
               ]}
               onPress={isOwnProfile ? handlePickAvatar : undefined}
               disabled={!isOwnProfile || uploadingAvatar}
@@ -630,6 +672,8 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                 </View>
               )}
             </TouchableOpacity>
+            </VipRing>
+            </View>
 
             <TouchableOpacity activeOpacity={0.8} onPress={handleProfileSecretTap} style={{ alignItems: 'center' }}>
               {profile?.equipped_items?.color === 'rainbow' ? (
@@ -680,10 +724,40 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={styles.credentialFooterLabel}>ESTADO</Text>
-              <Text style={[styles.credentialFooterVal, { color: '#4ade80' }]}>● ACTIVO</Text>
+              <Text style={[styles.credentialFooterVal, { color: vip ? VIP_GOLD : '#4ade80' }]}>{vip ? '♛ VIP' : '● ACTIVO'}</Text>
             </View>
           </TouchableOpacity>
         </View>
+          );
+          return vip ? (
+            <View style={{ marginBottom: 8 }}>
+              <VipCard
+                front={credential}
+                back={{
+                  name: profile?.display_name || 'Socio',
+                  initials: profile?.initials,
+                  avatarUrl: profile?.avatar_url,
+                  mediaUrl: vipMediaUrl(vip.media_path),
+                  tagline: vip.tagline,
+                }}
+              />
+            </View>
+          ) : credential;
+        })()}
+
+        {isOwnProfile && profileId && myVip?.active && (
+          <VipStudio userId={profileId} myVip={myVip} onChanged={loadMyVip} onRenew={() => setShowVipOffer(true)} />
+        )}
+        {isOwnProfile && !myVip?.active && myVip?.request?.status === 'pending' && (
+          <TouchableOpacity style={styles.vipPendingBar} onPress={() => setShowVipOffer(true)} accessibilityRole="button">
+            <Text style={styles.vipPendingText}>⏳ Tu solicitud VIP está en revisión</Text>
+          </TouchableOpacity>
+        )}
+        {isOwnProfile && profile?.is_admin && (
+          <TouchableOpacity style={styles.vipAdminBtn} onPress={() => setShowVipAdmin(true)} accessibilityRole="button">
+            <Text style={styles.vipAdminText}>♛ Panel VIP: solicitudes y fotos</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Medals Showcase */}
         {(() => {
@@ -1166,6 +1240,25 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         onClose={() => setShowLegalModal(false)}
         initialTab={legalTab}
       />
+
+      {isOwnProfile && profileId && (
+        <VipOfferModal
+          visible={showVipOffer}
+          onClose={() => setShowVipOffer(false)}
+          userId={profileId}
+          name={profile?.display_name || 'Socio'}
+          initials={profile?.initials}
+          avatarUrl={profile?.avatar_url}
+          myVip={myVip}
+          onSubmitted={() => {
+            setShowVipOffer(false);
+            loadMyVip();
+          }}
+        />
+      )}
+      {isOwnProfile && profile?.is_admin && (
+        <VipAdminModal visible={showVipAdmin} onClose={() => setShowVipAdmin(false)} />
+      )}
     </SafeAreaView>
   );
 };
@@ -1183,6 +1276,28 @@ const styles = StyleSheet.create({
   backBtn: { paddingVertical: 6 },
   backBtnText: { color: theme.colors.primary, fontSize: 15, fontWeight: '600' },
   scroll: { padding: theme.spacing.l, paddingBottom: 40 },
+  vipCredentialCardGold: { borderColor: VIP_GOLD, borderWidth: 1.5 },
+  credentialChipVip: { backgroundColor: VIP_GOLD, borderColor: VIP_GOLD },
+  vipPendingBar: {
+    backgroundColor: 'rgba(251,191,36,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(251,191,36,0.4)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  vipPendingText: { color: VIP_GOLD, fontWeight: '800' },
+  vipAdminBtn: {
+    backgroundColor: 'rgba(251,191,36,0.14)',
+    borderWidth: 1,
+    borderColor: VIP_GOLD,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  vipAdminText: { color: VIP_GOLD, fontWeight: '900' },
   vipCredentialCard: {
     backgroundColor: '#11141b',
     borderRadius: 20,

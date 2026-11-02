@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Modal, Alert, Image, StatusBar } from 'react-native';
 import { theme } from '../theme';
+import { VipAvatarRing } from '../components/VipRing';
 import { GameMode, Player, Match, Profile } from '../types';
 import { supabase } from '../lib/supabase';
 import { offlineSync } from '../lib/offlineSync';
@@ -274,11 +275,13 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
       >
         {profile ? (
           <View style={styles.slotContent}>
-            {profile.avatar_url ? (
-              <Image source={{ uri: profile.avatar_url }} style={styles.slotAvatarImg} />
-            ) : (
-              <Text style={styles.slotInitials}>{profile.initials}</Text>
-            )}
+            <VipAvatarRing userId={profile.id} size={40}>
+              {profile.avatar_url ? (
+                <Image source={{ uri: profile.avatar_url }} style={styles.slotAvatarImg} />
+              ) : (
+                <Text style={styles.slotInitials}>{profile.initials}</Text>
+              )}
+            </VipAvatarRing>
             <Text style={styles.slotName}>{profile.display_name}</Text>
             <Text style={styles.slotRemove}>✕</Text>
           </View>

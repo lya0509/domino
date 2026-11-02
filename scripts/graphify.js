@@ -710,6 +710,20 @@ const RAW_NODES = [
     community: 'database_sql',
     role: 'VIP Cash tournament payment receipt uploads from TournamentsScreen.',
   },
+  {
+    id: 'storage:vip-receipts',
+    label: 'Storage Bucket: vip-receipts',
+    type: 'db_table',
+    community: 'database_sql',
+    role: 'Private VIP payment receipts, one folder per member. Only the owner and admins can read them (signed URLs).',
+  },
+  {
+    id: 'storage:vip-media',
+    label: 'Storage Bucket: vip-media',
+    type: 'db_table',
+    community: 'database_sql',
+    role: 'Public photo or GIF of each VIP card. Shown only once an admin approves it (vip_members.media_path).',
+  },
   // Database RPC Nodes
   {
     id: 'rpc:verify_admin_pin',
@@ -922,6 +936,14 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/lib/vip.ts': 'Pure VIP rules shared with the unit tests: is a VIP still active, and whole days left.',
+  'src/lib/vipService.ts':
+    'Monthly VIP: the shared list of active VIPs (useVip), image picking that keeps GIFs animated, receipt and card uploads, and the member and admin RPCs.',
+  'src/components/VipRing.tsx': 'Golden ring that turns around a VIP avatar, with a crown; VipCrown puts the crown next to a name.',
+  'src/components/VipCard.tsx': 'The VIP card: floats, flips with a sideways swipe or a tap; the back shows the photo or GIF, name and phrase.',
+  'src/components/VipOfferModal.tsx': 'What VIP includes, a sample card that flips, the price and payment details, and the form to send the reference and receipt.',
+  'src/components/VipStudio.tsx': 'The VIP corner of the profile: days left, renew, photo or GIF for the card (waits for approval) and the phrase.',
+  'src/components/VipAdminModal.tsx': 'Admin VIP panel: payment requests with their receipt, card photos to approve, and the price and payment details.',
   'src/components/PokerPot.tsx':
     'The middle of the poker table: the pot drawn as a pile of chips in the tray colors, growing with each bet.',
   'src/components/PlayerChip.tsx':
@@ -1014,13 +1036,22 @@ CODE_FILES.filter((f) => !graphedFiles.has(f)).forEach((f) => {
 const codeRefs = { tables: new Set(), buckets: new Set(), rpcs: new Set() };
 CODE_FILES.forEach((f) => {
   const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
-  for (const m of text.matchAll(/storage\s*\.from\(\s*['"`]([a-z0-9_]+)/g)) codeRefs.buckets.add(m[1]);
+  for (const m of text.matchAll(/storage\s*\.from\(\s*['"`]([a-z0-9_-]+)/g)) codeRefs.buckets.add(m[1]);
   for (const m of text.matchAll(/\.from\(\s*['"`]([a-z0-9_]+)['"`]\s*\)/g)) codeRefs.tables.add(m[1]);
   for (const m of text.matchAll(/\.rpc\(\s*['"`]([a-z0-9_]+)['"`]/g)) codeRefs.rpcs.add(m[1]);
 });
 codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
 
 const RPC_ROLES = {
+  get_my_vip: 'The caller VIP state, card, photo waiting for approval and last request.',
+  request_vip: 'A member asks for VIP with the payment reference and the receipt they uploaded. Admins get a push.',
+  review_vip_request: 'Admin approves (adds vip_days, extending an active VIP) or rejects with a reason. The member gets a push.',
+  set_vip_media: 'An active VIP proposes the card photo or GIF; it waits for an admin.',
+  review_vip_media: 'Admin approves or rejects a VIP card photo.',
+  set_vip_tagline: 'An active VIP sets the phrase on the back of the card (60 characters).',
+  list_vip_requests: 'Admin list of VIP requests with name and receipt path.',
+  list_vip_media_pending: 'Admin list of VIP card photos waiting for approval.',
+  set_vip_settings: 'Admin sets the VIP price text and payment details members see.',
   get_my_bet_profit_left: 'How much bet winnings the caller can still collect today under the daily cap (system_config.max_bet_profit_per_day). Shown in the bet modal.',
   set_poker_seat: 'A player moves their own chips, or the dealer writes for someone without a phone. Each seat is written alone with an exact total, so phones never overwrite each other.',
   start_poker_game: 'Starts a poker game with its starting chips and entry, using a phone-made id so the offline outbox can resend it.',
@@ -1050,6 +1081,7 @@ const RPC_ROLES = {
   expire_tournament_registration: 'After 5 minutes starts the tournament or cancels and refunds.',
 };
 const TABLE_ROLES = {
+  vip_members: 'Who is VIP until when, with the approved card photo and phrase. Everyone reads it; only the VIP RPCs write it.',
   poker_hands: 'Each poker hand: who dealt and entered, what each put in, winners, hand and who wrote it. Chips are computed from it, never stored.',
   table_games: 'UNO games and their state. The app only reads it: every change goes through the table game RPCs.',
   points_ledger: 'Every balance change with its reason, written by a trigger on profiles.betting_points. Readable by its owner and admins.',

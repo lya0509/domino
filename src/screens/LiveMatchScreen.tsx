@@ -4,6 +4,7 @@ import {
   ActivityIndicator, ScrollView, Modal, Alert, Image, TextInput, KeyboardAvoidingView, Platform, SafeAreaView
 } from 'react-native';
 import { theme } from '../theme';
+import { VipCrown } from '../components/VipRing';
 import { supabase } from '../lib/supabase';
 import { ProgressChart } from '../components/ProgressChart';
 import { RainbowText } from '../components/RainbowText';
@@ -408,6 +409,13 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
 
   const team1Label = team1Players.map(p => p.initials).join(' & ') || 'Equipo 1';
   const team2Label = team2Players.map(p => p.initials).join(' & ') || 'Equipo 2';
+  // Scoreboard names with a crown for each VIP
+  const teamTitle = (list: Player[], fallback: string) =>
+    list.length
+      ? list.map((p, i) => (
+          <Text key={i}>{i ? ' & ' : ''}{p.initials}<VipCrown userId={p.profileId} /></Text>
+        ))
+      : fallback;
 
   const team1Total = matchData.team1_total || 0;
   const team2Total = matchData.team2_total || 0;
@@ -442,7 +450,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
         {/* Scoreboard */}
         <View style={styles.scoreboard}>
           <View style={styles.scoreCard}>
-            <Text style={styles.scoreName}>{team1Label}</Text>
+            <Text style={styles.scoreName}>{teamTitle(team1Players, 'Equipo 1')}</Text>
             <Text style={[styles.scoreValue, { color: theme.colors.primary }]}>{team1Total}</Text>
             <View style={styles.progressBg}>
               <View style={[styles.progressFill, { backgroundColor: theme.colors.primary, width: `${Math.min((team1Total / limitScore) * 100, 100)}%` }]} />
@@ -450,7 +458,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
           </View>
           <View style={styles.vsContainer}><Text style={styles.vsText}>VS</Text></View>
           <View style={styles.scoreCard}>
-            <Text style={styles.scoreName}>{team2Label}</Text>
+            <Text style={styles.scoreName}>{teamTitle(team2Players, 'Equipo 2')}</Text>
             <Text style={[styles.scoreValue, { color: theme.colors.secondary }]}>{team2Total}</Text>
             <View style={styles.progressBg}>
               <View style={[styles.progressFill, { backgroundColor: theme.colors.secondary, width: `${Math.min((team2Total / limitScore) * 100, 100)}%` }]} />

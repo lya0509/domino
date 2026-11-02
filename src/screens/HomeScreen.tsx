@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, RefreshControl, ActivityIndicator, Animated, Image, Alert, Platform, Modal, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
+import { VipAvatarRing } from '../components/VipRing';
 import { Profile, PlayerStats, DuoStats } from '../types';
 import { supabase } from '../lib/supabase';
 import { sounds } from '../lib/sounds';
@@ -655,13 +656,15 @@ export const HomeScreen: React.FC<Props> = ({
         {/* My Stats Card — toca para ver perfil */}
         {currentUser && (
           <TouchableOpacity style={styles.myStatsCard} onPress={() => onOpenProfile()} activeOpacity={0.8}>
-            <View style={styles.myStatsAvatar}>
-              {currentUser?.avatar_url ? (
-                <Image source={{ uri: currentUser.avatar_url }} style={styles.myStatsImage} />
-              ) : (
-                <Text style={styles.myStatsInitials}>{currentUser?.initials}</Text>
-              )}
-            </View>
+            <VipAvatarRing userId={currentUser.id} size={56}>
+              <View style={styles.myStatsAvatar}>
+                {currentUser?.avatar_url ? (
+                  <Image source={{ uri: currentUser.avatar_url }} style={styles.myStatsImage} />
+                ) : (
+                  <Text style={styles.myStatsInitials}>{currentUser?.initials}</Text>
+                )}
+              </View>
+            </VipAvatarRing>
             <View style={styles.myStatsGrid}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{myStats?.wins ?? 0}</Text>

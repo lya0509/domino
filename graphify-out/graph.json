@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T20:12:37.727Z",
+    "generatedAt": "2026-11-02T20:42:02.258Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,14 +10,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 179,
-      "totalEdges": 332,
+      "totalNodes": 200,
+      "totalEdges": 371,
       "totalHyperedges": 7,
       "totalScreens": 15,
-      "totalComponents": 27,
-      "totalServices": 18,
-      "totalDatabaseTables": 19,
-      "totalDatabaseRpcs": 37,
+      "totalComponents": 32,
+      "totalServices": 20,
+      "totalDatabaseTables": 22,
+      "totalDatabaseRpcs": 46,
       "totalQaSuites": 18
     }
   },
@@ -621,8 +621,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1580,
-      "bytes": 58003,
+      "lines": 1583,
+      "bytes": 58163,
       "exports": [
         "HomeScreen"
       ],
@@ -631,6 +631,7 @@
         "react-native",
         "@react-native-async-storage/async-storage",
         "../theme",
+        "../components/VipRing",
         "../types",
         "../lib/supabase",
         "../lib/sounds",
@@ -686,8 +687,8 @@
         "💰 Apuesta de Puntos VIP Toggle & Amount Input (50 / 100 / 250 / Custom)"
       ],
       "exists": true,
-      "lines": 674,
-      "bytes": 28721,
+      "lines": 677,
+      "bytes": 28873,
       "exports": [
         "SetupScreen"
       ],
@@ -695,6 +696,7 @@
         "react",
         "react-native",
         "../theme",
+        "../components/VipRing",
         "../types",
         "../lib/supabase",
         "../lib/offlineSync",
@@ -784,8 +786,8 @@
         "💬 Chat de la Mesa (Realtime live_chat with 2s anti-spam cooldown)"
       ],
       "exists": true,
-      "lines": 974,
-      "bytes": 47708,
+      "lines": 982,
+      "bytes": 48081,
       "exports": [
         "LiveMatchScreen"
       ],
@@ -793,6 +795,7 @@
         "react",
         "react-native",
         "../theme",
+        "../components/VipRing",
         "../lib/supabase",
         "../components/ProgressChart",
         "../components/RainbowText",
@@ -843,8 +846,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1473,
-      "bytes": 61296,
+      "lines": 1588,
+      "bytes": 65835,
       "exports": [
         "ProfileScreen"
       ],
@@ -867,6 +870,12 @@
         "../components/InviteQr",
         "../lib/offlineSync",
         "../lib/bettingService",
+        "../lib/vipService",
+        "../components/VipCard",
+        "../components/VipRing",
+        "../components/VipOfferModal",
+        "../components/VipStudio",
+        "../components/VipAdminModal",
         "../lib/playerHistory"
       ],
       "supabaseTables": [
@@ -994,8 +1003,8 @@
         "Top 100 Ranked Player Rows with RainbowText, Equipped Titles & Borders"
       ],
       "exists": true,
-      "lines": 188,
-      "bytes": 8724,
+      "lines": 201,
+      "bytes": 9407,
       "exports": [
         "LeaderboardScreen"
       ],
@@ -1003,6 +1012,7 @@
         "react",
         "react-native",
         "../theme",
+        "../components/VipRing",
         "../lib/supabase",
         "../types",
         "../lib/offlineSync"
@@ -1092,8 +1102,8 @@
         "Message Input Bar with 3s Anti-Spam Cooldown"
       ],
       "exists": true,
-      "lines": 297,
-      "bytes": 11043,
+      "lines": 298,
+      "bytes": 11127,
       "exports": [
         "GlobalChatScreen"
       ],
@@ -1101,6 +1111,7 @@
         "react",
         "react-native",
         "../theme",
+        "../components/VipRing",
         "../lib/supabase"
       ],
       "supabaseTables": [
@@ -1417,6 +1428,20 @@
       "role": "VIP Cash tournament payment receipt uploads from TournamentsScreen."
     },
     {
+      "id": "storage:vip-receipts",
+      "label": "Storage Bucket: vip-receipts",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Private VIP payment receipts, one folder per member. Only the owner and admins can read them (signed URLs)."
+    },
+    {
+      "id": "storage:vip-media",
+      "label": "Storage Bucket: vip-media",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Public photo or GIF of each VIP card. Shown only once an admin approves it (vip_members.media_path)."
+    },
+    {
       "id": "rpc:verify_admin_pin",
       "label": "RPC: verify_admin_pin (SECURITY DEFINER)",
       "type": "db_rpc",
@@ -1602,7 +1627,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 54,
-      "bytes": 2014,
+      "bytes": 2066,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1673,8 +1698,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1742,
-      "bytes": 86773,
+      "lines": 1774,
+      "bytes": 89280,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2522,6 +2547,42 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261102_17_vip.sql",
+      "label": "20261102_17_vip.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261102_17_vip.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 475,
+      "bytes": 19475,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "supabase/migrations/20261102_18_salud_base.sql",
+      "label": "20261102_18_salud_base.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261102_18_salud_base.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 58,
+      "bytes": 2781,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/BetHistoryRow.tsx",
       "label": "BetHistoryRow.tsx",
       "type": "component",
@@ -2728,8 +2789,8 @@
       "file": "src/components/PlayerChip.tsx",
       "role": "A registered player with photo and name, the same chip in Domino, UNO and poker setup.",
       "exists": true,
-      "lines": 63,
-      "bytes": 2141,
+      "lines": 67,
+      "bytes": 2286,
       "exports": [
         "PlayerAvatar",
         "PlayerChip"
@@ -2737,7 +2798,8 @@
       "imports": [
         "react",
         "react-native",
-        "../theme"
+        "../theme",
+        "./VipRing"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -2938,8 +3000,8 @@
       "file": "src/components/PokerTable.tsx",
       "role": "Felt view everyone sees during a hand: the pot and how each seat stands.",
       "exists": true,
-      "lines": 90,
-      "bytes": 3610,
+      "lines": 91,
+      "bytes": 3720,
       "exports": [
         "POKER_FELT",
         "POKER_WOOD",
@@ -2949,6 +3011,7 @@
         "react",
         "react-native",
         "../theme",
+        "./VipRing",
         "../lib/poker",
         "../lib/tableGames",
         "./PokerPot"
@@ -3107,6 +3170,137 @@
         "../lib/poker",
         "../lib/tableGames",
         "../lib/tableGameService"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/VipAdminModal.tsx",
+      "label": "VipAdminModal.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/VipAdminModal.tsx",
+      "role": "Admin VIP panel: payment requests with their receipt, card photos to approve, and the price and payment details.",
+      "exists": true,
+      "lines": 346,
+      "bytes": 14157,
+      "exports": [
+        "VipAdminModal"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "./VipRing",
+        "../lib/vipService"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/VipCard.tsx",
+      "label": "VipCard.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/VipCard.tsx",
+      "role": "The VIP card: floats, flips with a sideways swipe or a tap; the back shows the photo or GIF, name and phrase.",
+      "exists": true,
+      "lines": 137,
+      "bytes": 5076,
+      "exports": [
+        "VipBack",
+        "VipCard"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "./VipRing"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/VipOfferModal.tsx",
+      "label": "VipOfferModal.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/VipOfferModal.tsx",
+      "role": "What VIP includes, a sample card that flips, the price and payment details, and the form to send the reference and receipt.",
+      "exists": true,
+      "lines": 248,
+      "bytes": 9533,
+      "exports": [
+        "VipOfferModal"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "./VipCard",
+        "./VipRing",
+        "../lib/vipService"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/VipRing.tsx",
+      "label": "VipRing.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/VipRing.tsx",
+      "role": "Golden ring that turns around a VIP avatar, with a crown; VipCrown puts the crown next to a name.",
+      "exists": true,
+      "lines": 92,
+      "bytes": 2968,
+      "exports": [
+        "VIP_GOLD",
+        "VipRing",
+        "VipAvatarRing",
+        "VipCrown"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../lib/vipService"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/VipStudio.tsx",
+      "label": "VipStudio.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/VipStudio.tsx",
+      "role": "The VIP corner of the profile: days left, renew, photo or GIF for the card (waits for approval) and the phrase.",
+      "exists": true,
+      "lines": 135,
+      "bytes": 5384,
+      "exports": [
+        "VipStudio"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "./VipRing",
+        "../lib/vipService"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3477,6 +3671,88 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/vip.ts",
+      "label": "vip.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/vip.ts",
+      "role": "Pure VIP rules shared with the unit tests: is a VIP still active, and whole days left.",
+      "exists": true,
+      "lines": 9,
+      "bytes": 498,
+      "exports": [
+        "isVipActive",
+        "vipDaysLeft"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/vipService.ts",
+      "label": "vipService.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/vipService.ts",
+      "role": "Monthly VIP: the shared list of active VIPs (useVip), image picking that keeps GIFs animated, receipt and card uploads, and the member and admin RPCs.",
+      "exists": true,
+      "lines": 242,
+      "bytes": 9000,
+      "exports": [
+        "VipInfo",
+        "MyVip",
+        "VipConfig",
+        "VipRequestRow",
+        "VipMediaRow",
+        "MAX_VIP_FILE_BYTES",
+        "vipMediaUrl",
+        "refreshVips",
+        "useVip",
+        "PickedImage",
+        "pickImage",
+        "fetchVipConfig",
+        "getMyVip",
+        "requestVip",
+        "submitVipMedia",
+        "setVipTagline",
+        "listVipRequests",
+        "reviewVipRequest",
+        "listVipMediaPending",
+        "reviewVipMedia",
+        "receiptUrl",
+        "saveVipSettings"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "expo-image-picker",
+        "base64-arraybuffer",
+        "./supabase",
+        "./vip"
+      ],
+      "supabaseTables": [
+        "vip_members",
+        "system_config"
+      ],
+      "supabaseRpcs": [
+        "get_my_vip",
+        "request_vip",
+        "set_vip_media",
+        "set_vip_tagline",
+        "list_vip_requests",
+        "review_vip_request",
+        "list_vip_media_pending",
+        "review_vip_media",
+        "set_vip_settings"
+      ],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/webAlert.ts",
       "label": "webAlert.ts",
       "type": "service",
@@ -3550,8 +3826,8 @@
       "file": "src/screens/UnoScreen.tsx",
       "role": "Route uno: choose the variant and players (with or without an account), play, mark the winner, wait for confirmation and rematch. Also the live view for the rest of the club and the list of recent games.",
       "exists": true,
-      "lines": 445,
-      "bytes": 18146,
+      "lines": 446,
+      "bytes": 18227,
       "exports": [
         "UnoScreen"
       ],
@@ -3560,6 +3836,7 @@
         "react-native",
         "@react-native-async-storage/async-storage",
         "../theme",
+        "../components/VipRing",
         "../types",
         "../lib/supabase",
         "../lib/offlineSync",
@@ -3610,6 +3887,13 @@
       "type": "db_table",
       "community": "database_sql",
       "role": "UNO games and their state. The app only reads it: every change goes through the table game RPCs."
+    },
+    {
+      "id": "db:vip_members",
+      "label": "vip_members",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Who is VIP until when, with the approved card photo and phrase. Everyone reads it; only the VIP RPCs write it."
     },
     {
       "id": "db:tournament_payouts",
@@ -3722,6 +4006,69 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "Wins and games played per player for one UNO variant and period."
+    },
+    {
+      "id": "rpc:get_my_vip",
+      "label": "get_my_vip",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "The caller VIP state, card, photo waiting for approval and last request."
+    },
+    {
+      "id": "rpc:request_vip",
+      "label": "request_vip",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "A member asks for VIP with the payment reference and the receipt they uploaded. Admins get a push."
+    },
+    {
+      "id": "rpc:set_vip_media",
+      "label": "set_vip_media",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "An active VIP proposes the card photo or GIF; it waits for an admin."
+    },
+    {
+      "id": "rpc:set_vip_tagline",
+      "label": "set_vip_tagline",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "An active VIP sets the phrase on the back of the card (60 characters)."
+    },
+    {
+      "id": "rpc:list_vip_requests",
+      "label": "list_vip_requests",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Admin list of VIP requests with name and receipt path."
+    },
+    {
+      "id": "rpc:review_vip_request",
+      "label": "review_vip_request",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Admin approves (adds vip_days, extending an active VIP) or rejects with a reason. The member gets a push."
+    },
+    {
+      "id": "rpc:list_vip_media_pending",
+      "label": "list_vip_media_pending",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Admin list of VIP card photos waiting for approval."
+    },
+    {
+      "id": "rpc:review_vip_media",
+      "label": "review_vip_media",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Admin approves or rejects a VIP card photo."
+    },
+    {
+      "id": "rpc:set_vip_settings",
+      "label": "set_vip_settings",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Admin sets the VIP price text and payment details members see."
     },
     {
       "id": "rpc:call_waitlist_duo",
@@ -4461,6 +4808,12 @@
     },
     {
       "source": "src/screens/HomeScreen.tsx",
+      "target": "src/components/VipRing.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
       "target": "src/types.ts",
       "relation": "imports",
       "derived": true
@@ -4528,6 +4881,12 @@
     {
       "source": "src/screens/SetupScreen.tsx",
       "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/SetupScreen.tsx",
+      "target": "src/components/VipRing.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -4629,6 +4988,12 @@
     },
     {
       "source": "src/screens/LiveMatchScreen.tsx",
+      "target": "src/components/VipRing.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/LiveMatchScreen.tsx",
       "target": "src/lib/supabase.ts",
       "relation": "imports",
       "derived": true
@@ -4719,6 +5084,42 @@
     },
     {
       "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/lib/vipService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/VipCard.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/VipRing.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/VipOfferModal.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/VipStudio.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/VipAdminModal.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
       "target": "src/lib/playerHistory.ts",
       "relation": "imports",
       "derived": true
@@ -4798,6 +5199,12 @@
     {
       "source": "src/screens/LeaderboardScreen.tsx",
       "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/LeaderboardScreen.tsx",
+      "target": "src/components/VipRing.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -4894,6 +5301,12 @@
     {
       "source": "src/screens/GlobalChatScreen.tsx",
       "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/GlobalChatScreen.tsx",
+      "target": "src/components/VipRing.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -5108,6 +5521,12 @@
       "derived": true
     },
     {
+      "source": "src/components/PlayerChip.tsx",
+      "target": "src/components/VipRing.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/PlayerMatchesSheet.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -5224,6 +5643,12 @@
     {
       "source": "src/components/PokerTable.tsx",
       "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerTable.tsx",
+      "target": "src/components/VipRing.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -5402,6 +5827,78 @@
       "derived": true
     },
     {
+      "source": "src/components/VipAdminModal.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipAdminModal.tsx",
+      "target": "src/components/VipRing.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipAdminModal.tsx",
+      "target": "src/lib/vipService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipCard.tsx",
+      "target": "src/components/VipRing.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipOfferModal.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipOfferModal.tsx",
+      "target": "src/components/VipCard.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipOfferModal.tsx",
+      "target": "src/components/VipRing.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipOfferModal.tsx",
+      "target": "src/lib/vipService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipRing.tsx",
+      "target": "src/lib/vipService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipStudio.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipStudio.tsx",
+      "target": "src/components/VipRing.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipStudio.tsx",
+      "target": "src/lib/vipService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/WagerConsent.tsx",
       "target": "db:wager_consents",
       "relation": "uses_table",
@@ -5540,6 +6037,84 @@
       "derived": true
     },
     {
+      "source": "src/lib/vipService.ts",
+      "target": "db:vip_members",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "db:system_config",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:get_my_vip",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:request_vip",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:set_vip_media",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:set_vip_tagline",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:list_vip_requests",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:review_vip_request",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:list_vip_media_pending",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:review_vip_media",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:set_vip_settings",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "src/lib/vip.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/screens/PokerScreen.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -5626,6 +6201,12 @@
     {
       "source": "src/screens/UnoScreen.tsx",
       "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/components/VipRing.tsx",
       "relation": "imports",
       "derived": true
     },

@@ -1,21 +1,25 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
+import { VipAvatarRing } from './VipRing';
 
 interface Person {
+  id?: string | null;
   avatar_url?: string | null;
   initials?: string | null;
   display_name?: string | null;
 }
 
 export const PlayerAvatar: React.FC<{ person: Person; selected?: boolean }> = ({ person, selected = false }) => (
-  <View style={[styles.avatar, selected && styles.avatarSelected]}>
-    {person.avatar_url ? (
-      <Image source={{ uri: person.avatar_url }} style={styles.avatarImage} />
-    ) : (
-      <Text style={styles.avatarText}>{person.initials}</Text>
-    )}
-  </View>
+  <VipAvatarRing userId={person.id} size={28}>
+    <View style={[styles.avatar, selected && styles.avatarSelected]}>
+      {person.avatar_url ? (
+        <Image source={{ uri: person.avatar_url }} style={styles.avatarImage} />
+      ) : (
+        <Text style={styles.avatarText}>{person.initials}</Text>
+      )}
+    </View>
+  </VipAvatarRing>
 );
 
 /** A registered player, the same way in every game: photo and name. */

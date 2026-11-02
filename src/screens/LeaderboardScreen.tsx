@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, Image, ScrollView, Platform, StatusBar } from 'react-native';
 import { theme } from '../theme';
+import { VipAvatarRing, VipCrown } from '../components/VipRing';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { offlineSync } from '../lib/offlineSync';
@@ -95,10 +96,14 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onBack, cu
     return richList.map((p, index) => (
       <TouchableOpacity key={p.id} style={styles.listItem} onPress={() => onOpenProfile(p.id)}>
         <Text style={styles.rank}>#{index + 1}</Text>
-        <View style={styles.avatar}>
-          {p.avatar_url ? <Image source={{uri: p.avatar_url}} style={styles.avatarImg} /> : <Text style={styles.avatarInitials}>{p.initials}</Text>}
+        <View style={{ marginRight: 12 }}>
+          <VipAvatarRing userId={p.id} size={40}>
+            <View style={[styles.avatar, { marginRight: 0 }]}>
+              {p.avatar_url ? <Image source={{uri: p.avatar_url}} style={styles.avatarImg} /> : <Text style={styles.avatarInitials}>{p.initials}</Text>}
+            </View>
+          </VipAvatarRing>
         </View>
-        <Text style={styles.name}>{p.display_name}</Text>
+        <Text style={styles.name}>{p.display_name}<VipCrown userId={p.id} size={13} /></Text>
         <Text style={styles.score}>{p.betting_points || 0} pts</Text>
       </TouchableOpacity>
     ));
@@ -108,10 +113,14 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onBack, cu
     return winsList.map((p, index) => (
       <TouchableOpacity key={p.id} style={styles.listItem} onPress={() => onOpenProfile(p.id)}>
         <Text style={styles.rank}>#{index + 1}</Text>
-        <View style={styles.avatar}>
-          {p.profile?.avatar_url ? <Image source={{uri: p.profile.avatar_url}} style={styles.avatarImg} /> : <Text style={styles.avatarInitials}>{p.profile?.initials}</Text>}
+        <View style={{ marginRight: 12 }}>
+          <VipAvatarRing userId={p.id} size={40}>
+            <View style={[styles.avatar, { marginRight: 0 }]}>
+              {p.profile?.avatar_url ? <Image source={{uri: p.profile.avatar_url}} style={styles.avatarImg} /> : <Text style={styles.avatarInitials}>{p.profile?.initials}</Text>}
+            </View>
+          </VipAvatarRing>
         </View>
-        <Text style={styles.name}>{p.profile?.display_name || 'Desconocido'}</Text>
+        <Text style={styles.name}>{p.profile?.display_name || 'Desconocido'}<VipCrown userId={p.id} size={13} /></Text>
         <Text style={[styles.score, { color: theme.colors.primary }]}>{p.wins} W</Text>
       </TouchableOpacity>
     ));
@@ -121,10 +130,14 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onBack, cu
     return zapatosList.map((p, index) => (
       <TouchableOpacity key={p.id} style={styles.listItem} onPress={() => onOpenProfile(p.id)}>
         <Text style={styles.rank}>#{index + 1}</Text>
-        <View style={styles.avatar}>
-          {p.profile?.avatar_url ? <Image source={{uri: p.profile.avatar_url}} style={styles.avatarImg} /> : <Text style={styles.avatarInitials}>{p.profile?.initials}</Text>}
+        <View style={{ marginRight: 12 }}>
+          <VipAvatarRing userId={p.id} size={40}>
+            <View style={[styles.avatar, { marginRight: 0 }]}>
+              {p.profile?.avatar_url ? <Image source={{uri: p.profile.avatar_url}} style={styles.avatarImg} /> : <Text style={styles.avatarInitials}>{p.profile?.initials}</Text>}
+            </View>
+          </VipAvatarRing>
         </View>
-        <Text style={styles.name}>{p.profile?.display_name || 'Desconocido'}</Text>
+        <Text style={styles.name}>{p.profile?.display_name || 'Desconocido'}<VipCrown userId={p.id} size={13} /></Text>
         <Text style={[styles.score, { color: theme.colors.danger }]}>{p.zapatos} 🥾</Text>
       </TouchableOpacity>
     ));

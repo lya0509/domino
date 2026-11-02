@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '../theme';
+import { VipCrown } from './VipRing';
 import { blindSeats, DEFAULT_ENTRY, firstToSpeak, handPot, PokerHand, seatStatus, stackLeft } from '../lib/poker';
 import { TableGame } from '../lib/tableGames';
 import { PokerPot } from './PokerPot';
@@ -44,7 +45,7 @@ export const PokerTable: React.FC<Props> = ({ game, hand, chips }) => {
           const roles = rolesOf(seat);
           return (
             <View key={seat} style={[styles.seat, status.state === 'folded' && styles.seatOut]}>
-              <Text style={styles.name} numberOfLines={1}>{nameOf(seat)}</Text>
+              <Text style={styles.name} numberOfLines={1}>{nameOf(seat)}<VipCrown userId={game.players.find((p) => p.seat === seat)?.user_id} /></Text>
               <Text style={styles.detail}>Puso {hand.contributions[seat]}, le quedan {stackLeft(hand, seat, chips)}</Text>
               <Text style={[styles.state, styles[status.state]]}>{statusText(status)}</Text>
               {!!roles && <Text style={styles.role}>{roles}</Text>}

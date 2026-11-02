@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
+import { VipCrown } from '../components/VipRing';
 import { Profile } from '../types';
 import { supabase } from '../lib/supabase';
 import { offlineSync } from '../lib/offlineSync';
@@ -282,7 +283,7 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
             accessibilityRole="button"
             accessibilityState={{ selected: winnerSeat === p.seat }}
           >
-            <Text style={styles.playerName}>{winnerSeat === p.seat ? '🏆 ' : ''}{p.name}</Text>
+            <Text style={styles.playerName}>{winnerSeat === p.seat ? '🏆 ' : ''}{p.name}<VipCrown userId={p.user_id} /></Text>
           </TouchableOpacity>
         ))}
         {manages && (

@@ -43,9 +43,10 @@ const antes = await uno(`SELECT count(*)::int c FROM public.profiles`);
 const script = sql('supabase/mantenimiento/reinicio_del_club.sql');
 await db.exec(script);
 
-for (const t of ['matches', 'bets', 'match_prizes', 'live_chat', 'global_chat', 'duos', 'waitlist', 'points_ledger', 'table_games', 'table_game_players', 'poker_hands', 'table_game_prizes', 'tournaments']) {
+for (const t of ['matches', 'bets', 'match_prizes', 'live_chat', 'global_chat', 'duos', 'waitlist', 'table_games', 'table_game_players', 'poker_hands', 'table_game_prizes', 'tournaments']) {
   ok(`${t} queda vacía`, (await cuenta(`public.${t}`)) === 0);
 }
+ok('el historial arranca con un movimiento de 1000 por cuenta', (await cuenta(`public.points_ledger WHERE reason = 'Reinicio del club' AND balance = 1000`)) === (await cuenta('public.profiles')) && (await cuenta('public.points_ledger')) === (await cuenta('public.profiles')));
 ok('ninguna cuenta se borra', (await cuenta('public.profiles')) === antes.c);
 const a = await uno(`SELECT * FROM public.profiles WHERE id='${A}'`);
 ok('todos quedan con 1000 puntos', (await cuenta(`public.profiles WHERE betting_points = 1000`)) === antes.c);

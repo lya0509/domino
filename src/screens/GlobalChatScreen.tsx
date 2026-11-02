@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
 import { theme } from '../theme';
+import { VipCrown } from '../components/VipRing';
 import { supabase } from '../lib/supabase';
 
 interface ChatMessage {
@@ -138,7 +139,7 @@ export const GlobalChatScreen: React.FC<Props> = ({ onBack, currentUserProfileId
               hasColor && { color: equipped.color },
               isRainbow && { color: '#ec4899' } // Fallback pink for rainbow if no gradient
             ]}>
-              {equipped.title ? `${equipped.title} ` : ''}{item.profiles?.display_name || 'Desconocido'}
+              {equipped.title ? `${equipped.title} ` : ''}{item.profiles?.display_name || 'Desconocido'}<VipCrown userId={item.user_id} />
             </Text>
           )}
           <Text style={styles.messageText}>{item.message}</Text>

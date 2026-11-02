@@ -20,6 +20,8 @@ const mig = cuerpo('20261101_13_uno.sql');
 await db.exec(mig);
 await db.exec(mig);
 ok('la migración se puede repetir', true);
+// Póker rewrites functions UNO uses: these tests must hold on the final version
+await db.exec(cuerpo('20261101_14_poker.sql'));
 
 for (const u of [A, B, C, D, X]) await as('authenticated', u, `SELECT public.save_push_subscription('https://push/${u}','k','a')`);
 await db.exec(`UPDATE public.profiles SET betting_points=1000;`);

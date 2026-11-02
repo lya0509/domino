@@ -1,18 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
-import { TableGameKind } from '../lib/tableGames';
+import { handLabel } from '../lib/poker';
+import { AnyTableGame } from '../lib/tableGames';
 import { fetchTableGameRanking, RankingRow } from '../lib/tableGameService';
 
 interface Props {
-  game: TableGameKind;
+  game: AnyTableGame;
   from: string | null;
   currentUserProfileId: string | null;
   medal: (index: number) => string;
   onOpenProfile: (profileId: string) => void;
 }
 
-/** One ranking per variant, counted by the server from confirmed games. */
+const detailOf = (game: AnyTableGame, row: RankingRow): string => {
+  const wins = `${row.wins} ${row.wins === 1 ? 'victoria' : 'victorias'} de ${row.played}`;
+  if (game !== 'poker') return wins;
+  const best = handLabel(row.best_hand ?? null);
+  return `${wins}, ${row.hands} ${row.hands === 1 ? 'mano' : 'manos'}${best ? `, mejor jugada: ${best}` : ''}`;
+};
+
+/** One ranking per game, counted by the server from confirmed games. */
 export const TableGameRanking: React.FC<Props> = ({ game, from, currentUserProfileId, medal, onOpenProfile }) => {
   const [rows, setRows] = useState<RankingRow[] | null>(null);
 
@@ -42,7 +50,7 @@ export const TableGameRanking: React.FC<Props> = ({ game, from, currentUserProfi
           <Text style={styles.medal}>{medal(i)}</Text>
           <View style={styles.info}>
             <Text style={styles.name}>{row.display_name}</Text>
-            <Text style={styles.detail}>{row.wins} {row.wins === 1 ? 'victoria' : 'victorias'} de {row.played}</Text>
+            <Text style={styles.detail}>{detailOf(game, row)}</Text>
           </View>
           <Text style={styles.wins}>{row.wins}</Text>
         </TouchableOpacity>

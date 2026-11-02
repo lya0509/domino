@@ -11,3 +11,10 @@ export const removeConfirmedItems = <T extends OutboxItem>(
   queue: T[],
   confirmed: Map<string, unknown>
 ): T[] => queue.filter((item) => !confirmed.has(item.id) || confirmed.get(item.id) !== item.payload);
+
+/** Hands are sent whole, so anything sent ahead of a queued item would be overwritten by it. */
+export const hasQueuedGame = (queue: OutboxItem[], gameId: string): boolean =>
+  queue.some((item) => {
+    const payload = item.payload as { p_id?: string; p_game?: string } | null;
+    return payload?.p_id === gameId || payload?.p_game === gameId;
+  });

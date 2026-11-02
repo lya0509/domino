@@ -79,7 +79,7 @@ export const GameDock: React.FC<Props> = ({ active, onSelect }) => {
             ]}
           />
         )}
-        {GAME_TABS.map(({ key, label, color, note }) => {
+        {GAME_TABS.map(({ key, label, color }) => {
           const selected = active === key;
           const Icon = ICONS[key];
           return (
@@ -94,7 +94,6 @@ export const GameDock: React.FC<Props> = ({ active, onSelect }) => {
             >
               <Icon color={selected ? color : theme.colors.textDim} />
               <Text style={[styles.label, selected && styles.labelActive]}>{label}</Text>
-              {note && <Text style={styles.note}>{note}</Text>}
             </TouchableOpacity>
           );
         })}
@@ -124,5 +123,4 @@ const styles = StyleSheet.create({
   tab: { flex: 1, height: 68, alignItems: 'center', justifyContent: 'center' },
   label: { color: theme.colors.textDim, fontSize: 13, fontWeight: '700', marginTop: 2 },
   labelActive: { color: theme.colors.text },
-  note: { color: '#d4a843', fontSize: 10, fontWeight: '700' },
 });

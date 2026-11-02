@@ -29,6 +29,7 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 | `20261101_11_direccion_send_push.sql` | Ejecutada en producción |
 | `20261101_12_aviso_turno_antes_del_limite.sql` | Ejecutada en producción |
 | `20261101_13_uno.sql` | Ejecutada en producción |
+| `20261101_14_poker.sql` | Ejecutada en producción |
 
 ## Cómo se prueba
 

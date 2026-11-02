@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
+  ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
@@ -10,13 +10,14 @@ import { offlineSync } from '../lib/offlineSync';
 import { sounds } from '../lib/sounds';
 import { formatClock, secondsUntil } from '../lib/matchRivals';
 import {
-  canAnswerGame, canManageGame, canStartRoster, MAX_PLAYERS, playerNames, RosterEntry, TABLE_GAMES,
+  canAnswerGame, canManageGame, canStartRoster, playerNames, RosterEntry, TABLE_GAMES,
   TableGame, TableGameKind, tableGameLabel, winnerName,
 } from '../lib/tableGames';
 import {
   answerTableGame, cancelTableGame, fetchTableGame, fetchTableGames, finishExpiredTableGame,
   finishTableGame, startTableGame,
 } from '../lib/tableGameService';
+import { RosterPicker } from '../components/RosterPicker';
 
 interface Props {
   currentUserProfileId: string | null;
@@ -26,7 +27,6 @@ interface Props {
 }
 
 const REFRESH_MS = 5000;
-const MAX_SUGGESTIONS = 8;
 // A game started without internet exists only on this phone until the outbox sends it
 const LOCAL_GAME_KEY = '@domino_uno_game_v1';
 
@@ -51,8 +51,6 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
   const [kind, setKind] = useState<TableGameKind>('uno');
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>(() => offlineSync.getCachedProfilesSync());
-  const [search, setSearch] = useState('');
-  const [guestName, setGuestName] = useState('');
   const [recent, setRecent] = useState<TableGame[]>([]);
   const [winnerSeat, setWinnerSeat] = useState<number | null>(null);
 
@@ -74,7 +72,10 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
         } else {
           saveLocalGame(null);
           // Coming back to a game this person left open
-          const [playing, waiting] = await Promise.all([fetchTableGames('active'), fetchTableGames('pending_confirmation')]);
+          const [playing, waiting] = await Promise.all([
+            fetchTableGames('active', 30, 'uno'),
+            fetchTableGames('pending_confirmation', 30, 'uno'),
+          ]);
           const mine = [...playing, ...waiting].find((g) => canManageGame(g, currentUserProfileId, false));
           if (active && mine) setGame(mine);
         }
@@ -89,7 +90,7 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
 
   useEffect(() => {
     if (gameId) return;
-    fetchTableGames('completed', 15).then(setRecent);
+    fetchTableGames('completed', 15, 'uno').then(setRecent);
     offlineSync.getProfiles(offlineSync.getIsOnline()).then((list) => setProfiles(list || []));
   }, [gameId]);
 
@@ -136,31 +137,6 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
   useEffect(() => {
     if (status === 'completed' || status === 'cancelled') saveLocalGame(null);
   }, [status]);
-
-  const suggestions = useMemo(() => {
-    const text = search.trim().toLowerCase();
-    return profiles
-      .filter((p) => !roster.some((r) => r.user_id === p.id))
-      .filter((p) => !text || p.display_name?.toLowerCase().includes(text))
-      .sort((a, b) => (a.display_name || '').localeCompare(b.display_name || ''))
-      .slice(0, MAX_SUGGESTIONS);
-  }, [profiles, roster, search]);
-
-  const addToRoster = (entry: RosterEntry) => {
-    if (roster.length >= MAX_PLAYERS) {
-      Alert.alert('Mesa llena', `Una partida admite hasta ${MAX_PLAYERS} jugadores.`);
-      return;
-    }
-    setRoster((r) => [...r, entry]);
-    setSearch('');
-  };
-
-  const addGuest = () => {
-    const name = guestName.trim();
-    if (!name) return;
-    addToRoster({ name });
-    setGuestName('');
-  };
 
   const begin = async (gameKind: TableGameKind, players: RosterEntry[]) => {
     if (!currentUserProfileId) return;
@@ -236,7 +212,7 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
   };
 
   const rematch = (finished: TableGame) => {
-    begin(finished.game, finished.players.map((p) => ({ user_id: p.user_id ?? undefined, name: p.name })));
+    begin(finished.game as TableGameKind, finished.players.map((p) => ({ user_id: p.user_id ?? undefined, name: p.name })));
   };
 
   const renderSetup = () => (
@@ -256,58 +232,7 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
         ))}
       </View>
 
-      <Text style={styles.sectionTitle}>Jugadores ({roster.length}/{MAX_PLAYERS})</Text>
-      {roster.map((p, i) => (
-        <View key={`${p.user_id ?? p.name}-${i}`} style={styles.rosterRow}>
-          <Text style={styles.rosterName}>{p.name}{p.user_id ? '' : ' (sin cuenta)'}</Text>
-          <TouchableOpacity
-            onPress={() => setRoster((r) => r.filter((_, index) => index !== i))}
-            style={styles.removeBtn}
-            accessibilityRole="button"
-            accessibilityLabel={`Quitar a ${p.name}`}
-          >
-            <Text style={styles.removeText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
-
-      <TextInput
-        style={styles.input}
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Buscar jugador…"
-        placeholderTextColor={theme.colors.textDim}
-        accessibilityLabel="Buscar jugador"
-      />
-      <View style={styles.chips}>
-        {suggestions.map((p) => (
-          <TouchableOpacity
-            key={p.id}
-            style={styles.chip}
-            onPress={() => addToRoster({ user_id: p.id, name: p.display_name })}
-            accessibilityRole="button"
-          >
-            <Text style={styles.chipText}>+ {p.display_name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.guestRow}>
-        <TextInput
-          style={[styles.input, styles.guestInput]}
-          value={guestName}
-          onChangeText={setGuestName}
-          onSubmitEditing={addGuest}
-          maxLength={30}
-          placeholder="Jugador sin cuenta"
-          placeholderTextColor={theme.colors.textDim}
-          accessibilityLabel="Nombre de quien no tiene cuenta"
-        />
-        <TouchableOpacity style={styles.guestBtn} onPress={addGuest} accessibilityRole="button">
-          <Text style={styles.guestBtnText}>Agregar</Text>
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.hint}>Quien juega sin cuenta no entra en el ranking ni recibe premio.</Text>
+      <RosterPicker roster={roster} onChange={setRoster} profiles={profiles} />
 
       <TouchableOpacity
         style={[styles.primaryBtn, !canStartRoster(roster) && styles.disabled]}
@@ -468,41 +393,6 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: theme.colors.primary, borderColor: '#60a5fa' },
   chipText: { color: theme.colors.text, fontWeight: '700', fontSize: 14 },
   chipTextActive: { color: '#fff' },
-  rosterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.s,
-    paddingLeft: theme.spacing.m,
-    marginBottom: theme.spacing.xs,
-  },
-  rosterName: { color: theme.colors.text, fontSize: 15, fontWeight: '600', flexShrink: 1 },
-  removeBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  removeText: { color: theme.colors.danger, fontSize: 16, fontWeight: 'bold' },
-  input: {
-    minHeight: 44,
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    borderRadius: theme.borderRadius.s,
-    color: theme.colors.text,
-    paddingHorizontal: theme.spacing.m,
-    fontSize: 16,
-    marginTop: theme.spacing.s,
-    marginBottom: theme.spacing.s,
-  },
-  guestRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.s },
-  guestInput: { flex: 1, minWidth: 0 },
-  guestBtn: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: theme.spacing.m,
-    borderRadius: theme.borderRadius.s,
-    backgroundColor: theme.colors.secondary,
-  },
-  guestBtnText: { color: '#fff', fontWeight: 'bold' },
-  hint: { color: theme.colors.textDim, fontSize: 13 },
   primaryBtn: {
     minHeight: 54,
     alignItems: 'center',

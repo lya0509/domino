@@ -12,13 +12,23 @@ const STORAGE_KEYS = {
   USER_PROFILE_CACHE: '@domino_cache_user_profile_v1',
 };
 
+// All safe to repeat: the server recognizes what it already has
+const TABLE_GAME_RPCS = {
+  START_TABLE_GAME: 'start_table_game',
+  FINISH_TABLE_GAME: 'finish_table_game',
+  START_POKER_GAME: 'start_poker_game',
+  SAVE_POKER_HAND: 'save_poker_hand',
+  SET_POKER_SEAT: 'set_poker_seat',
+};
+
+export type TableGameOperation = keyof typeof TABLE_GAME_RPCS;
+
 export type OfflineOperationType =
   | 'UPSERT_MATCH'
   | 'COMPLETE_MATCH'
   | 'WAITLIST_JOIN'
   | 'WAITLIST_CANCEL'
-  | 'START_TABLE_GAME'
-  | 'FINISH_TABLE_GAME';
+  | TableGameOperation;
 
 export interface OfflineQueueItem {
   id: string;
@@ -383,7 +393,7 @@ class OfflineSyncEngine {
     await this.persistQueue();
   }
 
-  async enqueueTableGame(type: 'START_TABLE_GAME' | 'FINISH_TABLE_GAME', payload: Record<string, unknown>) {
+  async enqueueTableGame(type: TableGameOperation, payload: Record<string, unknown>) {
     this.queue.push({ id: generateUUID(), type, payload, createdAt: Date.now(), retryCount: 0 });
     await this.persistQueue();
   }
@@ -559,10 +569,8 @@ class OfflineSyncEngine {
             await settleMatchBetsAndWagers(matchData, winnerTeam);
           }
           syncedCount++;
-        } else if (item.type === 'START_TABLE_GAME' || item.type === 'FINISH_TABLE_GAME') {
-          // Both are safe to repeat: the server recognizes a start or a finish it already has
-          const fn = item.type === 'START_TABLE_GAME' ? 'start_table_game' : 'finish_table_game';
-          const { error } = await supabase.rpc(fn, item.payload);
+        } else if (item.type in TABLE_GAME_RPCS) {
+          const { error } = await supabase.rpc(TABLE_GAME_RPCS[item.type as TableGameOperation], item.payload);
           if (error) throw error;
           syncedCount++;
         }

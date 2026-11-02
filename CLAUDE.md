@@ -25,7 +25,7 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 
 ### Community 1: Core Router & Design System
 - [`index.ts`](file:///home/lya/proyectos/Domino/index.ts) — Expo root entry.
-- [`App.tsx`](file:///home/lya/proyectos/Domino/App.tsx) — 14-route state machine (`splash`, `ad`, `auth`, `home`, `setup`, `game`, `live`, `profile`, `store`, `achievements`, `leaderboard`, `global_chat`, `tournaments`, `uno`), global toast, 30s urgent waitlist call modal (`¡A LA MESA!`), and offline sync status banner.
+- [`App.tsx`](file:///home/lya/proyectos/Domino/App.tsx) — 15-route state machine (`splash`, `ad`, `auth`, `home`, `setup`, `game`, `live`, `profile`, `store`, `achievements`, `leaderboard`, `global_chat`, `tournaments`, `uno`, `poker`), global toast, 30s urgent waitlist call modal (`¡A LA MESA!`), and offline sync status banner.
 - [`src/types.ts`](file:///home/lya/proyectos/Domino/src/types.ts) — Domain models (`Team`, `GameMode`, `Player`, `Round`, `Substitution`, `Match`, `Profile`).
 - [`src/theme.ts`](file:///home/lya/proyectos/Domino/src/theme.ts) — Dark-slate palette (`#0f172a` background, `#1e293b` card, `#3b82f6` Team 1, `#10b981` Team 2, `#f59e0b` gold accent).
 
@@ -46,12 +46,14 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 - [`src/screens/AuthScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/AuthScreen.tsx) (`route: 'auth'`) — Login, Invite Code (`CAFETIN`, `PESIMISTAS`, `DOMINO`, `0509`, `VIP`) / QR registration, password recovery, and Guest Mode.
 
 ### Community 4: Gameplay & Spectator Live Screens
-- [`src/screens/HomeScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/HomeScreen.tsx) (`route: 'home'`) — Club dashboard, daily streak (`+10 pts` at 7am), a bottom bar with one tab per game (Dominó, UNO, Póker "En proceso"), reached by tap or sideways swipe, Pedir Mesa queue, and rankings per game (`Hoy`/`Semana`/`Histórico`).
+- [`src/screens/HomeScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/HomeScreen.tsx) (`route: 'home'`) — Club dashboard, daily streak (`+10 pts` at 7am), a bottom bar with one tab per game (Dominó, UNO, Póker), reached by tap or sideways swipe, Pedir Mesa queue, and rankings per game (`Hoy`/`Semana`/`Histórico`).
 - [`src/screens/SetupScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/SetupScreen.tsx) (`route: 'setup'`) — 2v2 setup (Individual stays off), 2-step Salida/Mano turn order, and VIP Wager toggle.
 - [`src/screens/GameScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/GameScreen.tsx) (`route: 'game'`) — Two-column scorepad, Mano indicator, substitutions (50-pt rule), Winner modal, Zapato `👟`, and view-shot share. The next duo is offered after "Terminar Partida" (App.tsx), only when someone is waiting.
 - [`src/screens/LiveMatchScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/LiveMatchScreen.tsx) (`route: 'live'`) — Real-time spectator scoreboard, dynamic odds betting (`1.20x - 3.50x`), Pedir Mesa modal, and `live_chat`.
 
 - [`src/screens/UnoScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/UnoScreen.tsx) (`route: 'uno'`) — UNO, UNO Flip and UNO No Mercy: players, winner, other-player confirmation, live view and recent games. Stored in `table_games`, written only through RPCs ([`src/lib/tableGameService.ts`](file:///home/lya/proyectos/Domino/src/lib/tableGameService.ts)).
+
+- [`src/screens/PokerScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/PokerScreen.tsx) (`route: 'poker'`) — Poker with table chips that never touch the points balance. Each player bets from their own phone (`PokerTray`); the dealer opens and closes hands. Cards stay physical and the app keeps no turns. Hands live in `poker_hands`; chips are computed from closed hands ([`src/lib/poker.ts`](file:///home/lya/proyectos/Domino/src/lib/poker.ts)).
 
 ### Community 5: Social, Economy, Achievements, Leaderboards & Tournaments
 - [`src/screens/ProfileScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/ProfileScreen.tsx) (`route: 'profile'`) — Stats, expandable VAR `MatchGraph`, Rivals, Duos, last 10 Bets, QR Invite Pass, and secret Admin PIN (7 taps on the avatar, checked on the server).

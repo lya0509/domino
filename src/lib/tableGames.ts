@@ -2,6 +2,7 @@
 // here they only decide what a phone shows.
 
 export type TableGameKind = 'uno' | 'uno_flip' | 'uno_no_mercy';
+export type AnyTableGame = TableGameKind | 'poker';
 
 export const TABLE_GAMES: { key: TableGameKind; label: string }[] = [
   { key: 'uno', label: 'UNO' },
@@ -20,7 +21,7 @@ export interface TableGamePlayer {
 
 export interface TableGame {
   id: string;
-  game: TableGameKind;
+  game: AnyTableGame;
   status: 'active' | 'pending_confirmation' | 'completed' | 'cancelled';
   created_by: string | null;
   winner_seat: number | null;
@@ -29,6 +30,8 @@ export interface TableGame {
   auto_confirm_at: string | null;
   disputed_at: string | null;
   created_at: string;
+  start_chips?: number | null;
+  entry_amount?: number | null;
   players: TableGamePlayer[];
 }
 
@@ -38,10 +41,10 @@ export interface RosterEntry {
 }
 
 export const TABLE_GAME_COLUMNS =
-  'id, game, status, created_by, winner_seat, closed_by, closed_at, auto_confirm_at, disputed_at, created_at, players:table_game_players(seat, user_id, name)';
+  'id, game, status, created_by, winner_seat, closed_by, closed_at, auto_confirm_at, disputed_at, created_at, start_chips, entry_amount, players:table_game_players(seat, user_id, name)';
 
 export const tableGameLabel = (game: string): string =>
-  TABLE_GAMES.find((g) => g.key === game)?.label ?? game;
+  game === 'poker' ? 'Póker' : TABLE_GAMES.find((g) => g.key === game)?.label ?? game;
 
 export const canStartRoster = (roster: RosterEntry[]): boolean =>
   roster.length >= MIN_PLAYERS && roster.length <= MAX_PLAYERS;

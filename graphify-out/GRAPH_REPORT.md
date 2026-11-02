@@ -15,20 +15,20 @@
 | Metric | Count |
 | :--- | :---: |
 | **System Communities** | **8** |
-| **Total Graph Nodes** | **157** |
-| **Directed Edges** | **266 (186 derived from code)** |
+| **Total Graph Nodes** | **170** |
+| **Directed Edges** | **310 (230 derived from code)** |
 | **System Hyperedges** | **7** |
-| **Screens** | **14** |
-| **Components** | **15** |
-| **Services** | **16** |
-| **DB Tables & Buckets** | **18** |
-| **DB RPCs** | **34** |
-| **SQL Scripts** | **47** |
-| **QA Test Suites** | **17** |
+| **Screens** | **15** |
+| **Components** | **22** |
+| **Services** | **17** |
+| **DB Tables & Buckets** | **19** |
+| **DB RPCs** | **36** |
+| **SQL Scripts** | **48** |
+| **QA Test Suites** | **18** |
 
-**RPCs called by the app:** `answer_table_game`, `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `call_waitlist_duo`, `cancel_table_game`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `confirm_match_result`, `delete_user_account`, `dispute_match_result`, `expire_tournament_registration`, `finish_expired_match`, `finish_expired_table_game`, `invite_tournament_partner`, `join_tournament_with_points`, `notify_near_turn`, `place_bet`, `propose_wager`, `remove_push_subscription`, `respond_tournament_partner`, `respond_wager`, `save_push_subscription`, `seat_waitlist_entry`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `table_game_ranking`, `verify_admin_pin`
+**RPCs called by the app:** `answer_table_game`, `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `call_waitlist_duo`, `cancel_poker_hand`, `cancel_table_game`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `confirm_match_result`, `delete_user_account`, `dispute_match_result`, `expire_tournament_registration`, `finish_expired_match`, `finish_expired_table_game`, `invite_tournament_partner`, `join_tournament_with_points`, `notify_near_turn`, `place_bet`, `poker_ranking`, `propose_wager`, `remove_push_subscription`, `respond_tournament_partner`, `respond_wager`, `save_push_subscription`, `seat_waitlist_entry`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `table_game_ranking`, `verify_admin_pin`
 
-**Tables used by the app:** `ads`, `bets`, `duos`, `global_chat`, `live_chat`, `matches`, `points_ledger`, `profiles`, `system_config`, `table_games`, `tournament_brackets`, `tournament_participants`, `tournament_payouts`, `tournaments`, `wager_consents`, `waitlist`
+**Tables used by the app:** `ads`, `bets`, `duos`, `global_chat`, `live_chat`, `matches`, `points_ledger`, `poker_hands`, `profiles`, `system_config`, `table_games`, `tournament_brackets`, `tournament_participants`, `tournament_payouts`, `tournaments`, `wager_consents`, `waitlist`
 
 **Called by the app, but no definition in this repo's SQL:** none
 

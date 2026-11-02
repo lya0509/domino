@@ -2,9 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dragOffset, GAME_TABS, isHorizontalSwipe, tabAfterSwipe } from '../src/lib/gameTabs.ts';
 
-test('the bar shows the three games and poker says it is in progress', () => {
+test('the bar shows the three games', () => {
   assert.deepEqual(GAME_TABS.map((t) => t.key), ['domino', 'uno', 'poker']);
-  assert.equal(GAME_TABS[2].note, 'En proceso');
 });
 
 test('dragging left goes to the next game, right to the previous', () => {

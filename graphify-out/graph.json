@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-01T23:33:45.603Z",
+    "generatedAt": "2026-11-02T00:35:11.864Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,15 +10,15 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 157,
-      "totalEdges": 266,
+      "totalNodes": 170,
+      "totalEdges": 310,
       "totalHyperedges": 7,
-      "totalScreens": 14,
-      "totalComponents": 15,
-      "totalServices": 16,
-      "totalDatabaseTables": 18,
-      "totalDatabaseRpcs": 34,
-      "totalQaSuites": 17
+      "totalScreens": 15,
+      "totalComponents": 22,
+      "totalServices": 17,
+      "totalDatabaseTables": 19,
+      "totalDatabaseRpcs": 36,
+      "totalQaSuites": 18
     }
   },
   "communities": [
@@ -123,8 +123,8 @@
         "Outdated Version Gate Screen"
       ],
       "exists": true,
-      "lines": 1576,
-      "bytes": 60219,
+      "lines": 1587,
+      "bytes": 60653,
       "exports": [
         "App"
       ],
@@ -142,6 +142,7 @@
         "./src/components/ClubNotices",
         "./src/components/TableGameConfirmationPrompt",
         "./src/screens/UnoScreen",
+        "./src/screens/PokerScreen",
         "./src/lib/pushNotifications",
         "./src/screens/AuthScreen",
         "./src/screens/HomeScreen",
@@ -273,9 +274,10 @@
       "file": "src/lib/offlineSync.ts",
       "role": "Provides Stale-While-Revalidate profile & match caching, UUIDv4 generation, online/offline detection, and a persistent FIFO Outbox Queue (@domino_offline_queue_v1) that syncs offline matches to Supabase upon reconnection.",
       "exists": true,
-      "lines": 592,
-      "bytes": 19075,
+      "lines": 600,
+      "bytes": 19196,
       "exports": [
+        "TableGameOperation",
         "OfflineOperationType",
         "OfflineQueueItem",
         "SyncStatus",
@@ -428,8 +430,8 @@
       "file": "src/lib/graphifyBridge.ts",
       "role": "Exposes window.__DOMINO_GRAPHIFY__ with FULL_SYSTEM_GRAPH_MANIFEST, programmatic navigate(screen, opts), uiTestHelpers (toast/waitlist modal triggers), direct service hooks, and runDiagnostics().",
       "exists": true,
-      "lines": 355,
-      "bytes": 14996,
+      "lines": 356,
+      "bytes": 15103,
       "exports": [
         "GraphifyRuntimeState",
         "GraphifyNavigateOptions",
@@ -619,8 +621,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1586,
-      "bytes": 58169,
+      "lines": 1579,
+      "bytes": 57949,
       "exports": [
         "HomeScreen"
       ],
@@ -1594,7 +1596,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 54,
-      "bytes": 1922,
+      "bytes": 1949,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1665,8 +1667,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1689,
-      "bytes": 82501,
+      "lines": 1726,
+      "bytes": 85268,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2460,6 +2462,24 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261101_14_poker.sql",
+      "label": "20261101_14_poker.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261101_14_poker.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 648,
+      "bytes": 26414,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/ClubNotices.tsx",
       "label": "ClubNotices.tsx",
       "type": "component",
@@ -2502,8 +2522,8 @@
       "file": "src/components/GameDock.tsx",
       "role": "Home bottom bar with one tab per game. The lit tile slides to the chosen game and takes its colour.",
       "exists": true,
-      "lines": 129,
-      "bytes": 4569,
+      "lines": 127,
+      "bytes": 4436,
       "exports": [
         "GameDock"
       ],
@@ -2553,7 +2573,7 @@
       "role": "Home list of table games being played now. Hidden when there are none.",
       "exists": true,
       "lines": 74,
-      "bytes": 2631,
+      "bytes": 2629,
       "exports": [
         "LiveTableGames"
       ],
@@ -2632,6 +2652,171 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/components/PokerChips.tsx",
+      "label": "PokerChips.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PokerChips.tsx",
+      "role": "Drawn poker chip and chip tower.",
+      "exists": true,
+      "lines": 45,
+      "bytes": 1350,
+      "exports": [
+        "chipColor",
+        "PokerChip",
+        "ChipTower"
+      ],
+      "imports": [
+        "react",
+        "react-native"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/PokerHandPanel.tsx",
+      "label": "PokerHandPanel.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PokerHandPanel.tsx",
+      "role": "The hand in play: pot, each seat, raise, call and fold, and the showdown with ties, the odd chip and the all-in split the dealer writes.",
+      "exists": true,
+      "lines": 406,
+      "bytes": 16839,
+      "exports": [
+        "PokerHandPanel"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/poker",
+        "../lib/tableGames",
+        "./PokerNewHand",
+        "./PokerTable",
+        "./PokerTray"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/PokerHelpModal.tsx",
+      "label": "PokerHelpModal.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PokerHelpModal.tsx",
+      "role": "Table of the 10 poker hands, best first.",
+      "exists": true,
+      "lines": 89,
+      "bytes": 3081,
+      "exports": [
+        "PokerHelpModal"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/poker"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/PokerNewHand.tsx",
+      "label": "PokerNewHand.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PokerNewHand.tsx",
+      "role": "Before each hand: who deals (next in the ring by default), who enters, and \"solo reparte\".",
+      "exists": true,
+      "lines": 133,
+      "bytes": 5104,
+      "exports": [
+        "POKER_GOLD",
+        "PokerNewHand"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/poker",
+        "../lib/tableGames"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/PokerTable.tsx",
+      "label": "PokerTable.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PokerTable.tsx",
+      "role": "Felt view everyone sees during a hand: the pot and how each seat stands.",
+      "exists": true,
+      "lines": 80,
+      "bytes": 3068,
+      "exports": [
+        "POKER_FELT",
+        "POKER_WOOD",
+        "PokerTable"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/poker",
+        "../lib/tableGames"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/PokerTray.tsx",
+      "label": "PokerTray.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PokerTray.tsx",
+      "role": "Each player tray on their own phone: chip towers that scale with the entry, tap to bet, then equal, raise or fold.",
+      "exists": true,
+      "lines": 135,
+      "bytes": 5562,
+      "exports": [
+        "PokerTray"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/sounds",
+        "../lib/poker",
+        "./PokerChips",
+        "./PokerTable"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": [
+        "pop",
+        "chaching"
+      ]
+    },
+    {
       "id": "src/components/ResultConfirmationPrompt.tsx",
       "label": "ResultConfirmationPrompt.tsx",
       "type": "component",
@@ -2665,6 +2850,32 @@
         "slap",
         "chaching"
       ]
+    },
+    {
+      "id": "src/components/RosterPicker.tsx",
+      "label": "RosterPicker.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/RosterPicker.tsx",
+      "role": "Choose the players of a table game, with or without an account. Poker uses it in seat order.",
+      "exists": true,
+      "lines": 185,
+      "bytes": 6690,
+      "exports": [
+        "RosterPicker"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../types",
+        "../lib/tableGames"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
     },
     {
       "id": "src/components/TableGameConfirmationPrompt.tsx",
@@ -2709,8 +2920,8 @@
       "file": "src/components/TableGameRanking.tsx",
       "role": "Home ranking for one UNO variant, from the table_game_ranking RPC.",
       "exists": true,
-      "lines": 73,
-      "bytes": 2701,
+      "lines": 81,
+      "bytes": 3051,
       "exports": [
         "TableGameRanking"
       ],
@@ -2718,6 +2929,7 @@
         "react",
         "react-native",
         "../theme",
+        "../lib/poker",
         "../lib/tableGames",
         "../lib/tableGameService"
       ],
@@ -2771,7 +2983,7 @@
       "role": "The games in the bottom bar and the swipe rules. Covered by tests/gameTabs.test.mjs.",
       "exists": true,
       "lines": 39,
-      "bytes": 1605,
+      "bytes": 1570,
       "exports": [
         "GameTab",
         "GAME_TABS",
@@ -2850,11 +3062,63 @@
       "file": "src/lib/outbox.ts",
       "role": "Pure rule of the offline outbox: an item leaves the queue only when the server confirmed that exact payload. Covered by tests/outbox.test.mjs.",
       "exists": true,
-      "lines": 14,
-      "bytes": 469,
+      "lines": 21,
+      "bytes": 823,
       "exports": [
         "OutboxItem",
-        "removeConfirmedItems"
+        "removeConfirmedItems",
+        "hasQueuedGame"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/poker.ts",
+      "label": "poker.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/poker.ts",
+      "role": "Pure poker rules. Table chips stay inside a game and come from the closed hands; the server checks each closed hand again. Covered by tests/poker.test.mjs.",
+      "exists": true,
+      "lines": 233,
+      "bytes": 9801,
+      "exports": [
+        "DEFAULT_START_CHIPS",
+        "DEFAULT_ENTRY",
+        "POKER_HANDS",
+        "Winner",
+        "PokerHand",
+        "handLabel",
+        "handPot",
+        "currentBet",
+        "stackLeft",
+        "owedBy",
+        "openHand",
+        "callBet",
+        "raiseBet",
+        "foldPlayer",
+        "unfoldPlayer",
+        "betChips",
+        "copySeat",
+        "newBettingRound",
+        "loneSurvivor",
+        "closeByFold",
+        "isShortAllIn",
+        "splitPot",
+        "closeShowdown",
+        "chipsAfterHands",
+        "nextDealerSeat",
+        "chipLeaders",
+        "canScoreHand",
+        "SeatState",
+        "seatStatus",
+        "trayAction",
+        "chipValues",
+        "rackOf"
       ],
       "imports": [],
       "supabaseTables": [],
@@ -2899,11 +3163,16 @@
       "file": "src/lib/tableGameService.ts",
       "role": "Reads and RPCs for table games. Starting and finishing go through the offline outbox when there is no connection.",
       "exists": true,
-      "lines": 113,
-      "bytes": 3744,
+      "lines": 177,
+      "bytes": 6317,
       "exports": [
         "RankingRow",
         "startTableGame",
+        "startPokerGame",
+        "savePokerHand",
+        "setPokerSeat",
+        "cancelPokerHand",
+        "fetchPokerHands",
         "finishTableGame",
         "cancelTableGame",
         "answerTableGame",
@@ -2915,15 +3184,20 @@
       "imports": [
         "./supabase",
         "./offlineSync",
+        "./outbox",
+        "./poker",
         "./tableGames"
       ],
       "supabaseTables": [
+        "poker_hands",
         "table_games"
       ],
       "supabaseRpcs": [
+        "cancel_poker_hand",
         "cancel_table_game",
         "answer_table_game",
         "finish_expired_table_game",
+        "poker_ranking",
         "table_game_ranking"
       ],
       "realtimeChannels": [],
@@ -2938,10 +3212,11 @@
       "file": "src/lib/tableGames.ts",
       "role": "Pure rules for table games (UNO and its variants): labels, roster size, who manages and who answers. Mirrors the server. Covered by tests/tableGames.test.mjs.",
       "exists": true,
-      "lines": 70,
-      "bytes": 2736,
+      "lines": 73,
+      "bytes": 2907,
       "exports": [
         "TableGameKind",
+        "AnyTableGame",
         "TABLE_GAMES",
         "MIN_PLAYERS",
         "MAX_PLAYERS",
@@ -3010,6 +3285,51 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/screens/PokerScreen.tsx",
+      "label": "PokerScreen.tsx",
+      "type": "screen",
+      "community": "gameplay_live_screens",
+      "file": "src/screens/PokerScreen.tsx",
+      "role": "Route poker: table chips, who deals, who enters, betting, closing a hand, correcting the last one, finishing the game and the live view for everyone else.",
+      "exists": true,
+      "lines": 666,
+      "bytes": 26548,
+      "exports": [
+        "PokerScreen"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "@react-native-async-storage/async-storage",
+        "../theme",
+        "../types",
+        "../lib/supabase",
+        "../lib/offlineSync",
+        "../lib/outbox",
+        "../lib/sounds",
+        "../lib/matchRivals",
+        "../lib/poker",
+        "../lib/tableGames",
+        "../lib/tableGameService",
+        "../components/PokerHandPanel",
+        "../components/PokerHelpModal",
+        "../components/PokerNewHand",
+        "../components/RosterPicker"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "poker-game-${gameId}-${Date.now()}"
+      ],
+      "storageKeys": [
+        "@domino_poker_game_v1"
+      ],
+      "soundsPlayed": [
+        "pop",
+        "slap"
+      ]
+    },
+    {
       "id": "src/screens/UnoScreen.tsx",
       "label": "UnoScreen.tsx",
       "type": "screen",
@@ -3017,8 +3337,8 @@
       "file": "src/screens/UnoScreen.tsx",
       "role": "Route uno: choose the variant and players (with or without an account), play, mark the winner, wait for confirmation and rematch. Also the live view for the rest of the club and the list of recent games.",
       "exists": true,
-      "lines": 552,
-      "bytes": 21878,
+      "lines": 442,
+      "bytes": 17866,
       "exports": [
         "UnoScreen"
       ],
@@ -3033,7 +3353,8 @@
         "../lib/sounds",
         "../lib/matchRivals",
         "../lib/tableGames",
-        "../lib/tableGameService"
+        "../lib/tableGameService",
+        "../components/RosterPicker"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3061,6 +3382,13 @@
       "type": "db_table",
       "community": "database_sql",
       "role": "One row per player/match for the VIP wager consent (status, team, expires_at). Written only by RPCs."
+    },
+    {
+      "id": "db:poker_hands",
+      "label": "poker_hands",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Each poker hand: who dealt and entered, what each put in, winners, hand and who wrote it. Chips are computed from it, never stored."
     },
     {
       "id": "db:table_games",
@@ -3140,6 +3468,13 @@
       "role": "Removes the signed-in user's device from push notifications on logout."
     },
     {
+      "id": "rpc:cancel_poker_hand",
+      "label": "cancel_poker_hand",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Removes a hand opened by mistake, only while it is open."
+    },
+    {
       "id": "rpc:cancel_table_game",
       "label": "cancel_table_game",
       "type": "db_rpc",
@@ -3159,6 +3494,13 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "Closes a table game whose countdown ended; the server checks the time."
+    },
+    {
+      "id": "rpc:poker_ranking",
+      "label": "poker_ranking",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Wins, games, hands played and best winning hand per player, for one period."
     },
     {
       "id": "rpc:table_game_ranking",
@@ -3680,6 +4022,12 @@
     {
       "source": "App.tsx",
       "target": "src/screens/UnoScreen.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "App.tsx",
+      "target": "src/screens/PokerScreen.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -4476,6 +4824,120 @@
       "derived": true
     },
     {
+      "source": "src/components/PokerHandPanel.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerHandPanel.tsx",
+      "target": "src/lib/poker.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerHandPanel.tsx",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerHandPanel.tsx",
+      "target": "src/components/PokerNewHand.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerHandPanel.tsx",
+      "target": "src/components/PokerTable.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerHandPanel.tsx",
+      "target": "src/components/PokerTray.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerHelpModal.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerHelpModal.tsx",
+      "target": "src/lib/poker.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerNewHand.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerNewHand.tsx",
+      "target": "src/lib/poker.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerNewHand.tsx",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerTable.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerTable.tsx",
+      "target": "src/lib/poker.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerTable.tsx",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerTray.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerTray.tsx",
+      "target": "src/lib/sounds.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerTray.tsx",
+      "target": "src/lib/poker.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerTray.tsx",
+      "target": "src/components/PokerChips.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerTray.tsx",
+      "target": "src/components/PokerTable.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/ResultConfirmationPrompt.tsx",
       "target": "db:matches",
       "relation": "uses_table",
@@ -4508,6 +4970,24 @@
     {
       "source": "src/components/ResultConfirmationPrompt.tsx",
       "target": "src/lib/sounds.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/RosterPicker.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/RosterPicker.tsx",
+      "target": "src/types.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/RosterPicker.tsx",
+      "target": "src/lib/tableGames.ts",
       "relation": "imports",
       "derived": true
     },
@@ -4556,6 +5036,12 @@
     {
       "source": "src/components/TableGameRanking.tsx",
       "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameRanking.tsx",
+      "target": "src/lib/poker.ts",
       "relation": "imports",
       "derived": true
     },
@@ -4627,8 +5113,20 @@
     },
     {
       "source": "src/lib/tableGameService.ts",
+      "target": "db:poker_hands",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
       "target": "db:table_games",
       "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:cancel_poker_hand",
+      "relation": "calls_rpc",
       "derived": true
     },
     {
@@ -4646,6 +5144,12 @@
     {
       "source": "src/lib/tableGameService.ts",
       "target": "rpc:finish_expired_table_game",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:poker_ranking",
       "relation": "calls_rpc",
       "derived": true
     },
@@ -4669,6 +5173,18 @@
     },
     {
       "source": "src/lib/tableGameService.ts",
+      "target": "src/lib/outbox.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "src/lib/poker.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
       "target": "src/lib/tableGames.ts",
       "relation": "imports",
       "derived": true
@@ -4676,6 +5192,90 @@
     {
       "source": "src/lib/useGameSwipe.ts",
       "target": "src/lib/gameTabs.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/types.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/lib/offlineSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/lib/outbox.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/lib/sounds.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/lib/matchRivals.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/lib/poker.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/lib/tableGameService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/components/PokerHandPanel.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/components/PokerHelpModal.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/components/PokerNewHand.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
+      "target": "src/components/RosterPicker.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -4724,6 +5324,12 @@
     {
       "source": "src/screens/UnoScreen.tsx",
       "target": "src/lib/tableGameService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/components/RosterPicker.tsx",
       "relation": "imports",
       "derived": true
     }

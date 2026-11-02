@@ -9,7 +9,7 @@ const REFRESH_MS = 15000;
 
 interface Props {
   currentUserProfileId: string | null;
-  onOpen: (gameId: string) => void;
+  onOpen: (game: TableGame) => void;
 }
 
 /** Home's list of table games being played right now. Shows nothing when there are none. */
@@ -41,7 +41,7 @@ export const LiveTableGames: React.FC<Props> = ({ currentUserProfileId, onOpen }
     <View style={styles.container}>
       <Text style={styles.title}>🃏 Jugando ahora</Text>
       {games.map((g) => (
-        <TouchableOpacity key={g.id} style={styles.card} onPress={() => onOpen(g.id)} accessibilityRole="button">
+        <TouchableOpacity key={g.id} style={styles.card} onPress={() => onOpen(g)} accessibilityRole="button">
           <Text style={styles.game}>{tableGameLabel(g.game)}</Text>
           <Text style={styles.players} numberOfLines={2}>{playerNames(g)}</Text>
           <Text style={styles.watch}>Ver en vivo →</Text>

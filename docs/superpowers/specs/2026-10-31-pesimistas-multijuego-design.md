@@ -62,7 +62,11 @@ La escena que debe funcionar, en la mañana: alguien entra al cafetín, abre la 
 - **Variante:** la app no impone una. Sirve para póker de 5 cartas y Texas Hold'em, porque ambos se reducen a entrada, rondas de apuestas y ganador. Quien reparte abre una nueva ronda de apuestas cuando haga falta: 5 cartas tiene 2 y Hold'em 4.
 - **Quién reparte:** al empezar cada mano, la app pregunta quién reparte y deja marcado al **siguiente en la rueda**, que es como rota en el póker. Se puede cambiar.
 - **Si reparte y no juega:** indica "solo reparto". Si también juega, marca entrar o no entrar como los demás.
-- **Quién anota:** únicamente quien reparte. Los demás lo ven en vivo.
+- **Quién mueve las fichas:** cada jugador, desde su teléfono: ve sus fichas en torres, las toca para apostar e iguala, sube o se retira *(decisión del dueño, reemplaza a "anota solo quien reparte")*.
+- **Quién reparte:** abre y cierra cada mano, marca al ganador y anota por quien no tenga cuenta o teléfono a mano.
+- **Turnos:** la app no los controla. "Paso" se dice en persona y solo se anota lo que mueve fichas, para que una señal caída no detenga la mesa *(decisión del diseñador)*.
+- **Valores de las fichas:** salen de la entrada: la mitad, la entrada, 2,5, 5 y 10 veces. Con entrada 20 son 10, 20, 50, 100 y 200 *(decisión del diseñador)*.
+- **Cartas:** siguen siendo físicas *(decisión del diseñador, aceptada por el dueño)*.
 - **Cada mano:** la app pregunta quién entra. Quien no entra sale de la rueda solo en esa mano, y esa mano no cuenta como jugada para él.
 - **Apuestas:** todos entran con el monto de entrada. Si alguien sube, los demás deciden si igualan. Ejemplo acordado: entrada 20, Javier sube 40, quienes igualan llevan 60. La app va sumando.
 - **"Sube" significa cuánto se agrega:** en el ejemplo, Javier agrega 40 y el total queda en 60. La pantalla debe decirlo claro, porque en mesas tradicionales "subir a 40" significa llegar a 40.
@@ -78,6 +82,11 @@ La escena que debe funcionar, en la mañana: alguien entra al cafetín, abre la 
 - **Estadísticas:** más manos jugadas y mejor jugada de cada uno.
 - **Ganador de la partida:** quien tenga más fichas al cerrar la partida.
 - **Sin cuenta:** se pueden anotar jugadores solo con un nombre. Juegan, pero no tienen ranking ni premio.
+- **Quien reparte sin cuenta o sin teléfono:** anota quien creó la partida *(decisión del diseñador)*.
+- **Empate al cerrar la partida:** quien reparte elige entre quienes llevan más fichas *(decisión del diseñador)*.
+- **Confirmación y premio:** igual que UNO: otro jugador con cuenta confirma, con el mismo minuto *(decisión del diseñador)*.
+- **Partida abandonada:** se anula a las 6 horas sin manos nuevas, no desde el inicio, porque una noche de póker dura más *(decisión del diseñador)*.
+- **Mano abierta por error:** quien reparte puede quitarla mientras siga abierta *(decisión del diseñador)*.
 
 ### UNO, UNO Flip y UNO No Mercy
 

@@ -11,6 +11,7 @@ import { ResultConfirmationPrompt } from './src/components/ResultConfirmationPro
 import { ClubNotices } from './src/components/ClubNotices';
 import { TableGameConfirmationPrompt } from './src/components/TableGameConfirmationPrompt';
 import { UnoScreen } from './src/screens/UnoScreen';
+import { PokerScreen } from './src/screens/PokerScreen';
 import { removePushSubscription } from './src/lib/pushNotifications';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -41,7 +42,7 @@ const theme = {
   }
 };
 
-type ScreenState = 'splash' | 'ad' | 'auth' | 'home' | 'setup' | 'game' | 'live' | 'profile' | 'store' | 'achievements' | 'leaderboard' | 'global_chat' | 'tournaments' | 'uno';
+type ScreenState = 'splash' | 'ad' | 'auth' | 'home' | 'setup' | 'game' | 'live' | 'profile' | 'store' | 'achievements' | 'leaderboard' | 'global_chat' | 'tournaments' | 'uno' | 'poker';
 
 const checkIsPasswordRecovery = (): boolean => {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -301,7 +302,7 @@ export default function App() {
       navigate('tournaments');
       return;
     }
-    if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat', 'tournaments', 'uno'].includes(currentScreen)) {
+    if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat', 'tournaments', 'uno', 'poker'].includes(currentScreen)) {
       if (currentScreen === 'profile' && currentUserProfileId) {
         fetchCurrentUser(currentUserProfileId);
       }
@@ -678,7 +679,7 @@ export default function App() {
   // 2. Manejo de botón físico Atrás en Android nativo
   useEffect(() => {
     const onBackPress = () => {
-      if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat', 'tournaments', 'uno'].includes(currentScreen)) {
+      if (['game', 'setup', 'live', 'profile', 'store', 'achievements', 'leaderboard', 'global_chat', 'tournaments', 'uno', 'poker'].includes(currentScreen)) {
         navigateBack();
         return true;
       }
@@ -1219,6 +1220,7 @@ export default function App() {
           onOpenTournaments={() => navigate('tournaments')}
           onSeatWaitlistDuo={handleSeatWaitlistDuo}
           onOpenUno={(gameId) => navigate('uno', { liveMatchId: gameId ?? null })}
+          onOpenPoker={(gameId) => navigate('poker', { liveMatchId: gameId ?? null })}
         />
       )}
 
@@ -1302,6 +1304,15 @@ export default function App() {
 
       {currentScreen === 'uno' && (
         <UnoScreen
+          currentUserProfileId={currentUserProfileId}
+          isAdmin={currentUserProfile?.is_admin || false}
+          initialGameId={liveMatchId}
+          onBack={navigateBack}
+        />
+      )}
+
+      {currentScreen === 'poker' && (
+        <PokerScreen
           currentUserProfileId={currentUserProfileId}
           isAdmin={currentUserProfile?.is_admin || false}
           initialGameId={liveMatchId}

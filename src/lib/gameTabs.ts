@@ -2,10 +2,10 @@
 
 export type GameTab = 'domino' | 'uno' | 'poker';
 
-export const GAME_TABS: { key: GameTab; label: string; color: string; note?: string }[] = [
+export const GAME_TABS: { key: GameTab; label: string; color: string }[] = [
   { key: 'domino', label: 'Dominó', color: '#3b82f6' },
   { key: 'uno', label: 'UNO', color: '#e5484d' },
-  { key: 'poker', label: 'Póker', color: '#d4a843', note: 'En proceso' },
+  { key: 'poker', label: 'Póker', color: '#d4a843' },
 ];
 
 const SWIPE_DISTANCE = 60;

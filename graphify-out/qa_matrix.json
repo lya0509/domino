@@ -153,6 +153,19 @@
       ]
     },
     {
+      "id": "QA-POKER",
+      "screenOrModule": "PokerScreen (route: poker)",
+      "file": "src/screens/PokerScreen.tsx",
+      "navigateCommand": "window.__DOMINO_GRAPHIFY__.navigate('poker')",
+      "focus": "Table chips, dealer, betting, showdown, finishing the game",
+      "steps": [
+        "In Home, open the Póker tab and tap Nueva Partida. Add 3 players in seat order and start.",
+        "Deal a hand: entry 20, one raises 40, another calls (60) and the third folds. Check the pot.",
+        "Close it with a hand. From another phone, check the hand appears live and only the dealer has buttons.",
+        "Finish the game: the player with the most chips wins and the others get the confirmation window."
+      ]
+    },
+    {
       "id": "QA-UNO",
       "screenOrModule": "UnoScreen (route: uno)",
       "file": "src/screens/UnoScreen.tsx",

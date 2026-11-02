@@ -922,6 +922,24 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/components/PokerTray.tsx':
+    'Each player tray on their own phone: chip towers that scale with the entry, tap to bet, then equal, raise or fold.',
+  'src/components/PokerTable.tsx':
+    'Felt view everyone sees during a hand: the pot and how each seat stands.',
+  'src/components/PokerChips.tsx':
+    'Drawn poker chip and chip tower.',
+  'src/screens/PokerScreen.tsx':
+    'Route poker: table chips, who deals, who enters, betting, closing a hand, correcting the last one, finishing the game and the live view for everyone else.',
+  'src/components/PokerHandPanel.tsx':
+    'The hand in play: pot, each seat, raise, call and fold, and the showdown with ties, the odd chip and the all-in split the dealer writes.',
+  'src/components/PokerNewHand.tsx':
+    'Before each hand: who deals (next in the ring by default), who enters, and "solo reparte".',
+  'src/components/PokerHelpModal.tsx':
+    'Table of the 10 poker hands, best first.',
+  'src/components/RosterPicker.tsx':
+    'Choose the players of a table game, with or without an account. Poker uses it in seat order.',
+  'src/lib/poker.ts':
+    'Pure poker rules. Table chips stay inside a game and come from the closed hands; the server checks each closed hand again. Covered by tests/poker.test.mjs.',
   'src/components/GameDock.tsx':
     'Home bottom bar with one tab per game. The lit tile slides to the chosen game and takes its colour.',
   'src/lib/gameTabs.ts':
@@ -991,6 +1009,11 @@ CODE_FILES.forEach((f) => {
 codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
 
 const RPC_ROLES = {
+  set_poker_seat: 'A player moves their own chips, or the dealer writes for someone without a phone. Each seat is written alone with an exact total, so phones never overwrite each other.',
+  start_poker_game: 'Starts a poker game with its starting chips and entry, using a phone-made id so the offline outbox can resend it.',
+  save_poker_hand: 'Saves a whole hand. Only the dealer writes it, and a closed hand must hand out exactly the pot.',
+  cancel_poker_hand: 'Removes a hand opened by mistake, only while it is open.',
+  poker_ranking: 'Wins, games, hands played and best winning hand per player, for one period.',
   start_table_game: 'Starts a UNO game with a phone-made id, so the offline outbox can resend it without duplicating it.',
   finish_table_game: 'Someone at the table marks the winner; it waits for another player, or closes at once if nobody else has an account.',
   answer_table_game: 'Another player confirms the winner, which pays the prize, or sends the game back to active.',
@@ -1014,6 +1037,7 @@ const RPC_ROLES = {
   expire_tournament_registration: 'After 5 minutes starts the tournament or cancels and refunds.',
 };
 const TABLE_ROLES = {
+  poker_hands: 'Each poker hand: who dealt and entered, what each put in, winners, hand and who wrote it. Chips are computed from it, never stored.',
   table_games: 'UNO games and their state. The app only reads it: every change goes through the table game RPCs.',
   points_ledger: 'Every balance change with its reason, written by a trigger on profiles.betting_points. Readable by its owner and admins.',
   tournament_payouts: 'Private bank data for tournament payouts, readable only by its owner and admins. Filled by a trigger from tournament_participants.payout_details.',
@@ -1438,6 +1462,19 @@ const QA_MATRIX = {
       steps: [
         'Switch across 💰 Ricos, 🏆 Ganadores, and 🥾 Zapateros tabs.',
         'Tap any player row and verify navigation to their ProfileScreen.',
+      ],
+    },
+    {
+      id: 'QA-POKER',
+      screenOrModule: 'PokerScreen (route: poker)',
+      file: 'src/screens/PokerScreen.tsx',
+      navigateCommand: "window.__DOMINO_GRAPHIFY__.navigate('poker')",
+      focus: 'Table chips, dealer, betting, showdown, finishing the game',
+      steps: [
+        'In Home, open the Póker tab and tap Nueva Partida. Add 3 players in seat order and start.',
+        'Deal a hand: entry 20, one raises 40, another calls (60) and the third folds. Check the pot.',
+        'Close it with a hand. From another phone, check the hand appears live and only the dealer has buttons.',
+        'Finish the game: the player with the most chips wins and the others get the confirmation window.',
       ],
     },
     {

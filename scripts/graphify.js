@@ -941,6 +941,8 @@ const FILE_ROLES = {
   'src/lib/gameStatsCore.ts': 'Pure per-game personal numbers: dominó (wins, losses, zapatos, total), UNO (wins, losses, win rate, played) and poker (wins, played, hands, best hand).',
   'src/lib/gameStats.ts': 'Loads UNO and poker numbers for one player from table_game_players and poker_ranking, cached for a minute (useTableGameCells).',
   'src/components/StatCells.tsx': 'Four numbers in a row, shared by the home card and the profile stats.',
+  'src/lib/storeCatalog.ts': 'Store catalog (same ids and prices as store_catalog() on the server) and the rules for wearing cosmetics: owned vs to buy, what is on, toggling titles, colors, frames, table colors and the custom title.',
+  'src/lib/hallOfFame.ts': 'Hall of Fame numbers for dominó: wins, games, win rate and zapatos per player, plus the winners, zapateros and streak rankings.',
   'src/lib/tournamentBracket.ts': 'Pure bracket helpers: round names (Final, Semifinal), team names, score and state of each match, champions, and when an admin may decide a bracket.',
   'src/components/TournamentBracket.tsx': 'Tournament bracket: rounds side by side with names, scores, match state, champions and the admin "who won?" buttons.',
   'src/lib/shareVipCard.ts': 'Draws the VIP card as a 1080x1350 picture on a canvas and shares it (Web Share) or downloads it.',

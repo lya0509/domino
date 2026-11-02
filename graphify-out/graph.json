@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T23:21:27.588Z",
+    "generatedAt": "2026-11-02T23:52:56.995Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,12 +10,12 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 216,
-      "totalEdges": 411,
+      "totalNodes": 218,
+      "totalEdges": 417,
       "totalHyperedges": 7,
       "totalScreens": 15,
       "totalComponents": 35,
-      "totalServices": 25,
+      "totalServices": 27,
       "totalDatabaseTables": 23,
       "totalDatabaseRpcs": 50,
       "totalQaSuites": 18
@@ -927,8 +927,8 @@
         "✍️ Custom Title Modal (20-char limit, 250,000 pts)"
       ],
       "exists": true,
-      "lines": 325,
-      "bytes": 14808,
+      "lines": 409,
+      "bytes": 20613,
       "exports": [
         "StoreScreen"
       ],
@@ -939,6 +939,9 @@
         "../lib/supabase",
         "../lib/offlineSync",
         "../types",
+        "../components/RainbowText",
+        "../lib/vipService",
+        "../lib/storeCatalog",
         "expo-haptics",
         "../lib/sounds"
       ],
@@ -1014,8 +1017,8 @@
         "Top 100 Ranked Player Rows with RainbowText, Equipped Titles & Borders"
       ],
       "exists": true,
-      "lines": 202,
-      "bytes": 9401,
+      "lines": 226,
+      "bytes": 10973,
       "exports": [
         "LeaderboardScreen"
       ],
@@ -1027,7 +1030,10 @@
         "../components/VipEffects",
         "../lib/supabase",
         "../types",
-        "../lib/offlineSync"
+        "../lib/offlineSync",
+        "../components/TableGameRanking",
+        "../lib/tableGames",
+        "../lib/hallOfFame"
       ],
       "supabaseTables": [
         "matches"
@@ -1643,7 +1649,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 54,
-      "bytes": 2127,
+      "bytes": 2159,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1714,8 +1720,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1787,
-      "bytes": 91204,
+      "lines": 1789,
+      "bytes": 91598,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -3587,6 +3593,33 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/hallOfFame.ts",
+      "label": "hallOfFame.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/hallOfFame.ts",
+      "role": "Hall of Fame numbers for dominó: wins, games, win rate and zapatos per player, plus the winners, zapateros and streak rankings.",
+      "exists": true,
+      "lines": 77,
+      "bytes": 2917,
+      "exports": [
+        "HofMatch",
+        "DominoRow",
+        "isZapatoFor",
+        "dominoStats",
+        "rankWinners",
+        "rankZapateros",
+        "rankStreaks",
+        "medal"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/inviteQr.ts",
       "label": "inviteQr.ts",
       "type": "service",
@@ -3824,6 +3857,37 @@
         "react-native",
         "./season"
       ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/storeCatalog.ts",
+      "label": "storeCatalog.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/storeCatalog.ts",
+      "role": "Store catalog (same ids and prices as store_catalog() on the server) and the rules for wearing cosmetics: owned vs to buy, what is on, toggling titles, colors, frames, table colors and the custom title.",
+      "exists": true,
+      "lines": 86,
+      "bytes": 4259,
+      "exports": [
+        "CosmeticType",
+        "StoreItem",
+        "Equipped",
+        "STORE_ITEMS",
+        "CATEGORIES",
+        "EXCLUSIVE_NOTE",
+        "CUSTOM_MAX",
+        "owns",
+        "customTitle",
+        "isEquipped",
+        "toggleEquip",
+        "splitByOwnership"
+      ],
+      "imports": [],
       "supabaseTables": [],
       "supabaseRpcs": [],
       "realtimeChannels": [],
@@ -5567,6 +5631,24 @@
     },
     {
       "source": "src/screens/StoreScreen.tsx",
+      "target": "src/components/RainbowText.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/StoreScreen.tsx",
+      "target": "src/lib/vipService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/StoreScreen.tsx",
+      "target": "src/lib/storeCatalog.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/StoreScreen.tsx",
       "target": "src/lib/sounds.ts",
       "relation": "imports",
       "derived": true
@@ -5640,6 +5722,24 @@
     {
       "source": "src/screens/LeaderboardScreen.tsx",
       "target": "src/types.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/LeaderboardScreen.tsx",
+      "target": "src/components/TableGameRanking.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/LeaderboardScreen.tsx",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/LeaderboardScreen.tsx",
+      "target": "src/lib/hallOfFame.ts",
       "relation": "imports",
       "derived": true
     },

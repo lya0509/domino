@@ -19,7 +19,7 @@ import { PointsHistory } from '../components/PointsHistory';
 import { InviteQr } from '../components/InviteQr';
 import { offlineSync } from '../lib/offlineSync';
 import { reconcileUserPendingBets } from '../lib/bettingService';
-import { getMyVip, MyVip, refreshVips, useVip, vipMediaUrl } from '../lib/vipService';
+import { getMyVip, MyVip, onVipChanged, refreshVips, useVip, vipMediaUrl } from '../lib/vipService';
 import { founderBadge, RING_STYLES, ringStyleOf, seniorityBadge } from '../lib/vip';
 import { VipCard } from '../components/VipCard';
 import { VIP_GOLD, VipRing } from '../components/VipRing';
@@ -121,12 +121,22 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
     loadMyVip();
   }, [loadMyVip, profileId]);
 
-  // While a request waits, check every 10 s so approval shows without leaving the screen
+  // A push, a return to the app or a change in the VIP list: read my VIP again
   useEffect(() => {
-    if (myVip?.request?.status !== 'pending') return;
-    const id = setInterval(loadMyVip, 10_000);
+    if (!isOwnProfile) return;
+    return onVipChanged(() => {
+      getMyVip().then((mine) => mine && setMyVip(mine));
+    });
+  }, [isOwnProfile]);
+
+  // While a payment or a picture waits for an admin, check every 5 s so the
+  // answer shows without reloading the page
+  const waitingOnAdmin = myVip?.request?.status === 'pending' || !!myVip?.pending_media_path;
+  useEffect(() => {
+    if (!waitingOnAdmin) return;
+    const id = setInterval(loadMyVip, 5_000);
     return () => clearInterval(id);
-  }, [myVip?.request?.status, loadMyVip]);
+  }, [waitingOnAdmin, loadMyVip]);
 
   const handleShareCard = async (downloadOnly: boolean) => {
     if (!vip || !profileId || sharingCard) return;

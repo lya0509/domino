@@ -45,3 +45,6 @@ export const WIN_STYLES: Record<WinStyle, { label: string; icon: string }> = {
 
 export const winStyleOf = (style: string | null | undefined): WinStyle =>
   style && style in WIN_STYLES ? (style as WinStyle) : 'confeti';
+
+/** True for the push tags the VIP flow sends (vip-approved, vip-media-ok...). */
+export const isVipPushTag = (tag: unknown): boolean => typeof tag === 'string' && tag.startsWith('vip-');

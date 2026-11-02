@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isVipActive, vipDaysLeft } from '../src/lib/vip.ts';
+import { isVipActive, isVipPushTag, vipDaysLeft } from '../src/lib/vip.ts';
 
 const now = Date.parse('2026-11-02T12:00:00Z');
 const at = (ms) => new Date(now + ms).toISOString();
@@ -61,4 +61,11 @@ test('an unknown or missing win animation falls back to gold confetti', () => {
   assert.equal(winStyleOf('globos'), 'confeti');
   assert.equal(winStyleOf('coronas'), 'coronas');
   assert.deepEqual(Object.keys(WIN_STYLES), ['confeti', 'domino', 'fuegos', 'coronas']);
+});
+
+test('VIP pushes refresh the open app; other pushes do not', () => {
+  for (const tag of ['vip-approved', 'vip-rejected', 'vip-media-ok', 'vip-media-no', 'vip-expired']) {
+    assert.equal(isVipPushTag(tag), true, tag);
+  }
+  for (const tag of ['turno', null, undefined, 42, '']) assert.equal(isVipPushTag(tag), false, String(tag));
 });

@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T22:26:44.711Z",
+    "generatedAt": "2026-11-02T22:46:29.413Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -853,8 +853,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1734,
-      "bytes": 72305,
+      "lines": 1744,
+      "bytes": 72666,
       "exports": [
         "ProfileScreen"
       ],
@@ -1566,8 +1566,8 @@
       "file": "public/sw.js",
       "role": "Caches app shell & static bundles (Cache-First + Stale-While-Revalidate) so the web app boots and plays matches 100% offline.",
       "exists": true,
-      "lines": 96,
-      "bytes": 2907,
+      "lines": 102,
+      "bytes": 3214,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -3900,8 +3900,8 @@
       "file": "src/lib/vip.ts",
       "role": "Pure VIP rules shared with the unit tests: is a VIP still active, and whole days left.",
       "exists": true,
-      "lines": 48,
-      "bytes": 2656,
+      "lines": 51,
+      "bytes": 2845,
       "exports": [
         "isVipActive",
         "vipDaysLeft",
@@ -3912,7 +3912,8 @@
         "founderBadge",
         "WinStyle",
         "WIN_STYLES",
-        "winStyleOf"
+        "winStyleOf",
+        "isVipPushTag"
       ],
       "imports": [],
       "supabaseTables": [],
@@ -3929,8 +3930,8 @@
       "file": "src/lib/vipService.ts",
       "role": "Monthly VIP: the shared list of active VIPs (useVip), image picking that keeps GIFs animated, receipt and card uploads, and the member and admin RPCs.",
       "exists": true,
-      "lines": 298,
-      "bytes": 10963,
+      "lines": 334,
+      "bytes": 12172,
       "exports": [
         "VipInfo",
         "MyVip",
@@ -3939,6 +3940,7 @@
         "VipMediaRow",
         "MAX_VIP_FILE_BYTES",
         "vipMediaUrl",
+        "onVipChanged",
         "refreshVips",
         "useVip",
         "useVipList",

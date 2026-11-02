@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from './supabase';
-import { isVipActive } from './vip';
+import { isVipActive, isVipPushTag } from './vip';
 
 export { isVipActive, vipDaysLeft } from './vip';
 
@@ -75,14 +75,45 @@ let inFlight: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 const STALE_MS = 60_000;
 
-// Coming back to the app (or the tab) picks up approvals and expiries at once
-if (Platform.OS === 'web' && typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') refreshVips(true);
-  });
-}
+const POLL_MS = 30_000;
 
 const emit = () => listeners.forEach((l) => l());
+
+// Something about my own VIP may have changed (approval, picture, expiry)
+const myVipListeners = new Set<() => void>();
+const emitMyVip = () => myVipListeners.forEach((l) => l());
+
+/** Runs `listener` whenever this device learns that a VIP changed. */
+export const onVipChanged = (listener: () => void) => {
+  myVipListeners.add(listener);
+  return () => {
+    myVipListeners.delete(listener);
+  };
+};
+
+
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  // Coming back to the app (or the tab) picks up approvals and expiries at once
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      refreshVips(true);
+      emitMyVip();
+    }
+  });
+  // While the app is open, look again every 30 s so nobody has to reload
+  setInterval(() => {
+    if (document.visibilityState === 'visible') refreshVips(true);
+  }, POLL_MS);
+  // A VIP push (approved, picture approved, expired) updates the open app now
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event: MessageEvent) => {
+      if (event.data?.type === 'push' && isVipPushTag(event.data.tag)) {
+        refreshVips(true);
+        emitMyVip();
+      }
+    });
+  }
+}
 
 export const refreshVips = (force = false): Promise<void> => {
   if (!force && Date.now() - loadedAt < STALE_MS) return Promise.resolve();
@@ -99,7 +130,7 @@ export const refreshVips = (force = false): Promise<void> => {
       let data: any[] | null = null;
       let error: unknown = true;
       for (const cols of COLUMN_SETS) {
-        const res = await supabase.from('vip_members').select(cols).gt('vip_until', since);
+        const res = await supabase.from('vip_members').select(cols).gt('vip_until', since).order('user_id');
         if (!res.error) {
           data = res.data as any[];
           error = null;
@@ -108,9 +139,14 @@ export const refreshVips = (force = false): Promise<void> => {
       }
       // Before migration 17 the table does not exist: nobody is VIP
       if (!error && data) {
-        vipMap = Object.fromEntries((data as VipInfo[]).map((v) => [v.user_id, v]));
+        const next = Object.fromEntries((data as VipInfo[]).map((v) => [v.user_id, v]));
+        const changed = JSON.stringify(next) !== JSON.stringify(vipMap);
+        vipMap = next;
         loadedAt = Date.now();
-        emit();
+        if (changed) {
+          emit();
+          emitMyVip();
+        }
       }
     } finally {
       inFlight = null;

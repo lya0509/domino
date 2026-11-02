@@ -73,14 +73,20 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
   event.waitUntil(
-    self.registration.showNotification(data.title || 'PeSiMistas', {
-      body: data.body || '',
-      tag: data.tag,
-      renotify: !!data.tag,
-      icon: '/icon.png',
-      badge: '/icon.png',
-      vibrate: [200, 100, 200],
-    })
+    Promise.all([
+      self.registration.showNotification(data.title || 'PeSiMistas', {
+        body: data.body || '',
+        tag: data.tag,
+        renotify: !!data.tag,
+        icon: '/icon.png',
+        badge: '/icon.png',
+        vibrate: [200, 100, 200],
+      }),
+      // An open app updates at once (VIP approved, picture approved...)
+      self.clients
+        .matchAll({ type: 'window', includeUncontrolled: true })
+        .then((windows) => windows.forEach((w) => w.postMessage({ type: 'push', tag: data.tag || null }))),
+    ])
   );
 });
 

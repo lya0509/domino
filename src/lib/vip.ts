@@ -32,3 +32,16 @@ export const seniorityBadge = (months: number | null | undefined): { icon: strin
 
 export const founderBadge = (n: number | null | undefined): string | null =>
   n && n >= 1 && n <= 10 ? `Fundador #${n}` : null;
+
+export type WinStyle = 'confeti' | 'domino' | 'fuegos' | 'coronas';
+
+/** What everyone sees when a VIP wins. */
+export const WIN_STYLES: Record<WinStyle, { label: string; icon: string }> = {
+  confeti: { label: 'Confeti dorado', icon: '🎊' },
+  domino: { label: 'Lluvia de fichas', icon: '🁫' },
+  fuegos: { label: 'Fuegos artificiales', icon: '🎆' },
+  coronas: { label: 'Lluvia de coronas', icon: '♛' },
+};
+
+export const winStyleOf = (style: string | null | undefined): WinStyle =>
+  style && style in WIN_STYLES ? (style as WinStyle) : 'confeti';

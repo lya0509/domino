@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
 import { VIP_GOLD } from './VipRing';
-import { MyVip, pickImage, setVipRingStyle, setVipTagline, submitVipMedia, useVip, vipDaysLeft, vipMediaUrl } from '../lib/vipService';
-import { RING_STYLES, RingStyle, ringStyleOf } from '../lib/vip';
+import { MyVip, pickImage, setVipRingStyle, setVipTagline, setVipWinStyle, submitVipMedia, useVip, vipDaysLeft, vipMediaUrl } from '../lib/vipService';
+import { RING_STYLES, RingStyle, ringStyleOf, WIN_STYLES, WinStyle, winStyleOf } from '../lib/vip';
+import { DominoTile, WinPreview } from './VipEffects';
 import { VipRing } from './VipRing';
 
 /** The VIP's own corner: days left, renew, photo or GIF for the card, and the phrase. */
@@ -14,9 +15,24 @@ export const VipStudio: React.FC<{ userId: string; myVip: MyVip; onChanged: () =
   onRenew,
 }) => {
   const [tagline, setTagline] = useState(myVip.tagline ?? '');
-  const [busy, setBusy] = useState<'media' | 'tagline' | 'ring' | null>(null);
+  const [busy, setBusy] = useState<'media' | 'tagline' | 'ring' | 'win' | null>(null);
+  const [preview, setPreview] = useState<WinStyle | null>(null);
   const shared = useVip(userId);
   const currentStyle = ringStyleOf(shared?.ring_style);
+  const currentWin = winStyleOf(shared?.win_style);
+
+  const pickWin = async (style: WinStyle) => {
+    setPreview(style);
+    if (style === currentWin || busy) return;
+    setBusy('win');
+    try {
+      await setVipWinStyle(style);
+    } catch (e: any) {
+      Alert.alert('No se pudo cambiar la animación', e?.message || 'Intenta de nuevo.');
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const pickStyle = async (style: RingStyle) => {
     if (style === currentStyle || busy) return;
@@ -98,6 +114,26 @@ export const VipStudio: React.FC<{ userId: string; myVip: MyVip; onChanged: () =
         ))}
       </View>
 
+      <Text style={styles.section}>Tu animación de victoria</Text>
+      <View style={styles.winGrid}>
+        {(Object.keys(WIN_STYLES) as WinStyle[]).map((style) => (
+          <TouchableOpacity
+            key={style}
+            style={[styles.winOption, style === currentWin && styles.winOptionOn]}
+            onPress={() => pickWin(style)}
+            disabled={busy === 'win'}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: style === currentWin }}
+            accessibilityLabel={`Animación ${WIN_STYLES[style].label}`}
+          >
+            {style === 'domino' ? <DominoTile size={11} /> : <Text style={styles.winIcon}>{WIN_STYLES[style].icon}</Text>}
+            <Text style={[styles.winLabel, style === currentWin && { color: VIP_GOLD }]}>{WIN_STYLES[style].label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text style={styles.muted}>Toca una para verla. Es la que verán todos cuando ganes.</Text>
+      <WinPreview style={preview} onDone={() => setPreview(null)} />
+
       <Text style={styles.section}>Foto o GIF de tu tarjeta</Text>
       {pendingUrl ? (
         <View style={styles.pendingRow}>
@@ -142,6 +178,23 @@ const styles = StyleSheet.create({
   renew: { alignSelf: 'flex-start', backgroundColor: VIP_GOLD, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 14, marginTop: 10 },
   renewText: { color: '#1a1205', fontWeight: '900' },
   section: { color: VIP_GOLD, fontWeight: '800', marginTop: 16, marginBottom: 6 },
+  winGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  winOption: {
+    width: '48%',
+    flexGrow: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  winOptionOn: { borderColor: VIP_GOLD, backgroundColor: 'rgba(251,191,36,0.1)' },
+  winIcon: { fontSize: 20, color: VIP_GOLD },
+  winLabel: { color: theme.colors.textDim, fontSize: 12, fontWeight: '700', flexShrink: 1 },
   ringRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
   ringOption: {
     flex: 1,

@@ -53,3 +53,12 @@ test('only founders 1 to 10 get the seal', () => {
   assert.equal(founderBadge(null), null);
   assert.equal(founderBadge(11), null);
 });
+
+import { winStyleOf, WIN_STYLES } from '../src/lib/vip.ts';
+
+test('an unknown or missing win animation falls back to gold confetti', () => {
+  assert.equal(winStyleOf(undefined), 'confeti');
+  assert.equal(winStyleOf('globos'), 'confeti');
+  assert.equal(winStyleOf('coronas'), 'coronas');
+  assert.deepEqual(Object.keys(WIN_STYLES), ['confeti', 'domino', 'fuegos', 'coronas']);
+});

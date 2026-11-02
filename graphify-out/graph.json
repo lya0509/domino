@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T22:06:17.165Z",
+    "generatedAt": "2026-11-02T22:26:44.711Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,14 +10,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 209,
-      "totalEdges": 401,
+      "totalNodes": 211,
+      "totalEdges": 404,
       "totalHyperedges": 7,
       "totalScreens": 15,
       "totalComponents": 34,
       "totalServices": 24,
       "totalDatabaseTables": 23,
-      "totalDatabaseRpcs": 47,
+      "totalDatabaseRpcs": 48,
       "totalQaSuites": 18
     }
   },
@@ -1710,8 +1710,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1782,
-      "bytes": 90434,
+      "lines": 1783,
+      "bytes": 90547,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2613,6 +2613,24 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261102_20_vip_victoria.sql",
+      "label": "20261102_20_vip_victoria.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261102_20_vip_victoria.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 52,
+      "bytes": 2049,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/BetHistoryRow.tsx",
       "label": "BetHistoryRow.tsx",
       "type": "component",
@@ -3293,11 +3311,14 @@
       "file": "src/components/VipEffects.tsx",
       "role": "VIP flourishes: golden name (VipName), golden confetti and banner when a VIP wins (VipCelebration), and a banner when a VIP sits at a table (VipEntrance).",
       "exists": true,
-      "lines": 232,
-      "bytes": 8594,
+      "lines": 348,
+      "bytes": 13610,
       "exports": [
         "VipName",
+        "DominoTile",
+        "WinAnimation",
         "VipCelebration",
+        "WinPreview",
         "VipEntrance"
       ],
       "imports": [
@@ -3305,7 +3326,8 @@
         "react-native",
         "./VipRing",
         "../lib/vipService",
-        "../lib/sounds"
+        "../lib/sounds",
+        "../lib/vip"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3378,8 +3400,8 @@
       "file": "src/components/VipStudio.tsx",
       "role": "The VIP corner of the profile: days left, renew, photo or GIF for the card (waits for approval) and the phrase.",
       "exists": true,
-      "lines": 183,
-      "bytes": 7370,
+      "lines": 236,
+      "bytes": 9568,
       "exports": [
         "VipStudio"
       ],
@@ -3389,7 +3411,8 @@
         "../theme",
         "./VipRing",
         "../lib/vipService",
-        "../lib/vip"
+        "../lib/vip",
+        "./VipEffects"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3877,8 +3900,8 @@
       "file": "src/lib/vip.ts",
       "role": "Pure VIP rules shared with the unit tests: is a VIP still active, and whole days left.",
       "exists": true,
-      "lines": 35,
-      "bytes": 2097,
+      "lines": 48,
+      "bytes": 2656,
       "exports": [
         "isVipActive",
         "vipDaysLeft",
@@ -3886,7 +3909,10 @@
         "RING_STYLES",
         "ringStyleOf",
         "seniorityBadge",
-        "founderBadge"
+        "founderBadge",
+        "WinStyle",
+        "WIN_STYLES",
+        "winStyleOf"
       ],
       "imports": [],
       "supabaseTables": [],
@@ -3903,8 +3929,8 @@
       "file": "src/lib/vipService.ts",
       "role": "Monthly VIP: the shared list of active VIPs (useVip), image picking that keeps GIFs animated, receipt and card uploads, and the member and admin RPCs.",
       "exists": true,
-      "lines": 282,
-      "bytes": 10490,
+      "lines": 298,
+      "bytes": 10963,
       "exports": [
         "VipInfo",
         "MyVip",
@@ -3922,6 +3948,7 @@
         "getMyVip",
         "requestVip",
         "submitVipMedia",
+        "setVipWinStyle",
         "setVipRingStyle",
         "setVipTagline",
         "listVipRequests",
@@ -3947,6 +3974,7 @@
         "get_my_vip",
         "request_vip",
         "set_vip_media",
+        "set_vip_win_style",
         "set_vip_ring_style",
         "set_vip_tagline",
         "list_vip_requests",
@@ -4243,6 +4271,13 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "An active VIP proposes the card photo or GIF; it waits for an admin."
+    },
+    {
+      "id": "rpc:set_vip_win_style",
+      "label": "set_vip_win_style",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "An active VIP picks the win animation everyone sees: confeti, domino, fuegos or coronas."
     },
     {
       "id": "rpc:set_vip_ring_style",
@@ -6188,6 +6223,12 @@
       "derived": true
     },
     {
+      "source": "src/components/VipEffects.tsx",
+      "target": "src/lib/vip.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/VipOfferModal.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -6244,6 +6285,12 @@
     {
       "source": "src/components/VipStudio.tsx",
       "target": "src/lib/vip.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipStudio.tsx",
+      "target": "src/components/VipEffects.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -6448,6 +6495,12 @@
     {
       "source": "src/lib/vipService.ts",
       "target": "rpc:set_vip_media",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/vipService.ts",
+      "target": "rpc:set_vip_win_style",
       "relation": "calls_rpc",
       "derived": true
     },

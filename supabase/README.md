@@ -34,7 +34,8 @@ Producción la actualiza el dueño, a mano, en el SQL Editor de Supabase.
 | `20261102_16_tope_apuestas.sql` | Ejecutada en producción. Tope diario a la ganancia por apuestas (500 al empezar, en `system_config.max_bet_profit_per_day`) |
 | `20261102_17_vip.sql` | Ejecutada en producción. VIP mensual: `vip_members`, `vip_requests`, almacenamiento `vip-receipts` (privado) y `vip-media`, aprobación por un administrador y tarea diaria `vencer-vip` |
 | `20261102_18_salud_base.sql` | Ejecutada en producción. Arreglos de la revisión del 2026-11-02: historial de puntos tras el reinicio, funciones de disparador cerradas a la API y `search_path` fijo |
-| `20261102_19_vip_extras.sql` | Pendiente. VIP: antigüedad (`streak_months`), estilo del borde (`ring_style`, `set_vip_ring_style`) y 10 fundadores (`founder_number`). La app funciona antes y después de pegarla |
+| `20261102_19_vip_extras.sql` | Ejecutada en producción. VIP: antigüedad (`streak_months`), estilo del borde (`ring_style`, `set_vip_ring_style`) y 10 fundadores (`founder_number`). |
+| `20261102_20_vip_victoria.sql` | Pendiente. Animación de victoria que elige cada VIP (`win_style`, `set_vip_win_style`). La app funciona antes y después de pegarla |
 
 `mantenimiento/reinicio_del_club.sql` no es una migración: borra partidas, apuestas y puntos y deja a todos con 1.000. Se ejecuta a mano, una sola vez, cuando el dueño lo decida. Guarda una copia en el esquema `respaldo_reinicio` y se detiene si ya existe. Lo cubre `tests/db/reinicio.mjs`. Se ejecutó en producción el 2026-11-02.
 

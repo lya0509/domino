@@ -86,6 +86,25 @@ const req = await pedir(socio(11));
 r = await as('authenticated', ADM, `SELECT public.review_vip_request('${req}', false, 'No aparece') r`);
 ok('rechazar sigue funcionando', !r.err && (await uno(`SELECT status FROM public.vip_requests WHERE id='${req}'`)).status === 'rejected', JSON.stringify(r));
 
+// Migración 20: animación de victoria
+const mig20 = cuerpo('20261102_20_vip_victoria.sql');
+await db.exec(mig20);
+await db.exec(mig20);
+ok('la migración 20 se puede repetir', true);
+ok('la animación empieza en confeti', (await uno(`SELECT win_style FROM public.vip_members WHERE user_id='${X}'`)).win_style === 'confeti');
+r = await as('authenticated', ADM, `SELECT public.set_vip_win_style('coronas')`);
+ok('sin VIP no se elige animación', /VIP activo/.test(r.err || ''), JSON.stringify(r));
+r = await as('authenticated', X, `SELECT public.set_vip_win_style('globos')`);
+ok('una animación que no existe se rechaza', /no existe/.test(r.err || ''), JSON.stringify(r));
+r = await as('authenticated', X, `SELECT public.set_vip_win_style('fuegos')`);
+ok('el VIP elige su animación', !r.err && (await uno(`SELECT win_style FROM public.vip_members WHERE user_id='${X}'`)).win_style === 'fuegos', JSON.stringify(r));
+r = await as('anon', null, `SELECT win_style FROM public.vip_members WHERE user_id='${X}'`);
+ok('todos ven la animación elegida', r.rows?.[0]?.win_style === 'fuegos', JSON.stringify(r));
+r = await as('authenticated', X, `UPDATE public.vip_members SET win_style = 'coronas' WHERE user_id='${X}' RETURNING user_id`);
+ok('nadie la cambia sin la función', !!r.err || (r.rows || []).length === 0, JSON.stringify(r));
+const v20 = (await db.query(sql('supabase/migrations/20261102_20_vip_victoria.sql').split('-- VERIFICACIÓN')[1].replace(/^[^\n]*\n(-- =+\n)?/, ''))).rows[0];
+ok('la verificación 20 sale en true', v20.todos_ven_la_animacion && v20.se_puede_elegir, JSON.stringify(v20));
+
 const v = (await db.query(sql('supabase/migrations/20261102_19_vip_extras.sql').split('-- VERIFICACIÓN')[1].replace(/^[^\n]*\n(-- =+\n)?/, ''))).rows[0];
 ok('la verificación sale en true', v.fundadores && v.antiguedad && v.bordes, JSON.stringify(v));
 

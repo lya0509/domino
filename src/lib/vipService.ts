@@ -21,6 +21,8 @@ export interface VipInfo {
   streak_months?: number | null;
   ring_style?: string | null;
   founder_number?: number | null;
+  // Migration 20
+  win_style?: string | null;
 }
 
 export interface MyVip {
@@ -88,14 +90,22 @@ export const refreshVips = (force = false): Promise<void> => {
   inFlight = (async () => {
     try {
       const since = new Date().toISOString();
-      const full = await supabase
-        .from('vip_members')
-        .select('user_id, vip_until, media_path, tagline, streak_months, ring_style, founder_number')
-        .gt('vip_until', since);
-      // Before migration 19 those columns do not exist: read the basic ones
-      const { data, error } = full.error
-        ? await supabase.from('vip_members').select('user_id, vip_until, media_path, tagline').gt('vip_until', since)
-        : full;
+      // Newest columns first; before migrations 20 and 19 fall back to fewer
+      const COLUMN_SETS = [
+        'user_id, vip_until, media_path, tagline, streak_months, ring_style, founder_number, win_style',
+        'user_id, vip_until, media_path, tagline, streak_months, ring_style, founder_number',
+        'user_id, vip_until, media_path, tagline',
+      ];
+      let data: any[] | null = null;
+      let error: unknown = true;
+      for (const cols of COLUMN_SETS) {
+        const res = await supabase.from('vip_members').select(cols).gt('vip_until', since);
+        if (!res.error) {
+          data = res.data as any[];
+          error = null;
+          break;
+        }
+      }
       // Before migration 17 the table does not exist: nobody is VIP
       if (!error && data) {
         vipMap = Object.fromEntries((data as VipInfo[]).map((v) => [v.user_id, v]));
@@ -229,6 +239,12 @@ export const submitVipMedia = async (userId: string, image: PickedImage, keep: (
   const { data: files } = await supabase.storage.from('vip-media').list(userId);
   const stale = (files || []).map((f) => `${userId}/${f.name}`).filter((p) => p !== path && !keep.includes(p));
   if (stale.length) await supabase.storage.from('vip-media').remove(stale);
+};
+
+export const setVipWinStyle = async (style: string) => {
+  const { error } = await supabase.rpc('set_vip_win_style', { p_style: style });
+  rpcError(error);
+  await refreshVips(true);
 };
 
 export const setVipRingStyle = async (style: string) => {

@@ -968,6 +968,14 @@ const FILE_ROLES = {
     'Global, no UI: toasts while the app is open when a match starts, someone bets, or your duo becomes first in line. Also keeps this device registered for push.',
   'src/components/PointsHistory.tsx':
     'Own-profile list of the last 30 point movements from points_ledger.',
+  'src/components/PlayerMatchesSheet.tsx':
+    'Sheet opened from a rival or duo in the profile: their whole match list with the won/lost record on top.',
+  'src/components/MatchHistoryRow.tsx':
+    'One domino match seen from a player, with the VAR graph on tap. Used by the recent matches card and PlayerMatchesSheet.',
+  'src/components/BetHistoryRow.tsx':
+    'One bet in the profile. On tap it shows the match, the side, the score, the multiplier and how it ended.',
+  'src/lib/playerHistory.ts':
+    'Pure rules of a profile: matches against a rival, matches next to a partner, won/lost record and how a bet ended. Covered by tests/playerHistory.test.mjs.',
   'src/components/ResultConfirmationPrompt.tsx':
     'Full-screen window mounted in App.tsx: asks the rival team to confirm or reject a finished match, with the 1-minute countdown on normal matches.',
   'src/components/PendingConfirmations.tsx':
@@ -1114,7 +1122,10 @@ const EDGES = [
   { source: 'src/screens/HomeScreen.tsx', target: 'src/components/RainbowText.tsx', relation: 'renders_vip_names' },
   { source: 'src/screens/GameScreen.tsx', target: 'src/components/ProgressChart.tsx', relation: 'renders_score_race' },
   { source: 'src/screens/LiveMatchScreen.tsx', target: 'src/components/ProgressChart.tsx', relation: 'renders_live_score_race' },
-  { source: 'src/screens/ProfileScreen.tsx', target: 'src/components/MatchGraph.tsx', relation: 'renders_var_del_domino' },
+  { source: 'src/screens/ProfileScreen.tsx', target: 'src/components/MatchHistoryRow.tsx', relation: 'renders_recent_matches' },
+  { source: 'src/screens/ProfileScreen.tsx', target: 'src/components/PlayerMatchesSheet.tsx', relation: 'opens_rival_and_duo_history' },
+  { source: 'src/screens/ProfileScreen.tsx', target: 'src/components/BetHistoryRow.tsx', relation: 'renders_bet_history' },
+  { source: 'src/components/MatchHistoryRow.tsx', target: 'src/components/MatchGraph.tsx', relation: 'renders_var_del_domino' },
   { source: 'src/screens/ProfileScreen.tsx', target: 'src/components/RainbowText.tsx', relation: 'renders_vip_names' },
   { source: 'src/screens/ProfileScreen.tsx', target: 'src/components/LegalModal.tsx', relation: 'opens_legal_terms' },
   { source: 'src/screens/LeaderboardScreen.tsx', target: 'src/components/RainbowText.tsx', relation: 'renders_vip_names' },

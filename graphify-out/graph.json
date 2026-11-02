@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T00:35:11.864Z",
+    "generatedAt": "2026-11-02T00:55:19.030Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,12 +10,12 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 170,
-      "totalEdges": 310,
+      "totalNodes": 174,
+      "totalEdges": 324,
       "totalHyperedges": 7,
       "totalScreens": 15,
-      "totalComponents": 22,
-      "totalServices": 17,
+      "totalComponents": 25,
+      "totalServices": 18,
       "totalDatabaseTables": 19,
       "totalDatabaseRpcs": 36,
       "totalQaSuites": 18
@@ -229,8 +229,8 @@
       "role": "Centralizes colors (#0f172a background, #1e293b card, #3b82f6 team1, #10b981 team2, #f59e0b accent), spacing, typography, and borderRadius.",
       "uiElements": [],
       "exists": true,
-      "lines": 31,
-      "bytes": 604,
+      "lines": 32,
+      "bytes": 684,
       "exports": [
         "theme"
       ],
@@ -840,8 +840,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1495,
-      "bytes": 62465,
+      "lines": 1473,
+      "bytes": 61288,
       "exports": [
         "ProfileScreen"
       ],
@@ -855,13 +855,16 @@
         "../lib/supabase",
         "../lib/sounds",
         "../types",
-        "../components/MatchGraph",
+        "../components/BetHistoryRow",
+        "../components/MatchHistoryRow",
+        "../components/PlayerMatchesSheet",
         "../components/RainbowText",
         "../components/LegalModal",
         "../components/PointsHistory",
         "../components/InviteQr",
         "../lib/offlineSync",
-        "../lib/bettingService"
+        "../lib/bettingService",
+        "../lib/playerHistory"
       ],
       "supabaseTables": [
         "profiles",
@@ -1142,8 +1145,8 @@
       "file": "src/components/MatchGraph.tsx",
       "role": "Renders an SVG round-by-round score progression chart with data points and team legends for match post-mortems in ProfileScreen.",
       "exists": true,
-      "lines": 152,
-      "bytes": 4742,
+      "lines": 154,
+      "bytes": 4840,
       "exports": [
         "MatchGraph"
       ],
@@ -1667,8 +1670,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1726,
-      "bytes": 85268,
+      "lines": 1737,
+      "bytes": 86327,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2480,6 +2483,33 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/components/BetHistoryRow.tsx",
+      "label": "BetHistoryRow.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/BetHistoryRow.tsx",
+      "role": "One bet in the profile. On tap it shows the match, the side, the score, the multiplier and how it ended.",
+      "exists": true,
+      "lines": 114,
+      "bytes": 4783,
+      "exports": [
+        "BetHistoryRow"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/matchRivals",
+        "../lib/playerHistory",
+        "./MatchGraph"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/ClubNotices.tsx",
       "label": "ClubNotices.tsx",
       "type": "component",
@@ -2594,6 +2624,33 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/components/MatchHistoryRow.tsx",
+      "label": "MatchHistoryRow.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/MatchHistoryRow.tsx",
+      "role": "One domino match seen from a player, with the VAR graph on tap. Used by the recent matches card and PlayerMatchesSheet.",
+      "exists": true,
+      "lines": 75,
+      "bytes": 3041,
+      "exports": [
+        "MatchHistoryRow"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/matchRivals",
+        "../lib/playerHistory",
+        "./MatchGraph"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/PendingConfirmations.tsx",
       "label": "PendingConfirmations.tsx",
       "type": "component",
@@ -2621,6 +2678,32 @@
       "realtimeChannels": [
         "pending-confirmations-${Date.now()}"
       ],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/PlayerMatchesSheet.tsx",
+      "label": "PlayerMatchesSheet.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PlayerMatchesSheet.tsx",
+      "role": "Sheet opened from a rival or duo in the profile: their whole match list with the won/lost record on top.",
+      "exists": true,
+      "lines": 83,
+      "bytes": 3431,
+      "exports": [
+        "PlayerMatchesSheet"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/playerHistory",
+        "./MatchHistoryRow"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
     },
@@ -3068,6 +3151,38 @@
         "OutboxItem",
         "removeConfirmedItems",
         "hasQueuedGame"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/playerHistory.ts",
+      "label": "playerHistory.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/playerHistory.ts",
+      "role": "Pure rules of a profile: matches against a rival, matches next to a partner, won/lost record and how a bet ended. Covered by tests/playerHistory.test.mjs.",
+      "exists": true,
+      "lines": 97,
+      "bytes": 3646,
+      "exports": [
+        "HistoryMatch",
+        "HistoryBet",
+        "BetOutcomeKind",
+        "BetOutcome",
+        "MATCH_HISTORY_COLUMNS",
+        "teamOf",
+        "wonMatch",
+        "matchesAgainst",
+        "matchesTogether",
+        "matchRecord",
+        "sidesOf",
+        "partnerNames",
+        "betOutcome"
       ],
       "imports": [],
       "supabaseTables": [],
@@ -3680,6 +3795,21 @@
     },
     {
       "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/MatchHistoryRow.tsx",
+      "relation": "renders_recent_matches"
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/PlayerMatchesSheet.tsx",
+      "relation": "opens_rival_and_duo_history"
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/BetHistoryRow.tsx",
+      "relation": "renders_bet_history"
+    },
+    {
+      "source": "src/components/MatchHistoryRow.tsx",
       "target": "src/components/MatchGraph.tsx",
       "relation": "renders_var_del_domino"
     },
@@ -4470,6 +4600,12 @@
       "derived": true
     },
     {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/lib/playerHistory.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/screens/StoreScreen.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -4686,6 +4822,30 @@
       "derived": true
     },
     {
+      "source": "src/components/BetHistoryRow.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/BetHistoryRow.tsx",
+      "target": "src/lib/matchRivals.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/BetHistoryRow.tsx",
+      "target": "src/lib/playerHistory.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/BetHistoryRow.tsx",
+      "target": "src/components/MatchGraph.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/ClubNotices.tsx",
       "target": "db:matches",
       "relation": "uses_table",
@@ -4776,6 +4936,24 @@
       "derived": true
     },
     {
+      "source": "src/components/MatchHistoryRow.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/MatchHistoryRow.tsx",
+      "target": "src/lib/matchRivals.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/MatchHistoryRow.tsx",
+      "target": "src/lib/playerHistory.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/PendingConfirmations.tsx",
       "target": "db:matches",
       "relation": "uses_table",
@@ -4802,6 +4980,24 @@
     {
       "source": "src/components/PendingConfirmations.tsx",
       "target": "src/lib/matchRivals.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PlayerMatchesSheet.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PlayerMatchesSheet.tsx",
+      "target": "src/lib/playerHistory.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PlayerMatchesSheet.tsx",
+      "target": "src/components/MatchHistoryRow.tsx",
       "relation": "imports",
       "derived": true
     },

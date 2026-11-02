@@ -11,9 +11,11 @@ interface Round {
 interface Props {
   rounds: Round[];
   limitScore: number;
+  team1Name?: string;
+  team2Name?: string;
 }
 
-export const MatchGraph: React.FC<Props> = ({ rounds, limitScore }) => {
+export const MatchGraph: React.FC<Props> = ({ rounds, limitScore, team1Name = 'Equipo 1', team2Name = 'Equipo 2' }) => {
   if (!rounds || rounds.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -100,11 +102,11 @@ export const MatchGraph: React.FC<Props> = ({ rounds, limitScore }) => {
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: theme.colors.primary }]} />
-          <Text style={styles.legendText}>Equipo 1</Text>
+          <Text style={styles.legendText}>{team1Name}</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: theme.colors.secondary }]} />
-          <Text style={styles.legendText}>Equipo 2</Text>
+          <Text style={styles.legendText}>{team2Name}</Text>
         </View>
       </View>
     </View>

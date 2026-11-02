@@ -15,12 +15,12 @@
 | Metric | Count |
 | :--- | :---: |
 | **System Communities** | **8** |
-| **Total Graph Nodes** | **170** |
-| **Directed Edges** | **310 (230 derived from code)** |
+| **Total Graph Nodes** | **174** |
+| **Directed Edges** | **324 (241 derived from code)** |
 | **System Hyperedges** | **7** |
 | **Screens** | **15** |
-| **Components** | **22** |
-| **Services** | **17** |
+| **Components** | **25** |
+| **Services** | **18** |
 | **DB Tables & Buckets** | **19** |
 | **DB RPCs** | **36** |
 | **SQL Scripts** | **48** |

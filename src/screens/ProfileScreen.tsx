@@ -10,13 +10,18 @@ import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
 import { sounds } from '../lib/sounds';
 import { Profile } from '../types';
-import { MatchGraph } from '../components/MatchGraph';
+import { BetHistoryRow } from '../components/BetHistoryRow';
+import { MatchHistoryRow } from '../components/MatchHistoryRow';
+import { PlayerMatchesSheet } from '../components/PlayerMatchesSheet';
 import { RainbowText } from '../components/RainbowText';
 import { LegalModal, LegalTab } from '../components/LegalModal';
 import { PointsHistory } from '../components/PointsHistory';
 import { InviteQr } from '../components/InviteQr';
 import { offlineSync } from '../lib/offlineSync';
 import { reconcileUserPendingBets } from '../lib/bettingService';
+import {
+  HistoryMatch, MATCH_HISTORY_COLUMNS, matchesAgainst, matchesTogether, matchRecord, wonMatch,
+} from '../lib/playerHistory';
 
 interface Props {
   profileId: string | null;
@@ -55,6 +60,10 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   const [showAllRivals, setShowAllRivals] = useState(false);
   const [allRivalsTab, setAllRivalsTab] = useState<'won' | 'lost'>('lost');
   const [betHistory, setBetHistory] = useState<any[]>([]);
+  // A bet can be on a match the player only watched, so these are fetched by id
+  const [betMatches, setBetMatches] = useState<Record<string, HistoryMatch>>({});
+  const [expandedBet, setExpandedBet] = useState<string | null>(null);
+  const [matchesView, setMatchesView] = useState<{ title: string; matches: HistoryMatch[] } | null>(null);
   const [profileMap, setProfileMap] = useState<Record<string, Profile>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -106,7 +115,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           }
           const { data } = await supabase
             .from('matches')
-            .select('id, status, winner_team, is_zapato, team1_player1, team1_player2, team2_player1, team2_player2, team1_total, team2_total, limit_score, rounds, created_at')
+            .select(MATCH_HISTORY_COLUMNS)
             .eq('status', 'completed')
             .or(`team1_player1.eq.${profileId},team1_player2.eq.${profileId},team2_player1.eq.${profileId},team2_player2.eq.${profileId}`);
           return data || [];
@@ -215,20 +224,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       const duoRecords: DuoRecord[] = Object.values(duoByPartner).map((d: any) => {
         const partnerId = d.player1_id === profileId ? d.player2_id : d.player1_id;
         const partner = pMap[partnerId];
-
-        let duoWins = 0, duoLosses = 0;
-        matches.forEach((m: any) => {
-          if (!m.winner_team) return;
-          const team1 = [m.team1_player1, m.team1_player2].filter(Boolean);
-          const team2 = [m.team2_player1, m.team2_player2].filter(Boolean);
-          const togetherInTeam1 = team1.includes(profileId) && team1.includes(partnerId);
-          const togetherInTeam2 = team2.includes(profileId) && team2.includes(partnerId);
-          if (togetherInTeam1) {
-            if (m.winner_team === 1) duoWins++; else duoLosses++;
-          } else if (togetherInTeam2) {
-            if (m.winner_team === 2) duoWins++; else duoLosses++;
-          }
-        });
+        const { won: duoWins, lost: duoLosses } = matchRecord(matchesTogether(matches, profileId, partnerId), profileId);
 
         return {
           duoId: d.id,
@@ -243,6 +239,14 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       });
 
       setDuos(duoRecords);
+
+      const betMatchIds = [...new Set((betsRes.data || []).map((b: any) => b.match_id).filter(Boolean))];
+      if (betMatchIds.length > 0) {
+        const { data } = await supabase.from('matches').select(MATCH_HISTORY_COLUMNS).in('id', betMatchIds);
+        const byId: Record<string, HistoryMatch> = {};
+        ((data || []) as unknown as HistoryMatch[]).forEach((m) => { byId[m.id] = m; });
+        setBetMatches(byId);
+      }
     } catch (err) {
       console.error('Error fetching profile data:', err);
     } finally {
@@ -494,9 +498,12 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
     );
   };
 
-  const isMatchWon = (m: any) => {
-    const inTeam1 = [m.team1_player1, m.team1_player2].includes(profileId);
-    return (inTeam1 && m.winner_team === 1) || (!inTeam1 && m.winner_team === 2);
+  const isMatchWon = (m: any) => !!profileId && wonMatch(m, profileId);
+  const openRival = (r: RivalRecord) => {
+    if (profileId) setMatchesView({ title: `Contra ${r.name}`, matches: matchesAgainst(allMyMatches, profileId, r.playerId) });
+  };
+  const openDuo = (d: DuoRecord) => {
+    if (profileId) setMatchesView({ title: `Con ${d.partnerName}`, matches: matchesTogether(allMyMatches, profileId, d.partnerId) });
   };
   const decidedMatches = allMyMatches.filter((m) => !!m.winner_team);
   const wonMatches = decidedMatches.filter(isMatchWon);
@@ -754,53 +761,15 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         {recentMatches.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>⏱ Últimas 5 Partidas</Text>
-            {recentMatches.map((m, i) => {
-              const team1 = [m.team1_player1, m.team1_player2].filter(Boolean);
-              const team2 = [m.team2_player1, m.team2_player2].filter(Boolean);
-              const inTeam1 = team1.includes(profileId);
-              const rivalTeam = inTeam1 ? team2 : team1;
-              const isNullMatch = !m.winner_team;
-              const iWon = (inTeam1 && m.winner_team === 1) || (!inTeam1 && m.winner_team === 2);
-              const myScore = inTeam1 ? m.team1_total : m.team2_total;
-              const rivalScore = inTeam1 ? m.team2_total : m.team1_total;
-
-              const rivalNames = rivalTeam.length > 0
-                ? rivalTeam.map((id: string) => profileMap[id]?.display_name || 'Desconocido').join(' y ')
-                : 'Nadie';
-
-              let badgeColor = isNullMatch ? theme.colors.textDim : (iWon ? theme.colors.success : theme.colors.danger);
-              let badgeText = isNullMatch ? '-' : (iWon ? 'W' : 'L');
-
-              return (
-                <View key={m.id} style={styles.matchHistoryCard}>
-                  <TouchableOpacity
-                    style={styles.rivalRow}
-                    onPress={() => setExpandedMatch(expandedMatch === m.id ? null : m.id)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[styles.duoAvatar, { backgroundColor: badgeColor }]}>
-                      <Text style={styles.duoAvatarText}>{badgeText}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.rivalName, { fontSize: 14 }]}>vs {rivalNames}</Text>
-                      <Text style={{ color: theme.colors.textDim, fontSize: 12 }}>
-                        {new Date(m.created_at).toLocaleDateString()} {m.is_zapato ? '👟' : ''} {isNullMatch ? '(Anulada)' : ''}
-                      </Text>
-                    </View>
-                    <Text style={[styles.rivalBadgeText, { color: badgeColor, fontSize: 18 }]}>
-                      {myScore} - {rivalScore}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {expandedMatch === m.id && (
-                    <View style={styles.graphContainer}>
-                      <Text style={styles.graphTitle}>El VAR del Dominó (Puntos por Ronda)</Text>
-                      <MatchGraph rounds={m.rounds} limitScore={m.limit_score} />
-                    </View>
-                  )}
-                </View>
-              );
-            })}
+            {recentMatches.map((m) => (
+              <MatchHistoryRow
+                key={m.id}
+                match={m}
+                playerId={profileId as string}
+                expanded={expandedMatch === m.id}
+                onToggle={() => setExpandedMatch(expandedMatch === m.id ? null : m.id)}
+              />
+            ))}
           </View>
         )}
 
@@ -812,7 +781,13 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
               Total: {lostMatches.length} partidas perdidas · {theyWonMore.length} rivales
             </Text>
             {theyWonMore.slice(0, 3).map((r, i) => (
-              <View key={r.playerId} style={styles.rivalRow}>
+              <TouchableOpacity
+                key={r.playerId}
+                style={styles.rivalRow}
+                onPress={() => openRival(r)}
+                accessibilityRole="button"
+                accessibilityLabel={`Ver partidas contra ${r.name}`}
+              >
                 <Text style={styles.rivalRank}>#{i + 1}</Text>
                 <View style={[styles.duoAvatar, { backgroundColor: theme.colors.danger }]}>
                   <Text style={styles.duoAvatarText}>{r.initials}</Text>
@@ -821,7 +796,8 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                 <View style={styles.rivalBadge}>
                   <Text style={styles.rivalBadgeText}>{r.count}x</Text>
                 </View>
-              </View>
+                <Text style={styles.rowArrow}>›</Text>
+              </TouchableOpacity>
             ))}
             <TouchableOpacity
               style={styles.seeAllBtn}
@@ -840,7 +816,13 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
               Total: {wonMatches.length} partidas ganadas · {iWonMore.length} rivales
             </Text>
             {iWonMore.slice(0, 3).map((r, i) => (
-              <View key={r.playerId} style={styles.rivalRow}>
+              <TouchableOpacity
+                key={r.playerId}
+                style={styles.rivalRow}
+                onPress={() => openRival(r)}
+                accessibilityRole="button"
+                accessibilityLabel={`Ver partidas contra ${r.name}`}
+              >
                 <Text style={styles.rivalRank}>#{i + 1}</Text>
                 <View style={[styles.duoAvatar, { backgroundColor: theme.colors.success }]}>
                   <Text style={styles.duoAvatarText}>{r.initials}</Text>
@@ -849,7 +831,8 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                 <View style={[styles.rivalBadge, { backgroundColor: 'rgba(34,197,94,0.15)', borderColor: theme.colors.success }]}>
                   <Text style={[styles.rivalBadgeText, { color: theme.colors.success }]}>{r.count}x</Text>
                 </View>
-              </View>
+                <Text style={styles.rowArrow}>›</Text>
+              </TouchableOpacity>
             ))}
             <TouchableOpacity
               style={styles.seeAllBtn}
@@ -866,7 +849,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
             <View style={styles.allRivalsSheet}>
               <View style={styles.allRivalsHeader}>
                 <Text style={styles.cardTitle}>📊 Historial de Rivalidades</Text>
-                <TouchableOpacity onPress={() => setShowAllRivals(false)} accessibilityLabel="Cerrar">
+                <TouchableOpacity onPress={() => setShowAllRivals(false)} accessibilityRole="button" accessibilityLabel="Cerrar">
                   <Text style={styles.allRivalsClose}>✕</Text>
                 </TouchableOpacity>
               </View>
@@ -893,13 +876,20 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                   {allRivalsTab === 'lost' ? 'Quiénes me han ganado' : 'A quiénes les he ganado'} ({sumCounts(allRivalsTab === 'lost' ? theyWonMore : iWonMore)})
                 </Text>
                 {(allRivalsTab === 'lost' ? theyWonMore : iWonMore).map((r, i) => (
-                  <View key={r.playerId} style={styles.rivalRow}>
+                  <TouchableOpacity
+                    key={r.playerId}
+                    style={styles.rivalRow}
+                    onPress={() => openRival(r)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ver partidas contra ${r.name}`}
+                  >
                     <Text style={styles.rivalRank}>#{i + 1}</Text>
                     <Text style={styles.rivalName}>{r.name}</Text>
                     <Text style={[styles.rivalBadgeText, { color: allRivalsTab === 'lost' ? theme.colors.danger : theme.colors.success }]}>
                       {r.count}x
                     </Text>
-                  </View>
+                    <Text style={styles.rowArrow}>›</Text>
+                  </TouchableOpacity>
                 ))}
                 <Text style={styles.allRivalsSection}>Partidas</Text>
                 {(allRivalsTab === 'lost' ? lostMatches : wonMatches).map((m) => {
@@ -928,6 +918,15 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           </View>
         </Modal>
 
+        {matchesView && !!profileId && (
+          <PlayerMatchesSheet
+            title={matchesView.title}
+            matches={matchesView.matches}
+            playerId={profileId}
+            onClose={() => setMatchesView(null)}
+          />
+        )}
+
         {/* Active Duos */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>🤝 Mis Duos Activos</Text>
@@ -938,15 +937,23 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           ) : (
             activeDuos.map(duo => (
               <View key={duo.duoId} style={styles.duoCard}>
-                <View style={styles.duoAvatar}>
-                  <Text style={styles.duoAvatarText}>{duo.partnerInitials}</Text>
-                </View>
-                <View style={styles.duoInfo}>
-                  <Text style={styles.duoName}>{duo.partnerName}</Text>
-                  <Text style={styles.duoStats}>
-                    {duo.wins}G - {duo.losses}P · {duo.totalMatches} partidas juntos
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  style={styles.duoOpen}
+                  onPress={() => openDuo(duo)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ver partidas con ${duo.partnerName}`}
+                >
+                  <View style={styles.duoAvatar}>
+                    <Text style={styles.duoAvatarText}>{duo.partnerInitials}</Text>
+                  </View>
+                  <View style={styles.duoInfo}>
+                    <Text style={styles.duoName}>{duo.partnerName}</Text>
+                    <Text style={styles.duoStats}>
+                      {duo.wins}G - {duo.losses}P · {duo.totalMatches} partidas juntos
+                    </Text>
+                  </View>
+                  <Text style={styles.rowArrow}>›</Text>
+                </TouchableOpacity>
                 {isOwnProfile && (
                   <TouchableOpacity
                     style={styles.cancelBtn}
@@ -966,15 +973,23 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
             <Text style={styles.cardTitle}>⏸ Duos Anteriores</Text>
             {inactiveDuos.map(duo => (
               <View key={duo.duoId} style={[styles.duoCard, styles.duoCardInactive]}>
-                <View style={[styles.duoAvatar, styles.duoAvatarInactive]}>
-                  <Text style={styles.duoAvatarText}>{duo.partnerInitials}</Text>
-                </View>
-                <View style={styles.duoInfo}>
-                  <Text style={[styles.duoName, { color: theme.colors.textDim }]}>{duo.partnerName}</Text>
-                  <Text style={styles.duoStats}>
-                    {duo.wins}G - {duo.losses}P · {duo.totalMatches} partidas juntos
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  style={styles.duoOpen}
+                  onPress={() => openDuo(duo)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ver partidas con ${duo.partnerName}`}
+                >
+                  <View style={[styles.duoAvatar, styles.duoAvatarInactive]}>
+                    <Text style={styles.duoAvatarText}>{duo.partnerInitials}</Text>
+                  </View>
+                  <View style={styles.duoInfo}>
+                    <Text style={[styles.duoName, { color: theme.colors.textDim }]}>{duo.partnerName}</Text>
+                    <Text style={styles.duoStats}>
+                      {duo.wins}G - {duo.losses}P · {duo.totalMatches} partidas juntos
+                    </Text>
+                  </View>
+                  <Text style={styles.rowArrow}>›</Text>
+                </TouchableOpacity>
                 <View style={styles.inactiveBadge}>
                   <Text style={styles.inactiveBadgeText}>Inactivo</Text>
                 </View>
@@ -989,42 +1004,16 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         {betHistory.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>🎲 Últimas Apuestas</Text>
-            {betHistory.map((bet) => {
-              const isResolved = bet.status !== 'pending';
-              const wonBet = bet.status === 'won';
-              const isCancelled = bet.status === 'cancelled';
-              const mult = Number(bet.multiplier) > 0 ? Number(bet.multiplier) : 2.0;
-              const payout = Math.floor(Number(bet.amount_wagered || 0) * mult);
-
-              let resultText = 'En curso ⏳';
-              let resultColor = theme.colors.textDim;
-              if (isResolved) {
-                if (isCancelled) {
-                  resultText = `Reembolsado (+${bet.amount_wagered} pts)`;
-                  resultColor = '#60a5fa';
-                } else {
-                  resultText = wonBet ? `+${payout} pts 🤑` : `-${bet.amount_wagered} pts 💸`;
-                  resultColor = wonBet ? theme.colors.success : theme.colors.danger;
-                }
-              }
-
-              return (
-                <View key={bet.id} style={styles.rivalRow}>
-                  <Text style={styles.rivalRank}>🎲</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.rivalName, { fontSize: 14 }]}>
-                      Apuesta: {bet.amount_wagered} pts (x{mult})
-                    </Text>
-                    <Text style={{ color: theme.colors.textDim, fontSize: 12 }}>
-                      Equipo {bet.bet_on_team}
-                    </Text>
-                  </View>
-                  <View style={[styles.rivalBadge, { borderColor: resultColor, backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.rivalBadgeText, { color: resultColor }]}>{resultText}</Text>
-                  </View>
-                </View>
-              );
-            })}
+            {betHistory.map((bet) => (
+              <BetHistoryRow
+                key={bet.id}
+                bet={bet}
+                match={betMatches[bet.match_id]}
+                own={isOwnProfile}
+                expanded={expandedBet === bet.id}
+                onToggle={() => setExpandedBet(expandedBet === bet.id ? null : bet.id)}
+              />
+            ))}
           </View>
         )}
 
@@ -1312,6 +1301,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.m,
   },
   duoCardInactive: { opacity: 0.6 },
+  duoOpen: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: theme.spacing.m },
   duoAvatar: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: theme.colors.primary,
@@ -1339,7 +1329,7 @@ const styles = StyleSheet.create({
   seeAllBtnText: { color: theme.colors.primary, fontSize: 14, fontWeight: '700' },
   allRivalsOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   allRivalsSheet: {
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme.colors.sheet,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 16,
@@ -1371,19 +1361,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.danger,
   },
   rivalBadgeText: { color: theme.colors.danger, fontSize: 13, fontWeight: '900' },
-  matchHistoryCard: {
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)',
-  },
-  graphContainer: {
-    paddingBottom: theme.spacing.m,
-  },
-  graphTitle: {
-    color: theme.colors.text,
-    fontSize: 14,
-    fontWeight: '800',
-    marginTop: theme.spacing.s,
-    marginBottom: theme.spacing.xs,
-  },
+  rowArrow: { color: theme.colors.textDim, fontSize: 20, fontWeight: '700' },
   pinModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.8)',

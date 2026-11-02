@@ -2,6 +2,7 @@ export const theme = {
   colors: {
     background: '#0d0e12',
     card: 'rgba(255, 255, 255, 0.05)',
+    sheet: '#191a1e', // solid: a sheet covers what's behind it, a card doesn't
     cardBorder: 'rgba(255, 255, 255, 0.1)',
     text: '#ffffff',
     textDim: '#a1a1aa',

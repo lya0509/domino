@@ -42,3 +42,6 @@ yarn-error.*
 
 # Working files of the design skill
 .taste-skill/
+
+# Registros de las pruebas de navegador
+.playwright-mcp/

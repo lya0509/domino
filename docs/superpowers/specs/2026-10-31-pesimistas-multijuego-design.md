@@ -160,7 +160,7 @@ Los avisos salen de funciones en Supabase. El dueño las publica siguiendo una g
 - **Temporadas mensuales:** ranking que se reinicia cada mes, sin tocar el historial.
 - **Modo TV:** marcador, cola y llaves en pantalla grande.
 - **Compartir resultado en web:** como imagen.
-- **Cara a cara:** historial entre dúos.
+- **Cara a cara:** historial entre dúos. Ya existe de jugador a jugador en el perfil: al tocar un rival o un dúo salen todas sus partidas de dominó. Falta dúo contra dúo.
 - **Panel admin:** pagos, reportes y bloqueo de usuarios.
 
 ### Fase 8: personalización

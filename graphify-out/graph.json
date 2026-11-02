@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T00:55:19.030Z",
+    "generatedAt": "2026-11-02T07:44:17.700Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,11 +10,11 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 174,
-      "totalEdges": 324,
+      "totalNodes": 177,
+      "totalEdges": 331,
       "totalHyperedges": 7,
       "totalScreens": 15,
-      "totalComponents": 25,
+      "totalComponents": 27,
       "totalServices": 18,
       "totalDatabaseTables": 19,
       "totalDatabaseRpcs": 36,
@@ -274,8 +274,8 @@
       "file": "src/lib/offlineSync.ts",
       "role": "Provides Stale-While-Revalidate profile & match caching, UUIDv4 generation, online/offline detection, and a persistent FIFO Outbox Queue (@domino_offline_queue_v1) that syncs offline matches to Supabase upon reconnection.",
       "exists": true,
-      "lines": 600,
-      "bytes": 19196,
+      "lines": 615,
+      "bytes": 19914,
       "exports": [
         "TableGameOperation",
         "OfflineOperationType",
@@ -621,8 +621,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1579,
-      "bytes": 57949,
+      "lines": 1580,
+      "bytes": 58003,
       "exports": [
         "HomeScreen"
       ],
@@ -686,8 +686,8 @@
         "💰 Apuesta de Puntos VIP Toggle & Amount Input (50 / 100 / 250 / Custom)"
       ],
       "exists": true,
-      "lines": 711,
-      "bytes": 30414,
+      "lines": 674,
+      "bytes": 28721,
       "exports": [
         "SetupScreen"
       ],
@@ -697,7 +697,8 @@
         "../theme",
         "../types",
         "../lib/supabase",
-        "../lib/offlineSync"
+        "../lib/offlineSync",
+        "../components/PlayerChip"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -1599,7 +1600,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 54,
-      "bytes": 1949,
+      "bytes": 1979,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1670,8 +1671,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1737,
-      "bytes": 86327,
+      "lines": 1741,
+      "bytes": 86603,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2483,6 +2484,24 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261102_15_poker_reglas.sql",
+      "label": "20261102_15_poker_reglas.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261102_15_poker_reglas.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 245,
+      "bytes": 10611,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/BetHistoryRow.tsx",
       "label": "BetHistoryRow.tsx",
       "type": "component",
@@ -2491,7 +2510,7 @@
       "role": "One bet in the profile. On tap it shows the match, the side, the score, the multiplier and how it ended.",
       "exists": true,
       "lines": 114,
-      "bytes": 4783,
+      "bytes": 4780,
       "exports": [
         "BetHistoryRow"
       ],
@@ -2682,6 +2701,31 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/components/PlayerChip.tsx",
+      "label": "PlayerChip.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PlayerChip.tsx",
+      "role": "A registered player with photo and name, the same chip in Domino, UNO and poker setup.",
+      "exists": true,
+      "lines": 63,
+      "bytes": 2141,
+      "exports": [
+        "PlayerAvatar",
+        "PlayerChip"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/PlayerMatchesSheet.tsx",
       "label": "PlayerMatchesSheet.tsx",
       "type": "component",
@@ -2767,8 +2811,8 @@
       "file": "src/components/PokerHandPanel.tsx",
       "role": "The hand in play: pot, each seat, raise, call and fold, and the showdown with ties, the odd chip and the all-in split the dealer writes.",
       "exists": true,
-      "lines": 406,
-      "bytes": 16839,
+      "lines": 413,
+      "bytes": 17211,
       "exports": [
         "PokerHandPanel"
       ],
@@ -2796,8 +2840,8 @@
       "file": "src/components/PokerHelpModal.tsx",
       "role": "Table of the 10 poker hands, best first.",
       "exists": true,
-      "lines": 89,
-      "bytes": 3081,
+      "lines": 98,
+      "bytes": 3718,
       "exports": [
         "PokerHelpModal"
       ],
@@ -2821,8 +2865,8 @@
       "file": "src/components/PokerNewHand.tsx",
       "role": "Before each hand: who deals (next in the ring by default), who enters, and \"solo reparte\".",
       "exists": true,
-      "lines": 133,
-      "bytes": 5104,
+      "lines": 139,
+      "bytes": 5427,
       "exports": [
         "POKER_GOLD",
         "PokerNewHand"
@@ -2841,6 +2885,32 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/components/PokerPot.tsx",
+      "label": "PokerPot.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/PokerPot.tsx",
+      "role": "The middle of the poker table: the pot drawn as a pile of chips in the tray colors, growing with each bet.",
+      "exists": true,
+      "lines": 141,
+      "bytes": 4996,
+      "exports": [
+        "PokerPot"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "react-native-svg",
+        "../lib/poker",
+        "./PokerChips"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/PokerTable.tsx",
       "label": "PokerTable.tsx",
       "type": "component",
@@ -2848,8 +2918,8 @@
       "file": "src/components/PokerTable.tsx",
       "role": "Felt view everyone sees during a hand: the pot and how each seat stands.",
       "exists": true,
-      "lines": 80,
-      "bytes": 3068,
+      "lines": 90,
+      "bytes": 3610,
       "exports": [
         "POKER_FELT",
         "POKER_WOOD",
@@ -2860,7 +2930,8 @@
         "react-native",
         "../theme",
         "../lib/poker",
-        "../lib/tableGames"
+        "../lib/tableGames",
+        "./PokerPot"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -2942,8 +3013,8 @@
       "file": "src/components/RosterPicker.tsx",
       "role": "Choose the players of a table game, with or without an account. Poker uses it in seat order.",
       "exists": true,
-      "lines": 185,
-      "bytes": 6690,
+      "lines": 178,
+      "bytes": 6898,
       "exports": [
         "RosterPicker"
       ],
@@ -2952,7 +3023,8 @@
         "react-native",
         "../theme",
         "../types",
-        "../lib/tableGames"
+        "../lib/tableGames",
+        "./PlayerChip"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3145,11 +3217,13 @@
       "file": "src/lib/outbox.ts",
       "role": "Pure rule of the offline outbox: an item leaves the queue only when the server confirmed that exact payload. Covered by tests/outbox.test.mjs.",
       "exists": true,
-      "lines": 21,
-      "bytes": 823,
+      "lines": 26,
+      "bytes": 1100,
       "exports": [
         "OutboxItem",
         "removeConfirmedItems",
+        "isServerRejection",
+        "gameIdOf",
         "hasQueuedGame"
       ],
       "imports": [],
@@ -3199,8 +3273,8 @@
       "file": "src/lib/poker.ts",
       "role": "Pure poker rules. Table chips stay inside a game and come from the closed hands; the server checks each closed hand again. Covered by tests/poker.test.mjs.",
       "exists": true,
-      "lines": 233,
-      "bytes": 9801,
+      "lines": 267,
+      "bytes": 11586,
       "exports": [
         "DEFAULT_START_CHIPS",
         "DEFAULT_ENTRY",
@@ -3212,6 +3286,9 @@
         "currentBet",
         "stackLeft",
         "owedBy",
+        "smallBlind",
+        "blindSeats",
+        "firstToSpeak",
         "openHand",
         "callBet",
         "raiseBet",
@@ -3278,8 +3355,8 @@
       "file": "src/lib/tableGameService.ts",
       "role": "Reads and RPCs for table games. Starting and finishing go through the offline outbox when there is no connection.",
       "exists": true,
-      "lines": 177,
-      "bytes": 6317,
+      "lines": 183,
+      "bytes": 6761,
       "exports": [
         "RankingRow",
         "startTableGame",
@@ -3407,8 +3484,8 @@
       "file": "src/screens/PokerScreen.tsx",
       "role": "Route poker: table chips, who deals, who enters, betting, closing a hand, correcting the last one, finishing the game and the live view for everyone else.",
       "exists": true,
-      "lines": 666,
-      "bytes": 26548,
+      "lines": 700,
+      "bytes": 28070,
       "exports": [
         "PokerScreen"
       ],
@@ -3437,7 +3514,8 @@
         "poker-game-${gameId}-${Date.now()}"
       ],
       "storageKeys": [
-        "@domino_poker_game_v1"
+        "@domino_poker_game_v1",
+        "@domino_poker_left_game_v1"
       ],
       "soundsPlayed": [
         "pop",
@@ -3452,8 +3530,8 @@
       "file": "src/screens/UnoScreen.tsx",
       "role": "Route uno: choose the variant and players (with or without an account), play, mark the winner, wait for confirmation and rematch. Also the live view for the rest of the club and the list of recent games.",
       "exists": true,
-      "lines": 442,
-      "bytes": 17866,
+      "lines": 445,
+      "bytes": 18146,
       "exports": [
         "UnoScreen"
       ],
@@ -3465,6 +3543,7 @@
         "../types",
         "../lib/supabase",
         "../lib/offlineSync",
+        "../lib/outbox",
         "../lib/sounds",
         "../lib/matchRivals",
         "../lib/tableGames",
@@ -4438,6 +4517,12 @@
       "derived": true
     },
     {
+      "source": "src/screens/SetupScreen.tsx",
+      "target": "src/components/PlayerChip.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/screens/GameScreen.tsx",
       "target": "db:profiles",
       "relation": "uses_table",
@@ -4984,6 +5069,12 @@
       "derived": true
     },
     {
+      "source": "src/components/PlayerChip.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/PlayerMatchesSheet.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -5086,6 +5177,18 @@
       "derived": true
     },
     {
+      "source": "src/components/PokerPot.tsx",
+      "target": "src/lib/poker.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerPot.tsx",
+      "target": "src/components/PokerChips.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/PokerTable.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -5100,6 +5203,12 @@
     {
       "source": "src/components/PokerTable.tsx",
       "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerTable.tsx",
+      "target": "src/components/PokerPot.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -5184,6 +5293,12 @@
     {
       "source": "src/components/RosterPicker.tsx",
       "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/RosterPicker.tsx",
+      "target": "src/components/PlayerChip.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -5496,6 +5611,12 @@
     {
       "source": "src/screens/UnoScreen.tsx",
       "target": "src/lib/offlineSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/lib/outbox.ts",
       "relation": "imports",
       "derived": true
     },

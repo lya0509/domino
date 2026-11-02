@@ -43,7 +43,9 @@ const sendOrQueue = async (
     offlineSync.flushQueue().catch(() => {});
     return { ok: true, queued: true };
   }
-  const { error } = await supabase.rpc(fn, args);
+  const { data, error } = await supabase.rpc(fn, args);
+  // set_poker_seat answers false when the hand moved on: the player has to know it didn't count
+  if (!error && data === false) return { ok: false, error: 'Esa jugada ya no aplica: la mano cambió.' };
   if (!error) return { ok: true };
   if (isConnectionError(error.message)) {
     await offlineSync.enqueueTableGame(type, args);
@@ -109,6 +111,10 @@ export const setPokerSeat = (gameId: string, number: number, seat: number, total
   });
 
 export const cancelPokerHand = async (gameId: string, number: number): Promise<Result> => {
+  // What is queued would bring the hand back once it reaches the server
+  if (hasQueuedGame(offlineSync.getQueue(), gameId)) {
+    return { ok: false, error: 'Esa mano todavía se está guardando. Inténtalo en unos segundos.' };
+  }
   const { error } = await supabase.rpc('cancel_poker_hand', { p_game: gameId, p_number: number });
   return error ? { ok: false, error: error.message } : { ok: true };
 };

@@ -35,6 +35,10 @@ export interface PokerHand {
   winners: Winner[];
   bestHand: string | null;
   scoredBy?: string | null;
+  /** The high blind. Not stored with the hand: the panel adds it from the game. */
+  bigBlind?: number;
+  /** Tells the server a closed hand is being corrected on purpose, not a late save. */
+  reopen?: boolean;
 }
 
 type Chips = Record<string, number>;
@@ -52,8 +56,9 @@ export const handLabel = (key: string | null): string | null =>
 export const handPot = (hand: PokerHand): number =>
   Object.values(hand.contributions).reduce((sum, amount) => sum + amount, 0);
 
+/** A bet stands even if whoever made it folds later, and a short high blind doesn't lower it. */
 export const currentBet = (hand: PokerHand): number =>
-  Math.max(0, ...stillIn(hand).map((s) => hand.contributions[s] ?? 0));
+  Math.max(hand.bigBlind ?? 0, ...hand.entrants.map((s) => hand.contributions[s] ?? 0));
 
 export const stackLeft = (hand: PokerHand, seat: number, chips: Chips): number =>
   (chips[seat] ?? 0) - (hand.contributions[seat] ?? 0);
@@ -61,6 +66,30 @@ export const stackLeft = (hand: PokerHand, seat: number, chips: Chips): number =
 export const owedBy = (hand: PokerHand, seat: number, chips: Chips): number =>
   Math.min(currentBet(hand) - (hand.contributions[seat] ?? 0), stackLeft(hand, seat, chips));
 
+export const smallBlind = (entry: number): number => Math.max(1, Math.round(entry / 2));
+
+const nextAround = (seats: number[], seat: number): number => seats.find((s) => s > seat) ?? seats[0];
+
+/** Play follows the seats. The two after the dealer put the blinds in; with two players the dealer puts the low one. */
+export const blindSeats = (entrants: number[], dealerSeat: number): { small: number; big: number } => {
+  const seats = [...entrants].sort((a, b) => a - b);
+  if (seats.length === 2 && seats.includes(dealerSeat)) {
+    return { small: dealerSeat, big: nextAround(seats, dealerSeat) };
+  }
+  const small = nextAround(seats, dealerSeat);
+  return { small, big: nextAround(seats, small) };
+};
+
+/** Only a hint: the app keeps no turns, the table does. */
+export const firstToSpeak = (hand: PokerHand, chips: Chips): number | null => {
+  const from = hand.bettingRound === 1 ? blindSeats(hand.entrants, hand.dealerSeat).big : hand.dealerSeat;
+  const canSpeak = stillIn(hand)
+    .filter((s) => stackLeft(hand, s, chips) > 0)
+    .sort((a, b) => a - b);
+  return canSpeak.length > 0 ? nextAround(canSpeak, from) : null;
+};
+
+/** `entry` is the high blind: the column keeps its first name, entry_amount. */
 export const openHand = (input: {
   number: number;
   dealerSeat: number;
@@ -68,19 +97,24 @@ export const openHand = (input: {
   entrants: number[];
   entry: number;
   chips: Chips;
-}): PokerHand => ({
-  number: input.number,
-  dealerSeat: input.dealerSeat,
-  dealerPlays: input.dealerPlays,
-  entrants: input.entrants,
-  contributions: Object.fromEntries(input.entrants.map((s) => [s, Math.min(input.entry, input.chips[s] ?? 0)])),
-  folded: [],
-  bettingRound: 1,
-  status: 'open',
-  endType: null,
-  winners: [],
-  bestHand: null,
-});
+}): PokerHand => {
+  const { small, big } = blindSeats(input.entrants, input.dealerSeat);
+  const blind = (seat: number) => (seat === big ? input.entry : seat === small ? smallBlind(input.entry) : 0);
+  return {
+    number: input.number,
+    dealerSeat: input.dealerSeat,
+    dealerPlays: input.dealerPlays,
+    entrants: input.entrants,
+    bigBlind: input.entry,
+    contributions: Object.fromEntries(input.entrants.map((s) => [s, Math.min(blind(s), input.chips[s] ?? 0)])),
+    folded: [],
+    bettingRound: 1,
+    status: 'open',
+    endType: null,
+    winners: [],
+    bestHand: null,
+  };
+};
 
 export const callBet = (hand: PokerHand, seat: number, chips: Chips): PokerHand =>
   addTo(hand, seat, (hand.contributions[seat] ?? 0) + Math.max(0, owedBy(hand, seat, chips)));

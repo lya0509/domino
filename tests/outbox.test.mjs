@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hasQueuedGame, removeConfirmedItems } from '../src/lib/outbox.ts';
+import { gameIdOf, hasQueuedGame, isServerRejection, removeConfirmedItems } from '../src/lib/outbox.ts';
 
 test('removes only the items the server confirmed', () => {
   const a = { id: 'a', payload: { n: 1 } };
@@ -38,4 +38,22 @@ test('a game with something queued is recognized by either id field', () => {
   assert.equal(hasQueuedGame(queue, 'g2'), true);
   assert.equal(hasQueuedGame(queue, 'partida-de-domino'), false);
   assert.equal(hasQueuedGame(queue, 'g3'), false);
+});
+
+test('a rule the server raised is a rejection: sending it again cannot help', () => {
+  assert.equal(isServerRejection({ code: 'P0001', message: 'Esta partida ya terminó' }), true);
+});
+
+test('losing the connection or the session is not a rejection: it can still go through', () => {
+  assert.equal(isServerRejection({ message: 'TypeError: Failed to fetch' }), false);
+  assert.equal(isServerRejection({ code: 'PGRST301', message: 'JWT expired' }), false);
+  assert.equal(isServerRejection({ code: '503', message: 'Service unavailable' }), false);
+  assert.equal(isServerRejection(null), false);
+});
+
+test('a play knows which game it belongs to', () => {
+  assert.equal(gameIdOf({ id: 'a', payload: { p_id: 'g1' } }), 'g1');
+  assert.equal(gameIdOf({ id: 'b', payload: { p_game: 'g2' } }), 'g2');
+  assert.equal(gameIdOf({ id: 'c', payload: { id: 'match' } }), null);
+  assert.equal(gameIdOf({ id: 'd', payload: null }), null);
 });

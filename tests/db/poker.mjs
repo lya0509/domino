@@ -19,6 +19,10 @@ const mig = cuerpo('20261101_14_poker.sql');
 await db.exec(mig);
 await db.exec(mig);
 ok('la migración se puede repetir', true);
+const reglas = cuerpo('20261102_15_poker_reglas.sql');
+await db.exec(reglas);
+await db.exec(reglas);
+ok('las reglas se pueden repetir', true);
 
 for (const u of [A, B, C, D, X]) await as('authenticated', u, `SELECT public.save_push_subscription('https://push/${u}','k','a')`);
 await db.exec(`UPDATE public.profiles SET betting_points=1000;`);
@@ -29,7 +33,17 @@ const reg = (...ids) => JSON.stringify(ids.map((id) => (id.length > 30 ? { user_
 const empezar = (u, ids, fichas = 200, entrada = 20, id = nuevoId()) =>
   as('authenticated', u, `SELECT public.start_poker_game('${id}','${reg(...ids)}'::jsonb,${fichas},${entrada}) AS id`);
 const nueva = async (u, ids, fichas, entrada) => (await empezar(u, ids, fichas, entrada)).rows[0].id;
-const guardar = (u, g, mano) => as('authenticated', u, `SELECT public.save_poker_hand('${g}','${JSON.stringify(mano)}'::jsonb)`);
+const enviar = (u, g, mano) => as('authenticated', u, `SELECT public.save_poker_hand('${g}','${JSON.stringify(mano)}'::jsonb)`);
+// Una mano ya no llega cerrada: la mesa la abre, cada quien apuesta y luego se cierra.
+// Aquí importa cómo se cierra, así que las apuestas ya están hechas.
+const guardar = async (u, g, mano) => {
+  if (mano.status === 'closed') {
+    await db.query(`INSERT INTO public.poker_hands(game_id, number, dealer_seat, dealer_plays, entrants, contributions, folded, status)
+      VALUES ('${g}', ${mano.number}, ${mano.dealerSeat}, ${mano.dealerPlays}, '{${mano.entrants}}', '${JSON.stringify(mano.contributions)}'::jsonb, '{${mano.folded}}', 'open')
+      ON CONFLICT DO NOTHING`);
+  }
+  return enviar(u, g, mano);
+};
 const asiento = (u, g, numero, silla, total, retirado = false) =>
   as('authenticated', u, `SELECT public.set_poker_seat('${g}',${numero},${silla},${total},${retirado}) AS hecho`);
 const fichas = async (g) => Object.fromEntries((await db.query(`SELECT * FROM public._poker_chips('${g}')`)).rows.map((f) => [f.seat, Number(f.chips)]));
@@ -87,7 +101,7 @@ ok('solo jugadores de la partida', /al menos 2/.test(r.err || ''), JSON.stringif
 r = await guardar(A, fija, mano({ dealerPlays: false }));
 ok('quien solo reparte no entra', /solo reparte/.test(r.err || ''), JSON.stringify(r));
 r = await guardar(A, fija, mano({ contributions: { 0: 20, 1: 500, 2: 20 } }));
-ok('nadie apuesta más de lo que tiene', /más fichas/.test(r.err || ''), JSON.stringify(r));
+ok('nadie empieza una mano con más que la salida alta', /solo con las salidas/.test(r.err || ''), JSON.stringify(r));
 r = await guardar(A, fija, mano({ contributions: { 0: 20 } }));
 ok('las apuestas deben incluir a todos', /no cuadran/.test(r.err || ''), JSON.stringify(r));
 r = await guardar(A, fija, mano({ contributions: { 0: 20, 1: -5, 2: 20 } }));
@@ -272,5 +286,41 @@ r = await as('authenticated', X, `SELECT * FROM public.poker_ranking(now() + int
 ok('filtra por período', r.rows?.length === 0, JSON.stringify(r));
 r = await as('authenticated', X, `SELECT * FROM public.table_game_ranking('uno')`);
 ok('el póker no entra en el ranking de UNO', r.rows?.length === 0, JSON.stringify(r));
+
+// Reglas del servidor
+const nuevaMesa = () => nueva(A, [A, B, C], 200, 20);
+g = await nuevaMesa();
+r = await enviar(A, g, cerrada());
+ok('una mano nueva no llega cerrada', /empieza abierta/.test(r.err || ''), JSON.stringify(r));
+r = await enviar(A, g, mano({ folded: [1] }));
+ok('una mano nueva no llega con retirados', /empieza abierta/.test(r.err || ''), JSON.stringify(r));
+r = await enviar(A, g, mano({ contributions: { 0: 0, 1: 21, 2: 20 } }));
+ok('una mano nueva no pasa de la salida alta', /solo con las salidas/.test(r.err || ''), JSON.stringify(r));
+r = await enviar(A, g, mano({ contributions: { 0: 0, 1: 10, 2: 20 } }));
+ok('una mano nueva empieza con las salidas', !r.err, JSON.stringify(r));
+
+await asiento(B, g, 1, 1, 100);
+r = await asiento(A, g, 1, 1, 10, true);
+let h = (await manos(g))[0];
+ok('quien reparte retira a alguien sin borrar lo que apostó', r.rows?.[0].hecho === true && h.contributions['1'] === 100 && h.folded.includes(1), JSON.stringify(h));
+await asiento(A, g, 1, 1, 100, false);
+await asiento(A, g, 1, 2, 50);
+r = await asiento(C, g, 1, 2, 20, true);
+h = (await manos(g))[0];
+ok('un jugador se retira aunque su pantalla esté atrasada', r.rows?.[0].hecho === true && h.contributions['2'] === 50 && h.folded.includes(2), JSON.stringify(h));
+await asiento(A, g, 1, 0, 0, true);
+r = await asiento(B, g, 1, 1, 100, true);
+h = (await manos(g))[0];
+ok('el último jugador no se puede retirar', r.rows?.[0].hecho === false && !h.folded.includes(1), JSON.stringify(h));
+
+r = await enviar(A, g, { ...mano({ contributions: h.contributions, folded: h.folded }), status: 'closed', endType: 'fold', winners: [{ seat: 1, amount: 150 }], bestHand: null });
+ok('la mano por retirada cierra', !r.err, JSON.stringify(r));
+r = await enviar(A, g, mano({ bettingRound: 2 }));
+h = (await manos(g))[0];
+ok('un guardado viejo no reabre una mano cerrada', !r.err && h.status === 'closed' && h.winners.length === 1, JSON.stringify(h));
+r = await enviar(A, g, mano({ reopen: true }));
+h = (await manos(g))[0];
+ok('corregir la reabre a propósito', !r.err && h.status === 'open' && h.winners.length === 0, JSON.stringify(h));
+ok('corregir conserva lo apostado', h.contributions['1'] === 100, JSON.stringify(h));
 
 fin();

@@ -12,7 +12,7 @@ import { sounds } from '../lib/sounds';
 import { formatClock, secondsUntil } from '../lib/matchRivals';
 import {
   canScoreHand, chipLeaders, chipsAfterHands, copySeat, DEFAULT_ENTRY, DEFAULT_START_CHIPS, handLabel, handPot,
-  openHand, PokerHand,
+  openHand, PokerHand, smallBlind,
 } from '../lib/poker';
 import { canAnswerGame, canManageGame, canStartRoster, playerNames, RosterEntry, TableGame, winnerName } from '../lib/tableGames';
 import {
@@ -35,6 +35,8 @@ interface Props {
 const REFRESH_MS = 3000;
 // A game played without internet exists only on this phone until the outbox sends it
 const LOCAL_GAME_KEY = '@domino_poker_game_v1';
+// A table this person walked away from must not swallow "Nueva Partida" until it ends
+const LEFT_GAME_KEY = '@domino_poker_left_game_v1';
 
 const saveLocalGame = (saved: { game: TableGame; hands: PokerHand[] } | null) =>
   (saved ? AsyncStorage.setItem(LOCAL_GAME_KEY, JSON.stringify(saved)) : AsyncStorage.removeItem(LOCAL_GAME_KEY)).catch(() => {});
@@ -88,7 +90,9 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
       } else {
         const local = await readLocalGame();
         const fromServer = local ? await fetchTableGame(local.game.id) : null;
-        if (local && !fromServer) {
+        // Online with nothing left to send, a game the server doesn't have no longer exists
+        const gone = !!local && !fromServer && offlineSync.getIsOnline() && !hasQueuedGame(offlineSync.getQueue(), local.game.id);
+        if (local && !fromServer && !gone) {
           if (active) {
             setGame(local.game);
             setHands(local.hands);
@@ -105,7 +109,8 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
             fetchTableGames('active', 30, 'poker'),
             fetchTableGames('pending_confirmation', 30, 'poker'),
           ]);
-          const mine = [...playing, ...waiting].find((g) => canManageGame(g, currentUserProfileId, false));
+          const left = await AsyncStorage.getItem(LEFT_GAME_KEY).catch(() => null);
+          const mine = [...playing, ...waiting].find((g) => g.id !== left && canManageGame(g, currentUserProfileId, false));
           if (active && mine) await open(mine);
         }
       }
@@ -137,8 +142,10 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
     if (fresh && list) setHands(list);
   }, [gameId]);
 
+  const finished = status === 'completed' || status === 'cancelled';
+
   useEffect(() => {
-    if (!gameId) return;
+    if (!gameId || finished) return;
     const channel = supabase
       .channel(`poker-game-${gameId}-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_hands', filter: `game_id=eq.${gameId}` }, reload)
@@ -150,7 +157,7 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
       clearInterval(refresh);
       supabase.removeChannel(channel);
     };
-  }, [gameId, reload]);
+  }, [gameId, finished, reload]);
 
   useEffect(() => {
     if (status !== 'pending_confirmation') return;
@@ -168,8 +175,10 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
 
   useEffect(() => {
     if (status === 'completed' || status === 'cancelled') saveLocalGame(null);
-    else if (game && !offlineSync.getIsOnline()) saveLocalGame({ game, hands });
-  }, [status, game, hands]);
+    else if (game && !offlineSync.getIsOnline() && canManageGame(game, currentUserProfileId, false)) {
+      saveLocalGame({ game, hands });
+    }
+  }, [status, game, hands, currentUserProfileId]);
 
   const seats = useMemo(() => (game ? game.players.map((p) => p.seat) : []), [game]);
   const chips = useMemo(
@@ -200,7 +209,11 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
     if (!game) return;
     setHands((list) => list.map((h) => (h.number === next.number ? copySeat(h, next, seat) : h)));
     saving.current += 1;
-    const res = await setPokerSeat(game.id, next.number, seat, next.contributions[seat], next.folded.includes(seat));
+    const sent = saveChain.current.then(() =>
+      setPokerSeat(game.id, next.number, seat, next.contributions[seat], next.folded.includes(seat))
+    );
+    saveChain.current = sent.catch(() => {});
+    const res = await sent;
     saving.current -= 1;
     if (!res.ok) Alert.alert('No se pudo guardar', res.error || 'Inténtalo de nuevo.');
     reload();
@@ -254,7 +267,7 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
 
   const correctLast = () => {
     if (!lastHand) return;
-    applyHand({ ...lastHand, status: 'open', endType: null, winners: [], bestHand: null });
+    applyHand({ ...lastHand, status: 'open', endType: null, winners: [], bestHand: null, reopen: true });
   };
 
   const finishWith = (seat: number) => {
@@ -320,6 +333,20 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
     saveLocalGame(null);
   };
 
+  const leaveTable = () => {
+    if (!game) return;
+    Alert.alert('¿Salir de esta mesa?', 'La partida sigue para los demás. Puedes volver desde Jugando ahora.', [
+      { text: 'Seguir aquí', style: 'cancel' },
+      {
+        text: 'Salir',
+        onPress: () => {
+          AsyncStorage.setItem(LEFT_GAME_KEY, game.id).catch(() => {});
+          backToSetup();
+        },
+      },
+    ]);
+  };
+
   const rematch = (finished: TableGame) => {
     begin(
       finished.players.map((p) => ({ user_id: p.user_id ?? undefined, name: p.name })),
@@ -346,17 +373,19 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
           />
         </View>
         <View style={styles.setting}>
-          <Text style={styles.settingLabel}>Entrada</Text>
+          <Text style={styles.settingLabel}>Salida alta</Text>
           <TextInput
             style={styles.settingInput}
             value={entry}
             onChangeText={setEntry}
             keyboardType="number-pad"
-            accessibilityLabel="Entrada"
+            accessibilityLabel="Salida alta"
           />
         </View>
       </View>
-      <Text style={styles.hint}>Las fichas valen solo en esta partida. No tocan tus puntos.</Text>
+      <Text style={styles.hint}>
+        {setupEntry > 0 ? `La salida baja es de ${smallBlind(setupEntry)}. ` : ''}Las fichas valen solo en esta partida y no tocan tus puntos.
+      </Text>
 
       <RosterPicker roster={roster} onChange={setRoster} profiles={profiles} ordered />
 
@@ -487,6 +516,11 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
           </>
         )}
         {renderHistory(current)}
+        {manages && (
+          <TouchableOpacity style={styles.linkBtn} onPress={leaveTable} accessibilityRole="button">
+            <Text style={styles.linkText}>Salir de esta mesa</Text>
+          </TouchableOpacity>
+        )}
       </>
     );
   };

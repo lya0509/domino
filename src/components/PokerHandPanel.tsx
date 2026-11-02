@@ -26,7 +26,7 @@ interface Props {
 
 const toWhole = (text: string) => parseInt(text.replace(/\D/g, ''), 10) || 0;
 
-export const PokerHandPanel: React.FC<Props> = ({ game, hand, chips, mySeat, canScore, busy, onSeat, onChange, onCancel }) => {
+export const PokerHandPanel: React.FC<Props> = ({ game, hand: stored, chips, mySeat, canScore, busy, onSeat, onChange, onCancel }) => {
   const [raising, setRaising] = useState<number | null>(null);
   const [raiseText, setRaiseText] = useState('');
   const [showdown, setShowdown] = useState(false);
@@ -36,6 +36,8 @@ export const PokerHandPanel: React.FC<Props> = ({ game, hand, chips, mySeat, can
   const [shares, setShares] = useState<Record<number, string>>({});
   const [history, setHistory] = useState<{ hand: PokerHand; seat: number | null }[]>([]);
 
+  const entry = game.entry_amount ?? DEFAULT_ENTRY;
+  const hand = { ...stored, bigBlind: entry };
   const nameOf = (seat: number) => game.players.find((p) => p.seat === seat)?.name ?? '';
 
   // A wrong tap at the table must not cost the whole hand
@@ -73,8 +75,10 @@ export const PokerHandPanel: React.FC<Props> = ({ game, hand, chips, mySeat, can
     setRaiseText('');
   };
 
-  const togglePick = (seat: number) =>
+  const togglePick = (seat: number) => {
     setPicked((list) => (list.includes(seat) ? list.filter((s) => s !== seat) : [...list, seat]));
+    setOddSeat((odd) => (odd === seat ? null : odd));
+  };
 
   const paidOut = picked.reduce((sum, s) => sum + toWhole(shares[s] ?? ''), 0);
 
@@ -216,12 +220,15 @@ export const PokerHandPanel: React.FC<Props> = ({ game, hand, chips, mySeat, can
           hand={hand}
           seat={mySeat}
           chips={chips}
-          entry={game.entry_amount ?? DEFAULT_ENTRY}
+          entry={entry}
           busy={busy}
           onAct={(next) => act(next, mySeat)}
         />
       )}
-      {mySeat !== null && hand.folded.includes(mySeat) && (
+      {alive.length === 0 && (
+        <Text style={styles.hintCenter}>Todos se retiraron. Quien reparte debe devolver a alguien a la mano o quitarla.</Text>
+      )}
+      {mySeat !== null && hand.folded.includes(mySeat) && alive.length > 0 && (
         <Text style={styles.hintCenter}>Te retiraste de esta mano. Lo que pusiste queda en el pozo.</Text>
       )}
 
@@ -272,8 +279,8 @@ export const PokerHandPanel: React.FC<Props> = ({ game, hand, chips, mySeat, can
         ) : (
           <>
             <TouchableOpacity
-              style={[styles.primary, someoneOwes && styles.disabled]}
-              disabled={someoneOwes || busy}
+              style={[styles.primary, (someoneOwes || alive.length === 0) && styles.disabled]}
+              disabled={someoneOwes || alive.length === 0 || busy}
               onPress={() => setShowdown(true)}
               accessibilityRole="button"
             >

@@ -58,17 +58,20 @@ La escena que debe funcionar, en la mañana: alguien entra al cafetín, abre la 
 ### Póker
 
 - **Antes de empezar:** se registran los jugadores en el orden de la rueda.
-- **Fichas iniciales:** 200 por jugador y entrada de 10 por defecto. Quien reparte puede cambiarlo antes de empezar. Debe servir el ejemplo de entrar con 20.
+- **Fichas iniciales:** 200 por jugador y salida alta de 10 por defecto. Quien reparte puede cambiarlo antes de empezar. Debe servir el ejemplo de salida alta 20.
+- **Salida alta y baja (ciegas):** los dos sentados después de quien reparte ponen la salida baja (la mitad, redondeada) y la salida alta. Con dos jugadores, quien reparte pone la baja. Quien tiene menos fichas pone lo que le queda, y los demás igual deben llegar a la salida alta *(decisión del dueño del 2026-11-01, reemplaza a "todos entran con lo mismo")*. En la base el campo sigue llamándose `entry_amount` y guarda la salida alta.
+- **Sentido del juego:** el orden de la lista al crear la partida es el de la mesa. Quien reparte avanza un puesto por mano. La pantalla dice quién habla primero: en la primera ronda, quien sigue a la salida alta; en las demás, quien sigue a quien reparte. Es solo una guía: la app no controla turnos.
 - **Variante:** la app no impone una. Sirve para póker de 5 cartas y Texas Hold'em, porque ambos se reducen a entrada, rondas de apuestas y ganador. Quien reparte abre una nueva ronda de apuestas cuando haga falta: 5 cartas tiene 2 y Hold'em 4.
 - **Quién reparte:** al empezar cada mano, la app pregunta quién reparte y deja marcado al **siguiente en la rueda**, que es como rota en el póker. Se puede cambiar.
 - **Si reparte y no juega:** indica "solo reparto". Si también juega, marca entrar o no entrar como los demás.
 - **Quién mueve las fichas:** cada jugador, desde su teléfono: ve sus fichas en torres, las toca para apostar e iguala, sube o se retira *(decisión del dueño, reemplaza a "anota solo quien reparte")*.
 - **Quién reparte:** abre y cierra cada mano, marca al ganador y anota por quien no tenga cuenta o teléfono a mano.
 - **Turnos:** la app no los controla. "Paso" se dice en persona y solo se anota lo que mueve fichas, para que una señal caída no detenga la mesa *(decisión del diseñador)*.
-- **Valores de las fichas:** salen de la entrada: la mitad, la entrada, 2,5, 5 y 10 veces. Con entrada 20 son 10, 20, 50, 100 y 200 *(decisión del diseñador)*.
+- **Valores de las fichas:** salen de la salida alta: la mitad, la salida alta, 2,5, 5 y 10 veces. Con salida alta 20 son 10, 20, 50, 100 y 200 *(decisión del diseñador)*.
+- **Pozo:** se dibuja como una pila de fichas con los mismos colores de la bandeja, que crece con cada apuesta *(decisión del diseñador, pedida por el dueño)*.
 - **Cartas:** siguen siendo físicas *(decisión del diseñador, aceptada por el dueño)*.
 - **Cada mano:** la app pregunta quién entra. Quien no entra sale de la rueda solo en esa mano, y esa mano no cuenta como jugada para él.
-- **Apuestas:** todos entran con el monto de entrada. Si alguien sube, los demás deciden si igualan. Ejemplo acordado: entrada 20, Javier sube 40, quienes igualan llevan 60. La app va sumando.
+- **Apuestas:** la mano empieza con las dos salidas y los demás igualan la alta, suben o se retiran. Ejemplo acordado: salida alta 20, Javier sube 40, quienes igualan llevan 60. La app va sumando.
 - **"Sube" significa cuánto se agrega:** en el ejemplo, Javier agrega 40 y el total queda en 60. La pantalla debe decirlo claro, porque en mesas tradicionales "subir a 40" significa llegar a 40.
 - **Fichas por jugador:** la app lleva las fichas de cada uno. El ganador se lleva todo lo apostado en la mano, y quien no iguala pierde lo que ya puso.
 - **Fin de mano por retirada:** si todos se retiran menos uno, ese gana sin mostrar cartas y no se anota jugada. Esa mano no cuenta para "mejor jugada".

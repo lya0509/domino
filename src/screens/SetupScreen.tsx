@@ -4,6 +4,7 @@ import { theme } from '../theme';
 import { GameMode, Player, Match, Profile } from '../types';
 import { supabase } from '../lib/supabase';
 import { offlineSync } from '../lib/offlineSync';
+import { PlayerChip } from '../components/PlayerChip';
 
 interface Props {
   onStartMatch: (match: Omit<Match, 'id' | 'rounds' | 'status'>, waitlistId?: string) => void;
@@ -450,27 +451,14 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
                   <Text style={styles.loadingText}>No hay jugadores registrados aún.</Text>
                 ) : (
                   <View style={styles.profileGrid}>
-                    {profiles.map(p => {
-                      const selected = isPlayerSelected(p.id);
-                      return (
-                        <TouchableOpacity
-                          key={p.id}
-                          style={[styles.profileChip, selected && styles.profileChipSelected]}
-                          onPress={() => handleSelectPlayer(p)}
-                        >
-                          <View style={[styles.profileAvatar, selected && styles.profileAvatarSelected]}>
-                            {p.avatar_url ? (
-                              <Image source={{ uri: p.avatar_url }} style={styles.chipAvatarImg} />
-                            ) : (
-                              <Text style={styles.profileAvatarText}>{p.initials}</Text>
-                            )}
-                          </View>
-                          <Text style={[styles.profileName, selected && styles.profileNameSelected]} numberOfLines={1}>
-                            {p.display_name}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
+                    {profiles.map(p => (
+                      <PlayerChip
+                        key={p.id}
+                        person={p}
+                        selected={isPlayerSelected(p.id)}
+                        onPress={() => handleSelectPlayer(p)}
+                      />
+                    ))}
                   </View>
                 )}
 
@@ -647,31 +635,6 @@ const styles = StyleSheet.create({
   availableTitle: { color: theme.colors.textDim, fontSize: 13, fontWeight: '700', marginTop: theme.spacing.l, marginBottom: theme.spacing.s },
   loadingText: { color: theme.colors.textDim, fontStyle: 'italic', textAlign: 'center', paddingVertical: theme.spacing.m },
   profileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.s },
-  profileChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: theme.borderRadius.full,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    gap: 8,
-  },
-  profileChipSelected: { backgroundColor: 'rgba(59,130,246,0.2)', borderColor: theme.colors.primary },
-  profileAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileAvatarSelected: { backgroundColor: theme.colors.primary },
-  chipAvatarImg: { width: '100%', height: '100%', borderRadius: 14 },
-  profileAvatarText: { color: '#fff', fontSize: 11, fontWeight: '900' },
-  profileName: { color: theme.colors.textDim, fontSize: 13, fontWeight: '600', maxWidth: 100 },
-  profileNameSelected: { color: theme.colors.text },
   addPlayerBtn: { marginTop: theme.spacing.m, alignItems: 'center' },
   addPlayerText: { color: theme.colors.textDim, fontSize: 12, textDecorationLine: 'underline' },
   // Start button

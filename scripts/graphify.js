@@ -922,6 +922,10 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/components/PokerPot.tsx':
+    'The middle of the poker table: the pot drawn as a pile of chips in the tray colors, growing with each bet.',
+  'src/components/PlayerChip.tsx':
+    'A registered player with photo and name, the same chip in Domino, UNO and poker setup.',
   'src/components/PokerTray.tsx':
     'Each player tray on their own phone: chip towers that scale with the entry, tap to bet, then equal, raise or fold.',
   'src/components/PokerTable.tsx':

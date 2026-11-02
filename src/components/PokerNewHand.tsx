@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
-import { nextDealerSeat } from '../lib/poker';
+import { blindSeats, DEFAULT_ENTRY, nextDealerSeat, smallBlind } from '../lib/poker';
 import { TableGame } from '../lib/tableGames';
 
 export const POKER_GOLD = '#d4a843';
@@ -32,6 +32,12 @@ export const PokerNewHand: React.FC<Props> = ({ game, chips, number, lastDealer,
     setEntrants((list) => (list.includes(seat) ? list.filter((s) => s !== seat) : [...list, seat].sort((a, b) => a - b)));
 
   const dealerName = game.players.find((p) => p.seat === dealer)?.name;
+  const entry = game.entry_amount ?? DEFAULT_ENTRY;
+  const blinds = entrants.length >= 2 ? blindSeats(entrants, dealer) : null;
+  const blindText = (seat: number) => {
+    if (seat === blinds?.small) return `Salida baja: ${smallBlind(entry)}`;
+    return seat === blinds?.big ? `Salida alta: ${entry}` : 'Entra';
+  };
   const dealerIn = entrants.includes(dealer);
 
   return (
@@ -52,7 +58,7 @@ export const PokerNewHand: React.FC<Props> = ({ game, chips, number, lastDealer,
         ))}
       </View>
 
-      <Text style={styles.label}>¿Quién entra? La entrada es de {game.entry_amount} fichas.</Text>
+      <Text style={styles.label}>¿Quién entra?</Text>
       {game.players.map((p) => {
         const noChips = (chips[p.seat] ?? 0) <= 0;
         const inHand = entrants.includes(p.seat);
@@ -67,7 +73,7 @@ export const PokerNewHand: React.FC<Props> = ({ game, chips, number, lastDealer,
           >
             <Text style={styles.rowName} numberOfLines={1}>{p.name}</Text>
             <Text style={styles.rowState}>
-              {noChips ? 'Sin fichas' : inHand ? 'Entra' : p.seat === dealer ? 'Solo reparte' : 'No entra'}
+              {noChips ? 'Sin fichas' : inHand ? blindText(p.seat) : p.seat === dealer ? 'Solo reparte' : 'No entra'}
             </Text>
           </TouchableOpacity>
         );

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  blindSeats,
   callBet,
   betChips,
   canScoreHand,
@@ -11,6 +12,7 @@ import {
   closeShowdown,
   copySeat,
   currentBet,
+  firstToSpeak,
   foldPlayer,
   handPot,
   isShortAllIn,
@@ -22,6 +24,7 @@ import {
   rackOf,
   raiseBet,
   seatStatus,
+  smallBlind,
   splitPot,
   stackLeft,
   trayAction,
@@ -29,10 +32,15 @@ import {
 } from '../src/lib/poker.ts';
 
 const chips = { 0: 200, 1: 200, 2: 200 };
+// A hand after the first calls: everyone has the high blind in
 const hand = (over = {}) => ({
   ...openHand({ number: 1, dealerSeat: 0, dealerPlays: true, entrants: [0, 1, 2], entry: 20, chips }),
+  contributions: { 0: 20, 1: 20, 2: 20 },
   ...over,
 });
+const four = { 0: 200, 1: 200, 2: 200, 3: 200 };
+const dealt = (dealerSeat, entrants = [0, 1, 2, 3], stacks = four, entry = 20) =>
+  openHand({ number: 1, dealerSeat, dealerPlays: entrants.includes(dealerSeat), entrants, entry, chips: stacks });
 
 test('there are the 10 agreed hands, best first', () => {
   assert.equal(POKER_HANDS.length, 10);
@@ -40,11 +48,91 @@ test('there are the 10 agreed hands, best first', () => {
   assert.equal(POKER_HANDS[9].label, 'Carta alta');
 });
 
-test('everyone enters with the entry', () => {
-  const h = hand();
-  assert.deepEqual(h.contributions, { 0: 20, 1: 20, 2: 20 });
-  assert.equal(handPot(h), 60);
+test('the low blind is half the high one', () => {
+  assert.equal(smallBlind(20), 10);
+  assert.equal(smallBlind(15), 8);
+  assert.equal(smallBlind(1), 1);
+});
+
+test('the two seats after the dealer put the blinds in', () => {
+  assert.deepEqual(blindSeats([0, 1, 2, 3], 0), { small: 1, big: 2 });
+  assert.deepEqual(blindSeats([0, 1, 2, 3], 2), { small: 3, big: 0 });
+  assert.deepEqual(blindSeats([0, 1, 2, 3], 3), { small: 0, big: 1 });
+});
+
+test('with two players the dealer puts the low one', () => {
+  assert.deepEqual(blindSeats([0, 1], 0), { small: 0, big: 1 });
+  assert.deepEqual(blindSeats([0, 1], 1), { small: 1, big: 0 });
+});
+
+test('a dealer who only deals still sets where the blinds fall', () => {
+  assert.deepEqual(blindSeats([1, 2, 3], 0), { small: 1, big: 2 });
+  assert.deepEqual(blindSeats([1, 2], 0), { small: 1, big: 2 });
+});
+
+test('a seat out of the hand is skipped', () => {
+  assert.deepEqual(blindSeats([0, 2, 3], 0), { small: 2, big: 3 });
+});
+
+test('a hand opens with only the blinds in', () => {
+  const h = dealt(0);
+  assert.deepEqual(h.contributions, { 0: 0, 1: 10, 2: 20, 3: 0 });
+  assert.equal(handPot(h), 30);
   assert.equal(h.status, 'open');
+});
+
+test('everyone has to reach the high blind', () => {
+  const h = dealt(0);
+  assert.equal(owedBy(h, 3, four), 20);
+  assert.equal(owedBy(h, 0, four), 20);
+  assert.equal(owedBy(h, 1, four), 10);
+  assert.equal(owedBy(h, 2, four), 0);
+  assert.deepEqual(trayAction(h, 3, four, 0), { label: 'Igualar 20', amount: 20, enabled: true });
+});
+
+test('a blind bigger than a stack takes what is left', () => {
+  const short = { 0: 200, 1: 4, 2: 6, 3: 200 };
+  assert.deepEqual(dealt(0, [0, 1, 2, 3], short).contributions, { 0: 0, 1: 4, 2: 6, 3: 0 });
+});
+
+test('the bet stands when the high blind folds', () => {
+  const h = foldPlayer(dealt(0), 2);
+  assert.equal(currentBet(h), 20);
+  assert.equal(owedBy(h, 3, four), 20);
+});
+
+test('a short high blind does not lower what the others must put', () => {
+  const short = { 0: 200, 1: 200, 2: 5, 3: 200 };
+  const h = dealt(0, [0, 1, 2, 3], short);
+  assert.deepEqual(h.contributions, { 0: 0, 1: 10, 2: 5, 3: 0 });
+  assert.equal(currentBet(h), 20);
+  assert.equal(owedBy(h, 3, short), 20);
+  assert.equal(owedBy(h, 1, short), 10);
+  assert.equal(owedBy(h, 2, short), 0);
+});
+
+test('a hand read back from the server knows the high blind once it is told', () => {
+  const stored = { ...hand(), contributions: { 0: 0, 1: 10, 2: 5 }, bigBlind: undefined };
+  assert.equal(currentBet(stored), 10);
+  assert.equal(currentBet({ ...stored, bigBlind: 20 }), 20);
+});
+
+test('the first round starts after the high blind, the next ones after the dealer', () => {
+  assert.equal(firstToSpeak(dealt(0), four), 3);
+  assert.equal(firstToSpeak({ ...dealt(0), bettingRound: 2 }, four), 1);
+});
+
+test('with two players the low blind speaks first, then the other one', () => {
+  const two = { 0: 200, 1: 200 };
+  assert.equal(firstToSpeak(dealt(0, [0, 1], two), two), 0);
+  assert.equal(firstToSpeak({ ...dealt(0, [0, 1], two), bettingRound: 2 }, two), 1);
+});
+
+test('who folded or has no chips left does not speak', () => {
+  const short = { 0: 200, 1: 200, 2: 200, 3: 0 };
+  const h = { ...dealt(0, [0, 1, 2, 3], short), contributions: { 0: 0, 1: 10, 2: 20, 3: 0 } };
+  assert.equal(firstToSpeak(h, short), 0);
+  assert.equal(firstToSpeak(foldPlayer(h, 0), short), 1);
 });
 
 test('the agreed example: entry 20, Javier adds 40, whoever calls carries 60', () => {
@@ -191,8 +279,8 @@ test('betting everything is allowed even when it does not reach', () => {
   const short = { 0: 200, 1: 35, 2: 200 };
   let h = openHand({ number: 1, dealerSeat: 0, dealerPlays: true, entrants: [0, 1, 2], entry: 20, chips: short });
   h = raiseBet(h, 0, 100, short);
-  assert.deepEqual(trayAction(h, 1, short, 15), { label: 'Todo adentro 15', amount: 15, enabled: true });
-  assert.equal(betChips(h, 1, 15, short).contributions[1], 35);
+  assert.deepEqual(trayAction(h, 1, short, 25), { label: 'Todo adentro 25', amount: 25, enabled: true });
+  assert.equal(betChips(h, 1, 25, short).contributions[1], 35);
 });
 
 test('a tray bet adds to what the player already put in, up to their chips', () => {

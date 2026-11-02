@@ -12,9 +12,14 @@ export const removeConfirmedItems = <T extends OutboxItem>(
   confirmed: Map<string, unknown>
 ): T[] => queue.filter((item) => !confirmed.has(item.id) || confirmed.get(item.id) !== item.payload);
 
+/** P0001 is a rule the server raised. Anything else, like a lost connection, can still go through. */
+export const isServerRejection = (error: { code?: string } | null): boolean => error?.code === 'P0001';
+
+export const gameIdOf = (item: OutboxItem): string | null => {
+  const payload = item.payload as { p_id?: string; p_game?: string } | null;
+  return payload?.p_id ?? payload?.p_game ?? null;
+};
+
 /** Hands are sent whole, so anything sent ahead of a queued item would be overwritten by it. */
 export const hasQueuedGame = (queue: OutboxItem[], gameId: string): boolean =>
-  queue.some((item) => {
-    const payload = item.payload as { p_id?: string; p_game?: string } | null;
-    return payload?.p_id === gameId || payload?.p_game === gameId;
-  });
+  queue.some((item) => gameIdOf(item) === gameId);

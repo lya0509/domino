@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { supabase } from './supabase';
 import { Match, Profile } from '../types';
-import { removeConfirmedItems } from './outbox';
+import { gameIdOf, isServerRejection, removeConfirmedItems } from './outbox';
 
 const STORAGE_KEYS = {
   OFFLINE_QUEUE: '@domino_offline_queue_v1',
@@ -523,9 +523,17 @@ class OfflineSyncEngine {
     let failedCount = 0;
     // Payload each item had when it was sent: edits made during the flush must not be lost
     const confirmed = new Map<string, unknown>();
+    // A game's plays go in order: after one fails, the next would reach the server too early
+    const heldGames = new Set<string>();
+    const rejected: string[] = [];
 
     for (const item of [...this.queue]) {
       const sentPayload = item.payload;
+      const gameId = item.type in TABLE_GAME_RPCS ? gameIdOf(item) : null;
+      if (gameId && heldGames.has(gameId)) {
+        failedCount++;
+        continue;
+      }
       try {
         if (item.type === 'UPSERT_MATCH') {
           const payload = item.payload;
@@ -571,12 +579,15 @@ class OfflineSyncEngine {
           syncedCount++;
         } else if (item.type in TABLE_GAME_RPCS) {
           const { error } = await supabase.rpc(TABLE_GAME_RPCS[item.type as TableGameOperation], item.payload);
-          if (error) throw error;
+          if (error && !isServerRejection(error)) throw error;
+          // Sending it again can't change the answer, and would keep this phone looking offline
+          if (error) rejected.push(error.message);
           syncedCount++;
         }
         confirmed.set(item.id, sentPayload);
       } catch (err: any) {
         console.warn(`Failed to flush offline item ${item.id} (${item.type}):`, err?.message);
+        if (gameId) heldGames.add(gameId);
         // Never dropped: a match stays queued until the server confirms it, however long that takes
         item.retryCount = (item.retryCount || 0) + 1;
         failedCount++;
@@ -591,6 +602,10 @@ class OfflineSyncEngine {
       isOnline: failedCount === 0,
       lastSyncedAt: syncedCount > 0 ? Date.now() : this.status.lastSyncedAt,
     });
+
+    if (rejected.length > 0) {
+      Alert.alert('Una jugada no se guardó', `${rejected[0]}. Revisa la partida.`);
+    }
 
     return { synced: syncedCount, remaining: this.queue.length };
   }

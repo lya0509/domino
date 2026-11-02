@@ -15,15 +15,15 @@
 | Metric | Count |
 | :--- | :---: |
 | **System Communities** | **8** |
-| **Total Graph Nodes** | **174** |
-| **Directed Edges** | **324 (241 derived from code)** |
+| **Total Graph Nodes** | **177** |
+| **Directed Edges** | **331 (248 derived from code)** |
 | **System Hyperedges** | **7** |
 | **Screens** | **15** |
-| **Components** | **25** |
+| **Components** | **27** |
 | **Services** | **18** |
 | **DB Tables & Buckets** | **19** |
 | **DB RPCs** | **36** |
-| **SQL Scripts** | **48** |
+| **SQL Scripts** | **49** |
 | **QA Test Suites** | **18** |
 
 **RPCs called by the app:** `answer_table_game`, `award_tournament_prize`, `award_zapatero_maestro`, `buy_store_item`, `call_waitlist_duo`, `cancel_poker_hand`, `cancel_table_game`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `confirm_match_result`, `delete_user_account`, `dispute_match_result`, `expire_tournament_registration`, `finish_expired_match`, `finish_expired_table_game`, `invite_tournament_partner`, `join_tournament_with_points`, `notify_near_turn`, `place_bet`, `poker_ranking`, `propose_wager`, `remove_push_subscription`, `respond_tournament_partner`, `respond_wager`, `save_push_subscription`, `seat_waitlist_entry`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `table_game_ranking`, `verify_admin_pin`

@@ -7,6 +7,7 @@ import { theme } from '../theme';
 import { Profile } from '../types';
 import { supabase } from '../lib/supabase';
 import { offlineSync } from '../lib/offlineSync';
+import { hasQueuedGame } from '../lib/outbox';
 import { sounds } from '../lib/sounds';
 import { formatClock, secondsUntil } from '../lib/matchRivals';
 import {
@@ -66,7 +67,9 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
       } else {
         const local = await readLocalGame();
         const fromServer = local ? await fetchTableGame(local.id) : null;
-        const resumable = fromServer ?? local;
+        // Online with nothing left to send, a game the server doesn't have no longer exists
+        const gone = !!local && !fromServer && offlineSync.getIsOnline() && !hasQueuedGame(offlineSync.getQueue(), local.id);
+        const resumable = gone ? null : fromServer ?? local;
         if (resumable && resumable.status !== 'completed' && resumable.status !== 'cancelled') {
           if (active) setGame(resumable);
         } else {

@@ -25,8 +25,16 @@ export const PokerHelpModal: React.FC<Props> = ({ visible, onClose }) => (
     <View style={styles.overlay}>
       <View style={styles.sheet}>
         <Text style={styles.title}>Guía de jugadas</Text>
-        <Text style={styles.subtitle}>De la más alta a la más baja</Text>
         <ScrollView style={styles.list}>
+          <Text style={styles.section}>Cómo arranca cada mano</Text>
+          <Text style={styles.rule}>
+            Quien reparte cambia en cada mano, siguiendo el orden de la mesa. El siguiente pone la salida baja y el que sigue,
+            la salida alta. Los demás igualan la alta, suben o se retiran.
+          </Text>
+          <Text style={styles.rule}>
+            La primera ronda la abre quien está después de la salida alta. Las siguientes, quien está después de quien reparte.
+          </Text>
+          <Text style={styles.section}>Jugadas, de la más alta a la más baja</Text>
           {POKER_HANDS.map((hand) => (
             <View key={hand.key} style={styles.row} accessibilityLabel={`${hand.label}: ${hand.detail}`}>
               <Text style={styles.name}>{hand.label}</Text>
@@ -64,7 +72,8 @@ const styles = StyleSheet.create({
     padding: theme.spacing.m,
   },
   title: { color: theme.colors.text, fontSize: 21, fontWeight: '900' },
-  subtitle: { color: theme.colors.textDim, fontSize: 14, marginBottom: theme.spacing.s },
+  section: { color: theme.colors.text, fontSize: 16, fontWeight: '800', marginTop: theme.spacing.m },
+  rule: { color: theme.colors.textDim, fontSize: 14, lineHeight: 20, marginTop: theme.spacing.xs },
   list: { flexGrow: 0 },
   row: { paddingVertical: theme.spacing.s },
   name: { color: theme.colors.text, fontSize: 16, fontWeight: '800' },

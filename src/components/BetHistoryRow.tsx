@@ -25,7 +25,7 @@ const scoreText = (match: HistoryMatch, team: number) => {
     ? [match.team1_total, match.team2_total]
     : [match.team2_total, match.team1_total];
   if (match.winner_team) return `${mine} a ${other}`;
-  return `${mine} a ${other} (${match.status === 'completed' ? 'anulada' : 'en juego'})`;
+  return `${mine} a ${other} (${match.status === 'active' ? 'en juego' : 'anulada'})`;
 };
 
 /** One bet. Tapping it shows the match it was placed on and how it ended. */

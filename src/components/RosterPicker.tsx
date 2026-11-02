@@ -3,8 +3,7 @@ import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'reac
 import { theme } from '../theme';
 import { Profile } from '../types';
 import { MAX_PLAYERS, RosterEntry } from '../lib/tableGames';
-
-const MAX_SUGGESTIONS = 8;
+import { PlayerAvatar, PlayerChip } from './PlayerChip';
 
 interface Props {
   roster: RosterEntry[];
@@ -19,14 +18,12 @@ export const RosterPicker: React.FC<Props> = ({ roster, onChange, profiles, orde
   const [search, setSearch] = useState('');
   const [guestName, setGuestName] = useState('');
 
-  const suggestions = useMemo(() => {
+  const registered = useMemo(() => {
     const text = search.trim().toLowerCase();
     return profiles
-      .filter((p) => !roster.some((r) => r.user_id === p.id))
       .filter((p) => !text || p.display_name?.toLowerCase().includes(text))
-      .sort((a, b) => (a.display_name || '').localeCompare(b.display_name || ''))
-      .slice(0, MAX_SUGGESTIONS);
-  }, [profiles, roster, search]);
+      .sort((a, b) => (a.display_name || '').localeCompare(b.display_name || ''));
+  }, [profiles, search]);
 
   const add = (entry: RosterEntry) => {
     if (roster.length >= MAX_PLAYERS) {
@@ -35,6 +32,12 @@ export const RosterPicker: React.FC<Props> = ({ roster, onChange, profiles, orde
     }
     onChange([...roster, entry]);
     setSearch('');
+  };
+
+  const toggle = (profile: Profile) => {
+    const index = roster.findIndex((r) => r.user_id === profile.id);
+    if (index >= 0) onChange(roster.filter((_, i) => i !== index));
+    else add({ user_id: profile.id, name: profile.display_name });
   };
 
   const addGuest = () => {
@@ -54,9 +57,12 @@ export const RosterPicker: React.FC<Props> = ({ roster, onChange, profiles, orde
   return (
     <>
       <Text style={styles.title}>Jugadores ({roster.length}/{MAX_PLAYERS})</Text>
-      {ordered && <Text style={styles.hint}>Ponlos en el orden en que están sentados.</Text>}
+      {ordered && (
+        <Text style={styles.hint}>Ponlos en el orden en que están sentados: el juego sigue esta lista, de arriba hacia abajo.</Text>
+      )}
       {roster.map((p, i) => (
         <View key={`${p.user_id ?? p.name}-${i}`} style={styles.row}>
+          <PlayerAvatar person={profiles.find((x) => x.id === p.user_id) ?? { initials: p.name.slice(0, 2).toUpperCase() }} selected />
           <Text style={styles.name} numberOfLines={1}>{p.name}{p.user_id ? '' : ' (sin cuenta)'}</Text>
           {ordered && (
             <>
@@ -99,17 +105,12 @@ export const RosterPicker: React.FC<Props> = ({ roster, onChange, profiles, orde
         placeholderTextColor={theme.colors.textDim}
         accessibilityLabel="Buscar jugador"
       />
+      <Text style={styles.registeredTitle}>Jugadores Registrados</Text>
       <View style={styles.chips}>
-        {suggestions.map((p) => (
-          <TouchableOpacity
-            key={p.id}
-            style={styles.chip}
-            onPress={() => add({ user_id: p.id, name: p.display_name })}
-            accessibilityRole="button"
-          >
-            <Text style={styles.chipText}>+ {p.display_name}</Text>
-          </TouchableOpacity>
+        {registered.map((p) => (
+          <PlayerChip key={p.id} person={p} selected={roster.some((r) => r.user_id === p.id)} onPress={() => toggle(p)} />
         ))}
+        {registered.length === 0 && <Text style={styles.hint}>Nadie con ese nombre.</Text>}
       </View>
 
       <View style={styles.guestRow}>
@@ -139,7 +140,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.s,
-    paddingLeft: theme.spacing.m,
+    paddingLeft: theme.spacing.s,
+    gap: theme.spacing.s,
     marginBottom: theme.spacing.xs,
   },
   name: { color: theme.colors.text, fontSize: 15, fontWeight: '600', flex: 1, minWidth: 0 },
@@ -159,17 +161,8 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.s,
     marginBottom: theme.spacing.s,
   },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.s, marginBottom: theme.spacing.s },
-  chip: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: theme.spacing.m,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-  },
-  chipText: { color: theme.colors.text, fontWeight: '700', fontSize: 14 },
+  registeredTitle: { color: theme.colors.textDim, fontSize: 13, fontWeight: '700', marginTop: theme.spacing.xs, marginBottom: theme.spacing.s },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.s, marginBottom: theme.spacing.m },
   guestRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.s },
   guestInput: { flex: 1, minWidth: 0 },
   guestBtn: {

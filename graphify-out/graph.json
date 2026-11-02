@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T21:34:35.891Z",
+    "generatedAt": "2026-11-02T21:52:13.361Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,12 +10,12 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 205,
-      "totalEdges": 384,
+      "totalNodes": 207,
+      "totalEdges": 397,
       "totalHyperedges": 7,
       "totalScreens": 15,
-      "totalComponents": 33,
-      "totalServices": 23,
+      "totalComponents": 34,
+      "totalServices": 24,
       "totalDatabaseTables": 23,
       "totalDatabaseRpcs": 46,
       "totalQaSuites": 18
@@ -621,8 +621,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1611,
-      "bytes": 59629,
+      "lines": 1612,
+      "bytes": 59704,
       "exports": [
         "HomeScreen"
       ],
@@ -631,6 +631,7 @@
         "react-native",
         "@react-native-async-storage/async-storage",
         "../theme",
+        "../components/VipEffects",
         "../components/VipRing",
         "../lib/vipService",
         "../lib/gameStats",
@@ -735,8 +736,8 @@
         "🚨 Llamar Siguiente Dúo Waitlist Trigger Button"
       ],
       "exists": true,
-      "lines": 881,
-      "bytes": 40857,
+      "lines": 894,
+      "bytes": 41507,
       "exports": [
         "GameScreen"
       ],
@@ -744,6 +745,7 @@
         "react",
         "react-native",
         "../theme",
+        "../components/VipEffects",
         "../types",
         "expo-sharing",
         "../components/ProgressChart",
@@ -789,8 +791,8 @@
         "💬 Chat de la Mesa (Realtime live_chat with 2s anti-spam cooldown)"
       ],
       "exists": true,
-      "lines": 982,
-      "bytes": 48081,
+      "lines": 995,
+      "bytes": 49186,
       "exports": [
         "LiveMatchScreen"
       ],
@@ -798,6 +800,8 @@
         "react",
         "react-native",
         "../theme",
+        "../lib/vipService",
+        "../components/VipEffects",
         "../components/VipRing",
         "../lib/supabase",
         "../components/ProgressChart",
@@ -1009,8 +1013,8 @@
         "Top 100 Ranked Player Rows with RainbowText, Equipped Titles & Borders"
       ],
       "exists": true,
-      "lines": 201,
-      "bytes": 9407,
+      "lines": 202,
+      "bytes": 9401,
       "exports": [
         "LeaderboardScreen"
       ],
@@ -1019,6 +1023,7 @@
         "react-native",
         "../theme",
         "../components/VipRing",
+        "../components/VipEffects",
         "../lib/supabase",
         "../types",
         "../lib/offlineSync"
@@ -1108,8 +1113,8 @@
         "Message Input Bar with 3s Anti-Spam Cooldown"
       ],
       "exists": true,
-      "lines": 298,
-      "bytes": 11127,
+      "lines": 303,
+      "bytes": 11596,
       "exports": [
         "GlobalChatScreen"
       ],
@@ -1117,7 +1122,7 @@
         "react",
         "react-native",
         "../theme",
-        "../components/VipRing",
+        "../lib/vipService",
         "../lib/supabase"
       ],
       "supabaseTables": [
@@ -1704,8 +1709,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1779,
-      "bytes": 90001,
+      "lines": 1781,
+      "bytes": 90339,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -3189,8 +3194,8 @@
       "file": "src/components/TableGameRanking.tsx",
       "role": "Home ranking for one UNO variant, from the table_game_ranking RPC.",
       "exists": true,
-      "lines": 81,
-      "bytes": 3051,
+      "lines": 82,
+      "bytes": 3118,
       "exports": [
         "TableGameRanking"
       ],
@@ -3198,6 +3203,7 @@
         "react",
         "react-native",
         "../theme",
+        "./VipEffects",
         "../lib/poker",
         "../lib/tableGames",
         "../lib/tableGameService"
@@ -3242,8 +3248,8 @@
       "file": "src/components/VipCard.tsx",
       "role": "The VIP card: floats, flips with a sideways swipe or a tap; the back shows the photo or GIF, name and phrase.",
       "exists": true,
-      "lines": 221,
-      "bytes": 8626,
+      "lines": 254,
+      "bytes": 9935,
       "exports": [
         "VipBack",
         "VipCard"
@@ -3251,13 +3257,44 @@
       "imports": [
         "react",
         "react-native",
-        "./VipRing"
+        "./VipRing",
+        "../lib/season"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
       "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
+    },
+    {
+      "id": "src/components/VipEffects.tsx",
+      "label": "VipEffects.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/VipEffects.tsx",
+      "role": "VIP flourishes: golden name (VipName), golden confetti and banner when a VIP wins (VipCelebration), and a banner when a VIP sits at a table (VipEntrance).",
+      "exists": true,
+      "lines": 232,
+      "bytes": 8594,
+      "exports": [
+        "VipName",
+        "VipCelebration",
+        "VipEntrance"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "./VipRing",
+        "../lib/vipService",
+        "../lib/sounds"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": [
+        "chaching"
+      ]
     },
     {
       "id": "src/components/VipOfferModal.tsx",
@@ -3652,6 +3689,31 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/season.ts",
+      "label": "season.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/season.ts",
+      "role": "Seasonal touches for the VIP card: Navidad, Carnaval (from Easter) and Halloween; ?temporada= previews one on the web.",
+      "exists": true,
+      "lines": 65,
+      "bytes": 2573,
+      "exports": [
+        "SeasonId",
+        "Season",
+        "SEASONS",
+        "easterSunday",
+        "seasonFor",
+        "currentSeason"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/shareVipCard.ts",
       "label": "shareVipCard.ts",
       "type": "service",
@@ -3659,8 +3721,8 @@
       "file": "src/lib/shareVipCard.ts",
       "role": "Draws the VIP card as a 1080x1350 picture on a canvas and shares it (Web Share) or downloads it.",
       "exists": true,
-      "lines": 208,
-      "bytes": 6999,
+      "lines": 222,
+      "bytes": 7526,
       "exports": [
         "VipCardPicture",
         "ShareOutcome",
@@ -3668,7 +3730,8 @@
         "shareVipCard"
       ],
       "imports": [
-        "react-native"
+        "react-native",
+        "./season"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3814,8 +3877,8 @@
       "file": "src/lib/vipService.ts",
       "role": "Monthly VIP: the shared list of active VIPs (useVip), image picking that keeps GIFs animated, receipt and card uploads, and the member and admin RPCs.",
       "exists": true,
-      "lines": 249,
-      "bytes": 9271,
+      "lines": 267,
+      "bytes": 9848,
       "exports": [
         "VipInfo",
         "MyVip",
@@ -3826,6 +3889,7 @@
         "vipMediaUrl",
         "refreshVips",
         "useVip",
+        "useVipList",
         "PickedImage",
         "pickImage",
         "fetchVipConfig",
@@ -3895,8 +3959,8 @@
       "file": "src/screens/PokerScreen.tsx",
       "role": "Route poker: table chips, who deals, who enters, betting, closing a hand, correcting the last one, finishing the game and the live view for everyone else.",
       "exists": true,
-      "lines": 700,
-      "bytes": 28070,
+      "lines": 711,
+      "bytes": 28646,
       "exports": [
         "PokerScreen"
       ],
@@ -3905,6 +3969,7 @@
         "react-native",
         "@react-native-async-storage/async-storage",
         "../theme",
+        "../components/VipEffects",
         "../types",
         "../lib/supabase",
         "../lib/offlineSync",
@@ -3941,8 +4006,8 @@
       "file": "src/screens/UnoScreen.tsx",
       "role": "Route uno: choose the variant and players (with or without an account), play, mark the winner, wait for confirmation and rematch. Also the live view for the rest of the club and the list of recent games.",
       "exists": true,
-      "lines": 446,
-      "bytes": 18227,
+      "lines": 457,
+      "bytes": 18803,
       "exports": [
         "UnoScreen"
       ],
@@ -3951,6 +4016,7 @@
         "react-native",
         "@react-native-async-storage/async-storage",
         "../theme",
+        "../components/VipEffects",
         "../components/VipRing",
         "../types",
         "../lib/supabase",
@@ -4930,6 +4996,12 @@
     },
     {
       "source": "src/screens/HomeScreen.tsx",
+      "target": "src/components/VipEffects.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
       "target": "src/components/VipRing.tsx",
       "relation": "imports",
       "derived": true
@@ -5068,6 +5140,12 @@
     },
     {
       "source": "src/screens/GameScreen.tsx",
+      "target": "src/components/VipEffects.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/GameScreen.tsx",
       "target": "src/types.ts",
       "relation": "imports",
       "derived": true
@@ -5123,6 +5201,18 @@
     {
       "source": "src/screens/LiveMatchScreen.tsx",
       "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/LiveMatchScreen.tsx",
+      "target": "src/lib/vipService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/LiveMatchScreen.tsx",
+      "target": "src/components/VipEffects.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -5368,6 +5458,12 @@
     },
     {
       "source": "src/screens/LeaderboardScreen.tsx",
+      "target": "src/components/VipEffects.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/LeaderboardScreen.tsx",
       "target": "src/lib/supabase.ts",
       "relation": "imports",
       "derived": true
@@ -5464,7 +5560,7 @@
     },
     {
       "source": "src/screens/GlobalChatScreen.tsx",
-      "target": "src/components/VipRing.tsx",
+      "target": "src/lib/vipService.ts",
       "relation": "imports",
       "derived": true
     },
@@ -5980,6 +6076,12 @@
     },
     {
       "source": "src/components/TableGameRanking.tsx",
+      "target": "src/components/VipEffects.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableGameRanking.tsx",
       "target": "src/lib/poker.ts",
       "relation": "imports",
       "derived": true
@@ -6017,6 +6119,30 @@
     {
       "source": "src/components/VipCard.tsx",
       "target": "src/components/VipRing.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipCard.tsx",
+      "target": "src/lib/season.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipEffects.tsx",
+      "target": "src/components/VipRing.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipEffects.tsx",
+      "target": "src/lib/vipService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/VipEffects.tsx",
+      "target": "src/lib/sounds.ts",
       "relation": "imports",
       "derived": true
     },
@@ -6149,6 +6275,12 @@
     {
       "source": "src/lib/pushNotifications.ts",
       "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/shareVipCard.ts",
+      "target": "src/lib/season.ts",
       "relation": "imports",
       "derived": true
     },
@@ -6322,6 +6454,12 @@
     },
     {
       "source": "src/screens/PokerScreen.tsx",
+      "target": "src/components/VipEffects.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
       "target": "src/types.ts",
       "relation": "imports",
       "derived": true
@@ -6401,6 +6539,12 @@
     {
       "source": "src/screens/UnoScreen.tsx",
       "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/components/VipEffects.tsx",
       "relation": "imports",
       "derived": true
     },

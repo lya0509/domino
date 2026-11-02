@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, PanResponder, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { VIP_GOLD } from './VipRing';
+import { currentSeason, Season } from '../lib/season';
 
 const useNative = Platform.OS !== 'web';
 
@@ -56,6 +57,20 @@ const SampleBackdrop: React.FC = () => {
           </Animated.Text>
         );
       })}
+    </View>
+  );
+};
+
+/** Seasonal glyphs in the four corners, and the greeting on the back. */
+const SeasonCorners: React.FC<{ season: Season | null }> = ({ season }) => {
+  if (!season) return null;
+  const [a, b, c, d] = season.glyphs;
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Text style={[styles.corner, { top: 6, left: 8 }]}>{a}</Text>
+      <Text style={[styles.corner, { top: 6, right: 8 }]}>{b}</Text>
+      <Text style={[styles.corner, { bottom: 6, left: 8 }]}>{c}</Text>
+      <Text style={[styles.corner, { bottom: 6, right: 8 }]}>{d}</Text>
     </View>
   );
 };
@@ -128,6 +143,7 @@ export const VipCard: React.FC<{
   const frontRotate = flip.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
   const backRotate = flip.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
   const lift = float.interpolate({ inputRange: [0, 1], outputRange: [0, -5] });
+  const season = currentSeason();
 
   return (
     <View>
@@ -135,6 +151,7 @@ export const VipCard: React.FC<{
         <Animated.View style={[styles.face, styles.frame, { transform: [{ perspective: 1200 }, { rotateY: frontRotate }] }]}>
           <Backdrop mediaUrl={mediaUrl} sample={sample} />
           {front}
+          <SeasonCorners season={season} />
         </Animated.View>
         <Animated.View
           style={[styles.face, styles.frame, styles.back, { transform: [{ perspective: 1200 }, { rotateY: backRotate }] }]}
@@ -152,7 +169,13 @@ export const VipCard: React.FC<{
             </View>
             <Text style={styles.backName} numberOfLines={1}>{back.name}</Text>
             {!!back.tagline && <Text style={styles.backPhrase} numberOfLines={2}>“{back.tagline}”</Text>}
+            {season && (
+              <View style={[styles.seasonPill, { borderColor: season.accent }]}>
+                <Text style={styles.seasonText}>{season.glyphs[0]} {season.label}</Text>
+              </View>
+            )}
           </View>
+          <SeasonCorners season={season} />
         </Animated.View>
       </Animated.View>
       {showHint && (
@@ -214,6 +237,16 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.85)',
     textShadowRadius: 6,
   },
+  corner: { position: 'absolute', fontSize: 20, opacity: 0.9 },
+  seasonPill: {
+    marginTop: 10,
+    borderWidth: 1.5,
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  seasonText: { color: '#fff', fontWeight: '800', fontSize: 12 },
   blob: { position: 'absolute', width: 220, height: 220, borderRadius: 110 },
   hint: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 12 },
   hintText: { color: VIP_GOLD, fontSize: 12, fontWeight: '700' },

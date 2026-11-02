@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
+import { VipName } from './VipEffects';
 import { handLabel } from '../lib/poker';
 import { AnyTableGame } from '../lib/tableGames';
 import { fetchTableGameRanking, RankingRow } from '../lib/tableGameService';
@@ -49,7 +50,7 @@ export const TableGameRanking: React.FC<Props> = ({ game, from, currentUserProfi
         >
           <Text style={styles.medal}>{medal(i)}</Text>
           <View style={styles.info}>
-            <Text style={styles.name}>{row.display_name}</Text>
+            <VipName userId={row.user_id} style={styles.name}>{row.display_name}</VipName>
             <Text style={styles.detail}>{detailOf(game, row)}</Text>
           </View>
           <Text style={styles.wins}>{row.wins}</Text>

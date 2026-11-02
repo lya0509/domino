@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { currentSeason } from './season';
 
 /**
  * Draws the VIP card as a 1080x1350 picture (good for WhatsApp, Instagram and
@@ -164,6 +165,19 @@ export const drawVipCard = async (card: VipCardPicture): Promise<Blob> => {
     ctx.fillStyle = GOLD;
     ctx.font = '800 48px system-ui, -apple-system, Roboto, sans-serif';
     ctx.fillText(`🪙 ${card.points} pts`, W / 2, 1110);
+  }
+
+  const season = currentSeason();
+  if (season) {
+    ctx.font = '64px system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+    const [a, b, c, d] = season.glyphs;
+    ctx.fillText(a, 110, 130);
+    ctx.fillText(b, W - 110, 130);
+    ctx.fillText(c, 110, H - 80);
+    ctx.fillText(d, W - 110, H - 80);
+    ctx.font = '800 40px system-ui, -apple-system, Roboto, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(season.label, W / 2, 1170);
   }
 
   ctx.font = '700 34px system-ui, -apple-system, Roboto, sans-serif';

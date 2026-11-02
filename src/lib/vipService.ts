@@ -115,6 +115,24 @@ export const useVip = (userId: string | null | undefined): VipInfo | null => {
   return info && isVipActive(info) ? info : null;
 };
 
+/** The VIPs among a list of players (ids may repeat or be empty). */
+export const useVipList = (userIds: (string | null | undefined)[]): VipInfo[] => {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const l = () => setTick((t) => t + 1);
+    listeners.add(l);
+    refreshVips();
+    return () => {
+      listeners.delete(l);
+    };
+  }, []);
+  const seen = new Set<string>();
+  return userIds
+    .filter((id): id is string => !!id && !seen.has(id) && (seen.add(id), true))
+    .map((id) => vipMap[id])
+    .filter((v): v is VipInfo => !!v && isVipActive(v));
+};
+
 // ---------------------------------------------------------------------------
 // Picking and uploading an image (GIFs stay animated: no editing, no re-encoding)
 // ---------------------------------------------------------------------------

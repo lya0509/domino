@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, Image, ScrollView, Platform, StatusBar } from 'react-native';
 import { theme } from '../theme';
-import { VipAvatarRing, VipCrown } from '../components/VipRing';
+import { VipAvatarRing } from '../components/VipRing';
+import { VipName } from '../components/VipEffects';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { offlineSync } from '../lib/offlineSync';
@@ -103,7 +104,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onBack, cu
             </View>
           </VipAvatarRing>
         </View>
-        <Text style={styles.name}>{p.display_name}<VipCrown userId={p.id} size={13} /></Text>
+        <VipName userId={p.id} style={styles.name}>{p.display_name}</VipName>
         <Text style={styles.score}>{p.betting_points || 0} pts</Text>
       </TouchableOpacity>
     ));
@@ -120,7 +121,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onBack, cu
             </View>
           </VipAvatarRing>
         </View>
-        <Text style={styles.name}>{p.profile?.display_name || 'Desconocido'}<VipCrown userId={p.id} size={13} /></Text>
+        <VipName userId={p.id} style={styles.name}>{p.profile?.display_name || 'Desconocido'}</VipName>
         <Text style={[styles.score, { color: theme.colors.primary }]}>{p.wins} W</Text>
       </TouchableOpacity>
     ));
@@ -137,7 +138,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onBack, cu
             </View>
           </VipAvatarRing>
         </View>
-        <Text style={styles.name}>{p.profile?.display_name || 'Desconocido'}<VipCrown userId={p.id} size={13} /></Text>
+        <VipName userId={p.id} style={styles.name}>{p.profile?.display_name || 'Desconocido'}</VipName>
         <Text style={[styles.score, { color: theme.colors.danger }]}>{p.zapatos} 🥾</Text>
       </TouchableOpacity>
     ));

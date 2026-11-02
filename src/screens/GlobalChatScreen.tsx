@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
 import { theme } from '../theme';
-import { VipCrown } from '../components/VipRing';
+import { useVipList } from '../lib/vipService';
 import { supabase } from '../lib/supabase';
 
 interface ChatMessage {
@@ -23,6 +23,7 @@ interface Props {
 
 export const GlobalChatScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const vipIds = new Set(useVipList(messages.map((m) => m.user_id)).map((v) => v.user_id));
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -118,6 +119,7 @@ export const GlobalChatScreen: React.FC<Props> = ({ onBack, currentUserProfileId
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isMe = item.user_id === currentUserProfileId;
+    const isVip = vipIds.has(item.user_id);
     const equipped = item.profiles?.equipped_items || {};
     const hasColor = equipped.color && equipped.color !== 'rainbow';
     const isRainbow = equipped.color === 'rainbow';
@@ -132,14 +134,15 @@ export const GlobalChatScreen: React.FC<Props> = ({ onBack, currentUserProfileId
             <Text style={styles.avatarText}>{item.profiles?.initials || '??'}</Text>
           </View>
         )}
-        <View style={[styles.messageBubble, isMe ? styles.messageBubbleMe : styles.messageBubbleThem]}>
+        <View style={[styles.messageBubble, isMe ? styles.messageBubbleMe : styles.messageBubbleThem, isVip && styles.messageBubbleVip]}>
           {!isMe && (
             <Text style={[
               styles.senderName,
               hasColor && { color: equipped.color },
-              isRainbow && { color: '#ec4899' } // Fallback pink for rainbow if no gradient
+              isRainbow && { color: '#ec4899' }, // Fallback pink for rainbow if no gradient
+              isVip && styles.senderNameVip,
             ]}>
-              {equipped.title ? `${equipped.title} ` : ''}{item.profiles?.display_name || 'Desconocido'}<VipCrown userId={item.user_id} />
+              {equipped.title ? `${equipped.title} ` : ''}{item.profiles?.display_name || 'Desconocido'}{isVip ? ' ♛' : ''}
             </Text>
           )}
           <Text style={styles.messageText}>{item.message}</Text>
@@ -275,6 +278,8 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
   messageBubble: { maxWidth: '80%', padding: theme.spacing.m, borderRadius: theme.borderRadius.m },
   messageBubbleMe: { backgroundColor: theme.colors.primary, borderBottomRightRadius: 4 },
+  messageBubbleVip: { borderWidth: 1.5, borderColor: '#fbbf24', shadowColor: '#fbbf24', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
+  senderNameVip: { color: '#fbbf24', textShadowColor: 'rgba(251,191,36,0.5)', textShadowRadius: 6 },
   messageBubbleThem: { backgroundColor: theme.colors.card, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: theme.colors.cardBorder },
   senderName: { fontSize: 13, fontWeight: 'bold', marginBottom: 2, color: theme.colors.secondary },
   messageText: { color: '#fff', fontSize: 15, lineHeight: 20 },

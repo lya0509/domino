@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, SafeAreaView, Platform, Alert, KeyboardAvoidingView } from 'react-native';
 import { theme } from '../theme';
+import { VipCelebration, VipEntrance } from '../components/VipEffects';
 import { Match, Round, Player } from '../types';
 import * as Sharing from 'expo-sharing';
 import { ProgressChart } from '../components/ProgressChart';
@@ -387,6 +388,9 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
 
   return (
     <SafeAreaView style={[styles.container, tableColor ? { backgroundColor: tableColor } : {}]}>
+      {!match.isGuestMode && (
+        <VipEntrance players={match.players.map((p) => ({ id: p.profileId, name: p.name }))} gameKey={`m-${match.id}`} />
+      )}
       <View ref={viewRef} collapsable={false} style={styles.shareContainer}>
         <View style={styles.header}>
           {onBack ? (
@@ -537,6 +541,15 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
               autoStart={true}
               fadeOut={true}
               fallSpeed={3000}
+            />
+          )}
+          {!!winnerData && !match.isGuestMode && (
+            <VipCelebration
+              winners={match.players
+                .filter((p) => (winnerData.id.startsWith('team') ? `team${p.teamNumber}` === winnerData.id : p.id === winnerData.id))
+                .map((p) => ({ id: p.profileId, name: p.name }))}
+              celebrationKey={`m-win-${match.id}`}
+              active
             />
           )}
           <View

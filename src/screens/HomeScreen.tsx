@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, RefreshControl, ActivityIndicator, Animated, Image, Alert, Platform, Modal, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
+import { VipName } from '../components/VipEffects';
 import { VIP_GOLD, VipAvatarRing } from '../components/VipRing';
 import { useVip, vipMediaUrl } from '../lib/vipService';
 import { STAT_GAMES, useTableGameCells } from '../lib/gameStats';
@@ -1001,7 +1002,7 @@ export const HomeScreen: React.FC<Props> = ({
                   <TouchableOpacity key={stat.id} style={[styles.rankItem, stat.id === currentUser?.id && styles.rankItemMe]} onPress={() => onOpenProfile(stat.id)}>
                     <Text style={styles.rankMedal}>{getMedal(i)}</Text>
                     <View style={styles.rankInfo}>
-                      <Text style={styles.rankName}>{stat.display_name} {stat.medals?.join('')}</Text>
+                      <VipName userId={stat.id} style={styles.rankName}>{stat.display_name} {stat.medals?.join('')}</VipName>
                       <Text style={styles.rankDetail}>
                         {stat.wins}W - {stat.losses}L
                         {stat.zapatos_given > 0 ? ` · 👟${stat.zapatos_given}` : ''}

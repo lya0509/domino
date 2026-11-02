@@ -4,6 +4,8 @@ import {
   ActivityIndicator, ScrollView, Modal, Alert, Image, TextInput, KeyboardAvoidingView, Platform, SafeAreaView
 } from 'react-native';
 import { theme } from '../theme';
+import { useVipList } from '../lib/vipService';
+import { VipCelebration, VipEntrance } from '../components/VipEffects';
 import { VipCrown } from '../components/VipRing';
 import { supabase } from '../lib/supabase';
 import { ProgressChart } from '../components/ProgressChart';
@@ -39,6 +41,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
   const [selectedPartner, setSelectedPartner] = useState<Profile | null>(null);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const chatVipIds = new Set(useVipList(chatMessages.map((m) => m.user_id)).map((v) => v.user_id));
   const [newMessage, setNewMessage] = useState('');
 
   // Betting states
@@ -421,6 +424,7 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
   const team2Total = matchData.team2_total || 0;
 
   const isCompleted = matchData.status === 'completed' || matchData.status === 'pending_confirmation' || team1Total >= limitScore || team2Total >= limitScore;
+  const winTeam = matchData.winner_team || (team1Total >= limitScore ? 1 : team2Total >= limitScore ? 2 : null);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -616,16 +620,17 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
             ) : (
               chatMessages.slice().reverse().map(msg => {
                 const isSticker = ['👍', '🥾', '🤡', '🔥', '💔'].includes(msg.message.trim());
+                const isVip = chatVipIds.has(msg.user_id);
                 return (
-                  <View key={msg.id} style={styles.chatMsgRow}>
+                  <View key={msg.id} style={[styles.chatMsgRow, isVip && styles.chatMsgRowVip]}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
                       {msg.profile?.equipped_items?.color === 'rainbow' ? (
                         <RainbowText style={[styles.chatName, { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }]}>
                           {msg.profile?.display_name || 'Desconocido'}:
                         </RainbowText>
                       ) : (
-                        <Text style={[styles.chatName, { color: msg.profile?.equipped_items?.color || theme.colors.text }]}>
-                          {msg.profile?.display_name || 'Anónimo'}:
+                        <Text style={[styles.chatName, { color: msg.profile?.equipped_items?.color || theme.colors.text }, isVip && styles.chatNameVip]}>
+                          {msg.profile?.display_name || 'Anónimo'}{isVip ? ' ♛' : ''}:
                         </Text>
                       )}
                     </View>
@@ -842,6 +847,12 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
         </View>
       </Modal>
       </KeyboardAvoidingView>
+      <VipEntrance players={players.map((p) => ({ id: p.profileId, name: p.name }))} gameKey={`live-${matchId}`} />
+      <VipCelebration
+        winners={players.filter((p) => winTeam && p.teamNumber === winTeam).map((p) => ({ id: p.profileId, name: p.name }))}
+        celebrationKey={`live-win-${matchId}`}
+        active={isCompleted && !!winTeam}
+      />
     </SafeAreaView>
   );
 };
@@ -966,6 +977,8 @@ const styles = StyleSheet.create({
   chatBox: { maxHeight: 200, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: theme.borderRadius.m, padding: theme.spacing.s },
   chatEmpty: { color: theme.colors.textDim, fontSize: 13, fontStyle: 'italic', textAlign: 'center', padding: theme.spacing.m },
   chatMsgRow: { flexDirection: 'row', marginBottom: 6, flexWrap: 'wrap' },
+  chatMsgRowVip: { backgroundColor: 'rgba(251,191,36,0.08)', borderLeftWidth: 3, borderLeftColor: '#fbbf24', borderRadius: 6, paddingVertical: 4, paddingHorizontal: 8 },
+  chatNameVip: { color: '#fbbf24', textShadowColor: 'rgba(251,191,36,0.5)', textShadowRadius: 6 },
   chatName: { fontWeight: '700', marginRight: 6, fontSize: 14 },
   chatText: { color: theme.colors.text, fontSize: 14, flexShrink: 1 },
   chatInputContainer: { flexDirection: 'row', padding: theme.spacing.m, backgroundColor: theme.colors.card, borderTopWidth: 1, borderTopColor: theme.colors.cardBorder, alignItems: 'center', gap: theme.spacing.m },

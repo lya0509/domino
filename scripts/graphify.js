@@ -936,6 +936,8 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/components/VipEffects.tsx': 'VIP flourishes: golden name (VipName), golden confetti and banner when a VIP wins (VipCelebration), and a banner when a VIP sits at a table (VipEntrance).',
+  'src/lib/season.ts': 'Seasonal touches for the VIP card: Navidad, Carnaval (from Easter) and Halloween; ?temporada= previews one on the web.',
   'src/lib/gameStatsCore.ts': 'Pure per-game personal numbers: dominó (wins, losses, zapatos, total), UNO (wins, losses, win rate, played) and poker (wins, played, hands, best hand).',
   'src/lib/gameStats.ts': 'Loads UNO and poker numbers for one player from table_game_players and poker_ranking, cached for a minute (useTableGameCells).',
   'src/components/StatCells.tsx': 'Four numbers in a row, shared by the home card and the profile stats.',

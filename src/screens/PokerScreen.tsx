@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
+import { VipCelebration, VipEntrance } from '../components/VipEffects';
 import { Profile } from '../types';
 import { supabase } from '../lib/supabase';
 import { offlineSync } from '../lib/offlineSync';
@@ -593,6 +594,16 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
         <View style={styles.column}>{renderBody()}</View>
       </ScrollView>
       <PokerHelpModal visible={showHelp} onClose={() => setShowHelp(false)} />
+      {game && (
+        <>
+          <VipEntrance players={game.players.map((p) => ({ id: p.user_id, name: p.name }))} gameKey={`tg-${game.id}`} />
+          <VipCelebration
+            winners={game.players.filter((p) => p.seat === game.winner_seat).map((p) => ({ id: p.user_id, name: p.name }))}
+            celebrationKey={`tg-win-${game.id}`}
+            active={game.winner_seat !== null && (game.status === 'pending_confirmation' || game.status === 'completed')}
+          />
+        </>
+      )}
     </SafeAreaView>
   );
 };

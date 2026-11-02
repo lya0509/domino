@@ -277,7 +277,7 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
           <View style={styles.slotContent}>
             <VipAvatarRing userId={profile.id} size={40}>
               {profile.avatar_url ? (
-                <Image source={{ uri: profile.avatar_url }} style={styles.slotAvatarImg} />
+                <Image source={{ uri: profile.avatar_url }} style={[styles.slotAvatarImg, { marginBottom: 0 }]} />
               ) : (
                 <Text style={styles.slotInitials}>{profile.initials}</Text>
               )}

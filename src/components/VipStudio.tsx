@@ -72,7 +72,7 @@ export const VipStudio: React.FC<{ userId: string; myVip: MyVip; onChanged: () =
       <TouchableOpacity style={styles.mediaBtn} onPress={changeMedia} disabled={busy === 'media'} accessibilityRole="button">
         {busy === 'media' ? <ActivityIndicator color={VIP_GOLD} /> : <Text style={styles.mediaText}>🖼️ {myVip.media_path ? 'Cambiar foto o GIF' : 'Subir foto o GIF'}</Text>}
       </TouchableOpacity>
-      <Text style={styles.muted}>Hasta 4 MB. Un administrador la aprueba antes de que se vea.</Text>
+      <Text style={styles.muted}>Llena toda tu tarjeta, por delante y por detrás. Hasta 4 MB; un administrador la aprueba antes de que se vea.</Text>
 
       <Text style={styles.section}>Tu frase (detrás de la tarjeta)</Text>
       <View style={styles.row}>

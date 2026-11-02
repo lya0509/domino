@@ -615,7 +615,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         {/* Credencial Digital de Socio VIP */}
         {(() => {
           const credential = (
-        <View style={[styles.vipCredentialCard, vip && styles.vipCredentialCardGold]}>
+        <View style={[styles.vipCredentialCard, vip && styles.vipCredentialInCard]}>
           {/* Header of Credential */}
           <TouchableOpacity activeOpacity={0.9} onPress={handleProfileSecretTap} style={styles.credentialHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -730,14 +730,14 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         </View>
           );
           return vip ? (
-            <View style={{ marginBottom: 8 }}>
+            <View style={{ marginBottom: theme.spacing.m }}>
               <VipCard
                 front={credential}
+                mediaUrl={vipMediaUrl(vip.media_path)}
                 back={{
                   name: profile?.display_name || 'Socio',
                   initials: profile?.initials,
                   avatarUrl: profile?.avatar_url,
-                  mediaUrl: vipMediaUrl(vip.media_path),
                   tagline: vip.tagline,
                 }}
               />
@@ -1276,7 +1276,8 @@ const styles = StyleSheet.create({
   backBtn: { paddingVertical: 6 },
   backBtnText: { color: theme.colors.primary, fontSize: 15, fontWeight: '600' },
   scroll: { padding: theme.spacing.l, paddingBottom: 40 },
-  vipCredentialCardGold: { borderColor: VIP_GOLD, borderWidth: 1.5 },
+  // Inside the VIP card the frame, glow and GIF come from VipCard
+  vipCredentialInCard: { backgroundColor: 'transparent', borderWidth: 0, marginBottom: 0, shadowOpacity: 0, elevation: 0 },
   credentialChipVip: { backgroundColor: VIP_GOLD, borderColor: VIP_GOLD },
   vipPendingBar: {
     backgroundColor: 'rgba(251,191,36,0.08)',

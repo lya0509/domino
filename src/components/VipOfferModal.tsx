@@ -97,7 +97,8 @@ export const VipOfferModal: React.FC<Props> = ({ visible, onClose, userId, name,
             <Text style={styles.price}>{config?.priceText ?? '5 USD al mes, al cambio BCV del día'}</Text>
 
             <View style={{ marginVertical: 14 }}>
-              <VipCard front={sampleFront} back={{ name, initials, avatarUrl, tagline: 'Así se ve tu tarjeta por detrás' }} autoFlip={visible} showHint={false} />
+              <VipCard front={sampleFront} back={{ name, initials, avatarUrl, tagline: 'Así se ve tu tarjeta por detrás' }} sample autoFlip={visible} showHint={false} />
+              <Text style={styles.sampleCaption}>Ejemplo: tu GIF o foto llena toda la tarjeta, por delante y por detrás.</Text>
             </View>
 
             {PERKS.map((p) => (
@@ -121,7 +122,7 @@ export const VipOfferModal: React.FC<Props> = ({ visible, onClose, userId, name,
                 )}
 
                 <Text style={styles.section}>1. Paga al asesor</Text>
-                <Text style={styles.payInfo}>{config?.paymentInfo || 'Pídele los datos de pago al asesor del café.'}</Text>
+                <Text style={styles.payInfo}>{config?.paymentInfo || 'Pídele los datos de pago al asesor del cafetín.'}</Text>
 
                 <Text style={styles.section}>2. Escribe la referencia</Text>
                 <TextInput
@@ -173,18 +174,15 @@ const styles = StyleSheet.create({
   },
   title: { color: VIP_GOLD, fontSize: 24, fontWeight: '900', textAlign: 'center' },
   price: { color: theme.colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center', marginTop: 4 },
+  sampleCaption: { color: theme.colors.textDim, fontSize: 12, textAlign: 'center', marginTop: 8 },
   sampleFront: {
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: VIP_GOLD,
-    backgroundColor: '#1a1d24',
     alignItems: 'center',
     paddingVertical: 18,
     paddingHorizontal: 16,
     minHeight: 260,
     justifyContent: 'center',
   },
-  sampleClub: { color: VIP_GOLD, fontWeight: '900', letterSpacing: 1.5, fontSize: 12, marginBottom: 12 },
+  sampleClub: { color: VIP_GOLD, fontWeight: '900', letterSpacing: 1.5, fontSize: 12, marginBottom: 12, textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 4 },
   sampleAvatar: {
     width: 64,
     height: 64,

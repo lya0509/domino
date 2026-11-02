@@ -31,7 +31,7 @@ const bySeat = (game: any): TableGame => ({
   players: [...(game.players || [])].sort((a: any, b: any) => a.seat - b.seat),
 });
 
-/** The café's internet comes and goes: a result that can't be sent waits in the outbox. */
+/** The cafetín's internet comes and goes: a result that can't be sent waits in the outbox. */
 const sendOrQueue = async (
   type: TableGameOperation,
   fn: string,

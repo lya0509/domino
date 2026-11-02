@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T20:42:02.258Z",
+    "generatedAt": "2026-11-02T21:10:46.459Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -621,8 +621,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1583,
-      "bytes": 58163,
+      "lines": 1585,
+      "bytes": 58267,
       "exports": [
         "HomeScreen"
       ],
@@ -688,7 +688,7 @@
       ],
       "exists": true,
       "lines": 677,
-      "bytes": 28873,
+      "bytes": 28896,
       "exports": [
         "SetupScreen"
       ],
@@ -846,8 +846,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1588,
-      "bytes": 65835,
+      "lines": 1589,
+      "bytes": 65966,
       "exports": [
         "ProfileScreen"
       ],
@@ -3211,8 +3211,8 @@
       "file": "src/components/VipCard.tsx",
       "role": "The VIP card: floats, flips with a sideways swipe or a tap; the back shows the photo or GIF, name and phrase.",
       "exists": true,
-      "lines": 137,
-      "bytes": 5076,
+      "lines": 218,
+      "bytes": 8385,
       "exports": [
         "VipBack",
         "VipCard"
@@ -3236,8 +3236,8 @@
       "file": "src/components/VipOfferModal.tsx",
       "role": "What VIP includes, a sample card that flips, the price and payment details, and the form to send the reference and receipt.",
       "exists": true,
-      "lines": 248,
-      "bytes": 9533,
+      "lines": 246,
+      "bytes": 9725,
       "exports": [
         "VipOfferModal"
       ],
@@ -3291,7 +3291,7 @@
       "role": "The VIP corner of the profile: days left, renew, photo or GIF for the card (waits for approval) and the phrase.",
       "exists": true,
       "lines": 135,
-      "bytes": 5384,
+      "bytes": 5434,
       "exports": [
         "VipStudio"
       ],
@@ -3570,7 +3570,7 @@
       "role": "Reads and RPCs for table games. Starting and finishing go through the offline outbox when there is no connection.",
       "exists": true,
       "lines": 183,
-      "bytes": 6761,
+      "bytes": 6764,
       "exports": [
         "RankingRow",
         "startTableGame",

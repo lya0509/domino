@@ -656,8 +656,9 @@ export const HomeScreen: React.FC<Props> = ({
         {/* My Stats Card — toca para ver perfil */}
         {currentUser && (
           <TouchableOpacity style={styles.myStatsCard} onPress={() => onOpenProfile()} activeOpacity={0.8}>
+            <View style={{ marginBottom: theme.spacing.m }}>
             <VipAvatarRing userId={currentUser.id} size={56}>
-              <View style={styles.myStatsAvatar}>
+              <View style={[styles.myStatsAvatar, { marginBottom: 0 }]}>
                 {currentUser?.avatar_url ? (
                   <Image source={{ uri: currentUser.avatar_url }} style={styles.myStatsImage} />
                 ) : (
@@ -665,6 +666,7 @@ export const HomeScreen: React.FC<Props> = ({
                 )}
               </View>
             </VipAvatarRing>
+            </View>
             <View style={styles.myStatsGrid}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{myStats?.wins ?? 0}</Text>

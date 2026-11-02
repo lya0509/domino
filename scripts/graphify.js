@@ -941,6 +941,8 @@ const FILE_ROLES = {
   'src/lib/gameStatsCore.ts': 'Pure per-game personal numbers: dominó (wins, losses, zapatos, total), UNO (wins, losses, win rate, played) and poker (wins, played, hands, best hand).',
   'src/lib/gameStats.ts': 'Loads UNO and poker numbers for one player from table_game_players and poker_ranking, cached for a minute (useTableGameCells).',
   'src/components/StatCells.tsx': 'Four numbers in a row, shared by the home card and the profile stats.',
+  'src/lib/tournamentBracket.ts': 'Pure bracket helpers: round names (Final, Semifinal), team names, score and state of each match, champions, and when an admin may decide a bracket.',
+  'src/components/TournamentBracket.tsx': 'Tournament bracket: rounds side by side with names, scores, match state, champions and the admin "who won?" buttons.',
   'src/lib/shareVipCard.ts': 'Draws the VIP card as a 1080x1350 picture on a canvas and shares it (Web Share) or downloads it.',
   'src/lib/vip.ts': 'Pure VIP rules shared with the unit tests: is a VIP still active, and whole days left.',
   'src/lib/vipService.ts':
@@ -1056,6 +1058,8 @@ const RPC_ROLES = {
   review_vip_request: 'Admin approves (adds vip_days, extending an active VIP) or rejects with a reason. The member gets a push.',
   set_vip_media: 'An active VIP proposes the card photo or GIF; it waits for an admin.',
   review_vip_media: 'Admin approves or rejects a VIP card photo.',
+  review_tournament_payment: 'Admin approves or rejects a Bs tournament payment; the pot is entry × approved and a rejected player may sign up again.',
+  admin_decide_tournament_match: 'Admin gives a bracket to a team when nobody can close it (no confirmation, abandoned, no-show); the tournament advances.',
   set_vip_tagline: 'An active VIP sets the phrase on the back of the card (60 characters).',
   list_vip_requests: 'Admin list of VIP requests with name and receipt path.',
   list_vip_media_pending: 'Admin list of VIP card photos waiting for approval.',

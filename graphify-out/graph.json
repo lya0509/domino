@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T22:46:29.413Z",
+    "generatedAt": "2026-11-02T23:21:27.588Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,14 +10,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 211,
-      "totalEdges": 404,
+      "totalNodes": 216,
+      "totalEdges": 411,
       "totalHyperedges": 7,
       "totalScreens": 15,
-      "totalComponents": 34,
-      "totalServices": 24,
+      "totalComponents": 35,
+      "totalServices": 25,
       "totalDatabaseTables": 23,
-      "totalDatabaseRpcs": 48,
+      "totalDatabaseRpcs": 50,
       "totalQaSuites": 18
     }
   },
@@ -1058,8 +1058,8 @@
         "Admin Panel: Create Tournament + Approve/Reject Participant Receipts"
       ],
       "exists": true,
-      "lines": 1725,
-      "bytes": 85717,
+      "lines": 1569,
+      "bytes": 76562,
       "exports": [
         "TournamentsScreen"
       ],
@@ -1071,13 +1071,16 @@
         "../lib/offlineSync",
         "../types",
         "expo-image-picker",
-        "base64-arraybuffer"
+        "base64-arraybuffer",
+        "../components/TournamentBracket",
+        "../lib/tournamentBracket",
+        "../lib/vipService"
       ],
       "supabaseTables": [
         "tournament_brackets",
+        "matches",
         "profiles",
         "tournaments",
-        "matches",
         "tournament_participants",
         "tournament_payouts",
         "receipts"
@@ -1085,10 +1088,11 @@
       "supabaseRpcs": [
         "clean_old_tournaments",
         "join_tournament_with_points",
+        "review_tournament_payment",
+        "admin_decide_tournament_match",
         "invite_tournament_partner",
         "respond_tournament_partner",
         "start_tournament",
-        "award_tournament_prize",
         "expire_tournament_registration"
       ],
       "realtimeChannels": [
@@ -1639,7 +1643,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 54,
-      "bytes": 2098,
+      "bytes": 2127,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1710,8 +1714,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1783,
-      "bytes": 90547,
+      "lines": 1787,
+      "bytes": 91204,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2631,6 +2635,24 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261102_21_torneos.sql",
+      "label": "20261102_21_torneos.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261102_21_torneos.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 467,
+      "bytes": 18389,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/BetHistoryRow.tsx",
       "label": "BetHistoryRow.tsx",
       "type": "component",
@@ -3244,6 +3266,31 @@
         "../lib/poker",
         "../lib/tableGames",
         "../lib/tableGameService"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/TournamentBracket.tsx",
+      "label": "TournamentBracket.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/TournamentBracket.tsx",
+      "role": "Tournament bracket: rounds side by side with names, scores, match state, champions and the admin \"who won?\" buttons.",
+      "exists": true,
+      "lines": 161,
+      "bytes": 7790,
+      "exports": [
+        "TournamentBracket"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/tournamentBracket"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3869,6 +3916,36 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/tournamentBracket.ts",
+      "label": "tournamentBracket.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/tournamentBracket.ts",
+      "role": "Pure bracket helpers: round names (Final, Semifinal), team names, score and state of each match, champions, and when an admin may decide a bracket.",
+      "exists": true,
+      "lines": 102,
+      "bytes": 3851,
+      "exports": [
+        "BracketPlayer",
+        "BracketRow",
+        "BracketMatchInfo",
+        "BracketState",
+        "roundLabel",
+        "teamLabel",
+        "bracketState",
+        "STATE_TEXT",
+        "bracketScore",
+        "champions",
+        "canDecide"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/useGameSwipe.ts",
       "label": "useGameSwipe.ts",
       "type": "service",
@@ -4350,6 +4427,20 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "How much bet winnings the caller can still collect today under the daily cap (system_config.max_bet_profit_per_day). Shown in the bet modal."
+    },
+    {
+      "id": "rpc:review_tournament_payment",
+      "label": "review_tournament_payment",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Admin approves or rejects a Bs tournament payment; the pot is entry × approved and a rejected player may sign up again."
+    },
+    {
+      "id": "rpc:admin_decide_tournament_match",
+      "label": "admin_decide_tournament_match",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Admin gives a bracket to a team when nobody can close it (no confirmation, abandoned, no-show); the tournament advances."
     },
     {
       "id": "rpc:invite_tournament_partner",
@@ -5554,13 +5645,13 @@
     },
     {
       "source": "src/screens/TournamentsScreen.tsx",
-      "target": "db:profiles",
+      "target": "db:matches",
       "relation": "uses_table",
       "derived": true
     },
     {
       "source": "src/screens/TournamentsScreen.tsx",
-      "target": "db:matches",
+      "target": "db:profiles",
       "relation": "uses_table",
       "derived": true
     },
@@ -5573,6 +5664,18 @@
     {
       "source": "src/screens/TournamentsScreen.tsx",
       "target": "rpc:clean_old_tournaments",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "rpc:review_tournament_payment",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "rpc:admin_decide_tournament_match",
       "relation": "calls_rpc",
       "derived": true
     },
@@ -5621,6 +5724,24 @@
     {
       "source": "src/screens/TournamentsScreen.tsx",
       "target": "src/types.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "src/components/TournamentBracket.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "src/lib/tournamentBracket.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
+      "target": "src/lib/vipService.ts",
       "relation": "imports",
       "derived": true
     },
@@ -6173,6 +6294,18 @@
     {
       "source": "src/components/TableGameRanking.tsx",
       "target": "src/lib/tableGameService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TournamentBracket.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TournamentBracket.tsx",
+      "target": "src/lib/tournamentBracket.ts",
       "relation": "imports",
       "derived": true
     },

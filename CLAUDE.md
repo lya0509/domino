@@ -61,7 +61,7 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 - [`src/screens/StoreScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/StoreScreen.tsx) (`route: 'store'`) — 14 VIP cosmetics + 250,000-pt Custom Title creator.
 - [`src/screens/AchievementsScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/AchievementsScreen.tsx) (`route: 'achievements'`) — 50 unlockable achievements with point rewards.
 - [`src/screens/LeaderboardScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/LeaderboardScreen.tsx) (`route: 'leaderboard'`) — Top 100 `💰 Ricos`, `🏆 Ganadores`, and `🥾 Zapateros`.
-- [`src/screens/TournamentsScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/TournamentsScreen.tsx) (`route: 'tournaments'`) — `vip_cash` (Bs + receipt upload), `brackets`, and `leaderboard` tournaments + Admin panel.
+- [`src/screens/TournamentsScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/TournamentsScreen.tsx) (`route: 'tournaments'`) — `vip_cash` (Bs + receipt upload) and `brackets` (points) tournaments + Admin panel. The server runs everything (start, rounds, prize); brackets are drawn by `TournamentBracket` and an admin can decide a stuck bracket. Tested end to end in `tests/db/torneos.mjs`.
 - [`src/screens/GlobalChatScreen.tsx`](file:///home/lya/proyectos/Domino/src/screens/GlobalChatScreen.tsx) (`route: 'global_chat'`) — Real-time global lobby chat with 3s cooldown.
 
 ### Community 6: Reusable Components (`src/components/`)

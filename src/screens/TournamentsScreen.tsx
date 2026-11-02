@@ -6,6 +6,9 @@ import { offlineSync } from '../lib/offlineSync';
 import { Match, Profile, Tournament, TournamentParticipant, TournamentBracket, BracketMatch } from '../types';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
+import { TournamentBracket as BracketBoard } from '../components/TournamentBracket';
+import { BracketMatchInfo, BracketRow, teamLabel } from '../lib/tournamentBracket';
+import { fetchVipConfig } from '../lib/vipService';
 
 interface Props {
   profileId: string | null;
@@ -17,6 +20,14 @@ interface Props {
 
 // payout_details is a TEXT column holding JSON ({ bank, id, phone, paid? })
 type PayoutDetails = { bank?: string; id?: string; phone?: string; paid?: boolean };
+// "Ana & Luis" from a live match's players_json
+const teamNames = (players: any, team: 1 | 2): string => {
+  const names = (Array.isArray(players) ? players : [])
+    .filter((p: any) => p?.teamNumber === team)
+    .map((p: any) => String(p?.name || p?.initials || '?').split(' ')[0]);
+  return names.length ? names.join(' & ') : `Equipo ${team}`;
+};
+
 const parsePayout = (raw: unknown): PayoutDetails | null => {
   if (raw == null) return null;
   if (typeof raw === 'object') return raw as PayoutDetails;
@@ -34,6 +45,12 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
   useEffect(() => {
     setLocalIsAdmin(isAdmin);
   }, [isAdmin]);
+
+  // Where to pay a Bs entry: never hard-coded, the admin sets it in Panel VIP → Ajustes
+  const [paymentInfo, setPaymentInfo] = useState('');
+  useEffect(() => {
+    fetchVipConfig().then((c) => setPaymentInfo(c?.paymentInfo?.trim() || '')).catch(() => {});
+  }, []);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +62,8 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
   const [bracketsData, setBracketsData] = useState<any[]>([]); // For modal backwards compatibility if needed
   const [allBrackets, setAllBrackets] = useState<Record<string, any[]>>({});
   const [liveMatches, setLiveMatches] = useState<Record<string, any[]>>({});
+  // Every tournament match by id (score and status) for the bracket cards
+  const [matchInfo, setMatchInfo] = useState<Record<string, BracketMatchInfo>>({});
   const [showPartnerModal, setShowPartnerModal] = useState<Tournament | null>(null);
   const [availablePartners, setAvailablePartners] = useState<any[]>([]);
 
@@ -118,10 +137,10 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
         .from('tournament_brackets')
         .select(`
           *,
-          t1p1:profiles!tournament_brackets_team1_player1_fkey(id, initials),
-          t1p2:profiles!tournament_brackets_team1_player2_fkey(id, initials),
-          t2p1:profiles!tournament_brackets_team2_player1_fkey(id, initials),
-          t2p2:profiles!tournament_brackets_team2_player2_fkey(id, initials)
+          t1p1:profiles!tournament_brackets_team1_player1_fkey(id, initials, display_name),
+          t1p2:profiles!tournament_brackets_team1_player2_fkey(id, initials, display_name),
+          t2p1:profiles!tournament_brackets_team2_player1_fkey(id, initials, display_name),
+          t2p2:profiles!tournament_brackets_team2_player2_fkey(id, initials, display_name)
         `)
         .eq('tournament_id', tId)
         .order('round_number', { ascending: true })
@@ -129,9 +148,19 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
         
       if (error) throw error;
       setBracketsData(data || []);
+      await loadMatchInfo([tId]);
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const loadMatchInfo = async (tournamentIds: string[]) => {
+    if (!tournamentIds.length) return;
+    const { data } = await supabase
+      .from('matches')
+      .select('id, status, team1_total, team2_total')
+      .in('tournament_id', tournamentIds);
+    if (data) setMatchInfo((cur) => ({ ...cur, ...Object.fromEntries(data.map((m: any) => [m.id, m])) }));
   };
 
   const fetchData = async (silent = false) => {
@@ -176,10 +205,10 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
               .from('tournament_brackets')
               .select(`
                 *,
-                t1p1:profiles!tournament_brackets_team1_player1_fkey(id, initials),
-                t1p2:profiles!tournament_brackets_team1_player2_fkey(id, initials),
-                t2p1:profiles!tournament_brackets_team2_player1_fkey(id, initials),
-                t2p2:profiles!tournament_brackets_team2_player2_fkey(id, initials)
+                t1p1:profiles!tournament_brackets_team1_player1_fkey(id, initials, display_name),
+                t1p2:profiles!tournament_brackets_team1_player2_fkey(id, initials, display_name),
+                t2p1:profiles!tournament_brackets_team2_player1_fkey(id, initials, display_name),
+                t2p2:profiles!tournament_brackets_team2_player2_fkey(id, initials, display_name)
               `)
               .eq('tournament_id', lt.id)
               .order('round_number', { ascending: true })
@@ -197,6 +226,7 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
           }
           setAllBrackets(newAllBrackets);
           setLiveMatches(newLiveMatches);
+          await loadMatchInfo(liveT.map((lt) => lt.id));
         }
 
         if (profileId) {
@@ -439,45 +469,65 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
     }
   };
 
-  const handleApprovePayment = async (participantId: string, tournamentId: string, amount: number) => {
-    try {
-      // Approve participant
-      const { error: updErr } = await supabase
-        .from('tournament_participants')
-        .update({ payment_status: 'approved' })
-        .eq('id', participantId);
-      if (updErr) throw updErr;
-
-      // Update prize pool (add entry fee)
-      const { data: tData } = await supabase.from('tournaments').select('prize_pool').eq('id', tournamentId).single();
-      const newPool = (tData?.prize_pool || 0) + amount;
-      await supabase.from('tournaments').update({ prize_pool: newPool }).eq('id', tournamentId);
-
-      Alert.alert('Aprobado', 'El pago fue aprobado y el pozo actualizado.');
-      fetchData();
-    } catch (e) {
-      console.error(e);
-      Alert.alert('Error', 'No se pudo aprobar.');
+  // The server approves or rejects in one go: the pot is always entry × approved,
+  // and a rejected player is told and may sign up again with another receipt
+  const reviewPayment = async (participantId: string, approve: boolean) => {
+    let { error } = await supabase.rpc('review_tournament_payment', { p_participant_id: participantId, p_approve: approve });
+    // Before SQL 21 the function does not exist: do it the old way (admin-only writes)
+    if (error && /could not find the function|does not exist|PGRST202/i.test(`${error.message} ${(error as any).code}`)) {
+      error = await reviewPaymentOldWay(participantId, approve);
     }
+    if (error) {
+      Alert.alert('Error', error.message || (approve ? 'No se pudo aprobar.' : 'No se pudo rechazar.'));
+      return;
+    }
+    Alert.alert(approve ? 'Aprobado' : 'Rechazado', approve
+      ? 'El pago fue aprobado y el pozo actualizado.'
+      : 'Se le avisó al jugador. Puede inscribirse de nuevo con otro comprobante.');
+    fetchData();
   };
+
+  const reviewPaymentOldWay = async (participantId: string, approve: boolean) => {
+    const row = participants.find((p) => p.id === participantId);
+    const { error } = await supabase
+      .from('tournament_participants')
+      .update({ payment_status: approve ? 'approved' : 'rejected' })
+      .eq('id', participantId);
+    if (error || !approve || !row) return error;
+    const t = tournaments.find((x) => x.id === row.tournament_id);
+    const { data: tData } = await supabase.from('tournaments').select('prize_pool').eq('id', row.tournament_id).single();
+    const { error: poolErr } = await supabase
+      .from('tournaments')
+      .update({ prize_pool: (Number(tData?.prize_pool) || 0) + (Number(t?.entry_fee) || 0) })
+      .eq('id', row.tournament_id);
+    return poolErr;
+  };
+
+  const handleApprovePayment = (participantId: string) => reviewPayment(participantId, true);
 
   const handleRejectPayment = (participantId: string) => {
     Alert.alert('Rechazar Pago', '¿El pago no llegó o el capture no es válido? El jugador no entrará al torneo.', [
       { text: 'Cancelar', style: 'cancel' },
+      { text: 'Rechazar', style: 'destructive', onPress: () => reviewPayment(participantId, false) },
+    ]);
+  };
+
+  // A bracket nobody can close (no confirmation, abandoned, a team did not show up)
+  const handleDecide = (row: BracketRow, team: 1 | 2) => {
+    const name = teamLabel(row, team) || `Equipo ${team}`;
+    Alert.alert('Decidir la llave', `¿Dar la victoria a ${name}? El torneo sigue desde ahí y no se puede deshacer.`, [
+      { text: 'Cancelar', style: 'cancel' },
       {
-        text: 'Rechazar',
-        style: 'destructive',
+        text: 'Dar la victoria',
         onPress: async () => {
-          const { error } = await supabase
-            .from('tournament_participants')
-            .update({ payment_status: 'rejected' })
-            .eq('id', participantId);
+          const { error } = await supabase.rpc('admin_decide_tournament_match', { p_bracket_id: row.id, p_winner: team });
           if (error) {
-            Alert.alert('Error', 'No se pudo rechazar.');
+            const missing = /could not find the function|PGRST202/i.test(`${error.message} ${(error as any).code}`);
+            Alert.alert('Error', missing ? 'Falta pegar el SQL 21 de torneos en Supabase.' : error.message || 'No se pudo decidir la llave.');
             return;
           }
-          Alert.alert('Rechazado', 'El pago fue rechazado.');
-          fetchData();
+          fetchData(true);
+          if (showBracketModal) loadBrackets(showBracketModal.id);
         },
       },
     ]);
@@ -676,116 +726,6 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       if (onWatchLiveMatch) {
         onWatchLiveMatch(currentLiveMatchId);
       }
-    }
-  };
-
-  const processWinner = async (match: BracketMatch, winnerTeamNumber: number) => {
-    try {
-      setLoading(true);
-      // Update match
-      const { error: updErr } = await supabase
-        .from('tournament_brackets')
-        .update({ winner_team: winnerTeamNumber })
-        .eq('id', match.id);
-      if (updErr) throw updErr;
-
-      // Check if all matches in this round are finished
-      const { data: allMatches, error: selErr } = await supabase
-        .from('tournament_brackets')
-        .select('*')
-        .eq('tournament_id', match.tournament_id)
-        .eq('round_number', match.round_number);
-        
-      if (selErr) throw selErr;
-
-      const updatedMatches = allMatches.map(m => m.id === match.id ? { ...m, winner_team: winnerTeamNumber } : m);
-      const allFinished = updatedMatches.every(m => m.winner_team !== null);
-
-      if (allFinished) {
-        // Collect all winning teams
-        const winners = updatedMatches.map(m => {
-          return m.winner_team === 1 
-            ? { p1: m.team1_player1, p2: m.team1_player2 } 
-            : { p1: m.team2_player1, p2: m.team2_player2 };
-        });
-
-        if (winners.length === 1) {
-          // Tournament is over!
-          await supabase.from('tournaments').update({ status: 'completed' }).eq('id', match.tournament_id);
-
-          // Si es un torneo de puntos, el servidor paga el pozo a los campeones de la final (una sola vez)
-          let prizeMsg = 'El torneo ha concluido exitosamente.';
-          try {
-            const { data: prize, error: prizeErr } = await supabase.rpc('award_tournament_prize', { p_tournament_id: match.tournament_id });
-            if (prizeErr) throw prizeErr;
-            if (prize?.paid) prizeMsg += ` Cada campeón recibió ${prize.per_champion} pts.`;
-          } catch (payoutErr) {
-            console.error('Error awarding tournament prize points:', payoutErr);
-          }
-
-          Alert.alert('🏆 ¡Torneo Finalizado!', prizeMsg);
-          fetchData();
-        } else {
-          // Generate next round with live matches
-          const nextRoundMatches = [];
-          let matchCount = 1;
-          for (let i = 0; i < winners.length; i += 2) {
-            if (i + 1 < winners.length) {
-              const w1 = winners[i];
-              const w2 = winners[i + 1];
-
-              const playerIds = [w1.p1, w1.p2, w2.p1, w2.p2].filter(Boolean);
-              const { data: profs } = await supabase.from('profiles').select('id, display_name, initials').in('id', playerIds);
-              const pMap = new Map((profs || []).map(p => [p.id, p]));
-
-              const players_json = [
-                { id: '1', profileId: w1.p1, name: pMap.get(w1.p1)?.display_name || 'J1', initials: pMap.get(w1.p1)?.initials || 'J1', teamNumber: 1, position: 'bottom' },
-                { id: '2', profileId: w2.p1, name: pMap.get(w2.p1)?.display_name || 'J3', initials: pMap.get(w2.p1)?.initials || 'J3', teamNumber: 2, position: 'right' },
-                { id: '3', profileId: w1.p2, name: pMap.get(w1.p2)?.display_name || 'J2', initials: pMap.get(w1.p2)?.initials || 'J2', teamNumber: 1, position: 'top' },
-                { id: '4', profileId: w2.p2, name: pMap.get(w2.p2)?.display_name || 'J4', initials: pMap.get(w2.p2)?.initials || 'J4', teamNumber: 2, position: 'left' },
-              ];
-
-              const { data: liveMatchData } = await supabase.from('matches').insert({
-                tournament_id: match.tournament_id,
-                status: 'active',
-                game_mode: 'teams',
-                limit_score: 100,
-                team1_total: 0,
-                team2_total: 0,
-                team1_player1: w1.p1,
-                team1_player2: w1.p2,
-                team2_player1: w2.p1,
-                team2_player2: w2.p2,
-                rounds: [],
-                players_json
-              }).select('id').single();
-
-              nextRoundMatches.push({
-                tournament_id: match.tournament_id,
-                round_number: match.round_number + 1,
-                match_number: matchCount++,
-                team1_player1: w1.p1,
-                team1_player2: w1.p2,
-                team2_player1: w2.p1,
-                team2_player2: w2.p2,
-                live_match_id: liveMatchData?.id || null
-              });
-            }
-          }
-          if (nextRoundMatches.length > 0) {
-            await supabase.from('tournament_brackets').insert(nextRoundMatches);
-            Alert.alert('¡Siguiente Ronda!', `La Ronda ${match.round_number + 1} ha sido generada automáticamente.`);
-          }
-        }
-      }
-
-      // Refresh brackets data
-      loadBrackets(match.tournament_id);
-    } catch (e) {
-      console.error(e);
-      Alert.alert('Error', 'Hubo un error al procesar el ganador.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -1062,55 +1002,9 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
                     </Text>
                   </View>
                 )}
-                <ScrollView style={{ flex: 1, width: '100%', marginBottom: 16 }}>
-                  <ScrollView horizontal style={{ flex: 1, width: '100%' }}>
-                    <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 20 }}>
-                    {[...new Set(tBrackets.map(b => b.round_number))].sort().map(round => {
-                      const isLast = round === Math.max(...tBrackets.map(b => b.round_number));
-                      const isFirst = round === Math.min(...tBrackets.map(b => b.round_number));
-                      
-                      const itemHeight = 120 * Math.pow(2, round - 1);
-                      
-                      return (
-                        <View key={`round-${round}`} style={{ width: 160, marginHorizontal: 15, justifyContent: 'flex-start', paddingTop: 40 }}>
-                          <Text style={{ position: 'absolute', top: 0, left: 0, right: 0, color: theme.colors.primary, textAlign: 'center', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 }}>Ronda {round}</Text>
-                          {tBrackets.filter(b => b.round_number === round).map(match => (
-                            <View key={match.id} style={{ height: itemHeight, justifyContent: 'center', position: 'relative' }}>
-                              {/* Línea vertical de conexión (en el centro del espacio entre columnas) */}
-                              {!isFirst && <View style={{ position: 'absolute', left: -15, top: '25%', width: 2, height: '50%', backgroundColor: '#EF4444', zIndex: -1 }} />}
-
-                              <View style={{ 
-                                backgroundColor: theme.colors.card, padding: 12, borderRadius: 12, 
-                                borderWidth: 1, borderColor: match.winner_team ? theme.colors.primary : theme.colors.cardBorder, 
-                                position: 'relative', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3
-                              }}>
-                                {/* Conector hacia adelante */}
-                                {!isLast && <View style={{ position: 'absolute', right: -15, top: '50%', width: 15, height: 2, backgroundColor: '#EF4444', zIndex: -1 }} />}
-                                {/* Conector hacia atrás */}
-                                {!isFirst && <View style={{ position: 'absolute', left: -15, top: '50%', width: 15, height: 2, backgroundColor: '#EF4444', zIndex: -1 }} />}
-                                
-                                <TouchableOpacity 
-                                  style={{ borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 8, marginBottom: 8 }}
-                                  onPress={() => handleMatchClick(match)}
-                                >
-                                  <Text style={{ color: match.winner_team === 1 ? theme.colors.success : theme.colors.text, fontSize: 13, textAlign: 'center', fontWeight: match.winner_team === 1 ? 'bold' : '600' }}>
-                                    {match.t1p1?.initials || '?'} & {match.t1p2?.initials || '?'}
-                                  </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleMatchClick(match)}>
-                                  <Text style={{ color: match.winner_team === 2 ? theme.colors.success : theme.colors.text, fontSize: 13, textAlign: 'center', fontWeight: match.winner_team === 2 ? 'bold' : '600' }}>
-                                    {match.t2p1?.initials || '?'} & {match.t2p2?.initials || '?'}
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-                            </View>
-                          ))}
-                        </View>
-                      );
-                    })}
-                  </View>
-                </ScrollView>
-              </ScrollView>
+                <View style={{ marginBottom: 16 }}>
+                  <BracketBoard rows={tBrackets} matches={matchInfo} isAdmin={localIsAdmin} onPress={(row) => handleMatchClick(row as any)} onDecide={handleDecide} />
+                </View>
 
                 {tMatches.length > 0 && (
                   <View style={{ marginTop: 8, paddingHorizontal: 16 }}>
@@ -1119,7 +1013,7 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
                       <TouchableOpacity key={tm.id} style={{ backgroundColor: 'rgba(59,130,246,0.1)', borderColor: '#3B82F6', borderWidth: 1, padding: 16, borderRadius: 12, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }} onPress={() => onWatchLiveMatch && onWatchLiveMatch(tm.id)}>
                         <View>
                           <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>
-                            Eq. 1 ({tm.team1_total}) <Text style={{color: theme.colors.textDim}}>vs</Text> Eq. 2 ({tm.team2_total})
+                            {teamNames(tm.players_json, 1)} ({tm.team1_total}) <Text style={{color: theme.colors.textDim}}>vs</Text> {teamNames(tm.players_json, 2)} ({tm.team2_total})
                           </Text>
                           <Text style={{ color: '#3B82F6', fontSize: 12, marginTop: 4 }}>Toca para ver en vivo</Text>
                         </View>
@@ -1229,7 +1123,7 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <TouchableOpacity 
               style={[styles.joinBtn, { flex: 1, backgroundColor: theme.colors.success }]}
-              onPress={() => handleApprovePayment(p.id, p.tournament_id, tournaments.find(t => t.id === p.tournament_id)?.entry_fee || 0)}
+              onPress={() => handleApprovePayment(p.id)}
             >
               <Text style={styles.joinBtnText}>Aprobar</Text>
             </TouchableOpacity>
@@ -1326,10 +1220,9 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
               <>
                 <View style={styles.paymentInfo}>
                   <Text style={{ color: theme.colors.text, fontWeight: 'bold' }}>Datos de Pago Móvil:</Text>
-                  <Text style={{ color: theme.colors.textDim }}>Banco: 0102 - Bco. Venezuela</Text>
-                  <Text style={{ color: theme.colors.textDim }}>C.I: 12.345.678</Text>
-                  <Text style={{ color: theme.colors.textDim }}>Tlf: 0414-1234567</Text>
-                  <Text style={{ color: theme.colors.accent, fontWeight: 'bold', marginTop: 8 }}>Monto: Bs {showJoinModal?.entry_fee} (al cambio)</Text>
+                  {/* The same payment details the admin keeps in Panel VIP → Ajustes */}
+                  <Text style={{ color: theme.colors.textDim }}>{paymentInfo || 'Pídele los datos de pago al asesor del cafetín.'}</Text>
+                  <Text style={{ color: theme.colors.accent, fontWeight: 'bold', marginTop: 8 }}>Monto: Bs {showJoinModal?.entry_fee}</Text>
                 </View>
 
                 <TextInput 
@@ -1476,56 +1369,7 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
             <Text style={styles.modalTitle}>Cuadro de Enfrentamientos</Text>
             
             <ScrollView style={{ flex: 1, width: '100%' }}>
-              <ScrollView horizontal style={{ flex: 1, width: '100%' }}>
-                <View style={{ flexDirection: 'row', paddingVertical: 20 }}>
-                {/* Agrupamos por rondas */}
-                {[...new Set(bracketsData.map(b => b.round_number))].sort().map(round => {
-                  const isLast = round === Math.max(...bracketsData.map(b => b.round_number));
-                  const isFirst = round === Math.min(...bracketsData.map(b => b.round_number));
-                  
-                  const itemHeight = 120 * Math.pow(2, round - 1);
-                  
-                  return (
-                    <View key={`round-${round}`} style={{ width: 160, marginHorizontal: 20, justifyContent: 'flex-start', paddingTop: 40 }}>
-                      <Text style={{ position: 'absolute', top: 0, left: 0, right: 0, color: theme.colors.primary, textAlign: 'center', fontWeight: '900', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 }}>Ronda {round}</Text>
-                      {bracketsData.filter(b => b.round_number === round).map(match => (
-                        <View key={match.id} style={{ height: itemHeight, justifyContent: 'center', position: 'relative' }}>
-                          {/* Línea vertical de conexión (en el centro del espacio entre columnas) */}
-                          {!isFirst && <View style={{ position: 'absolute', left: -20, top: '25%', width: 2, height: '50%', backgroundColor: '#EF4444', zIndex: -1 }} />}
-
-                          <View style={{ 
-                            backgroundColor: theme.colors.card, padding: 12, borderRadius: 12, 
-                            borderWidth: 1, borderColor: match.winner_team ? theme.colors.primary : theme.colors.cardBorder, 
-                            position: 'relative', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3
-                          }}>
-                            {/* Conector hacia adelante */}
-                            {!isLast && <View style={{ position: 'absolute', right: -20, top: '50%', width: 20, height: 2, backgroundColor: '#EF4444', zIndex: -1 }} />}
-                            {/* Conector hacia atrás */}
-                            {!isFirst && <View style={{ position: 'absolute', left: -20, top: '50%', width: 20, height: 2, backgroundColor: '#EF4444', zIndex: -1 }} />}
-                            
-                            <TouchableOpacity 
-                              style={{ borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 8, marginBottom: 8 }}
-                              onPress={() => handleMatchClick(match)}
-                            >
-                              <Text style={{ color: match.winner_team === 1 ? theme.colors.success : theme.colors.text, fontSize: 14, textAlign: 'center', fontWeight: match.winner_team === 1 ? 'bold' : '600' }}>
-                                {match.t1p1?.initials || '?'} & {match.t1p2?.initials || '?'}
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                              onPress={() => handleMatchClick(match)}
-                            >
-                              <Text style={{ color: match.winner_team === 2 ? theme.colors.success : theme.colors.text, fontSize: 14, textAlign: 'center', fontWeight: match.winner_team === 2 ? 'bold' : '600' }}>
-                                {match.t2p1?.initials || '?'} & {match.t2p2?.initials || '?'}
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  );
-                })}
-              </View>
-            </ScrollView>
+              <BracketBoard rows={bracketsData} matches={matchInfo} isAdmin={localIsAdmin} onPress={(row) => handleMatchClick(row as any)} onDecide={handleDecide} />
             </ScrollView>
 
             <TouchableOpacity style={[styles.joinBtn, { width: '100%', marginTop: 16 }]} onPress={() => setShowBracketModal(null)}>

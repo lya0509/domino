@@ -67,7 +67,14 @@ let vipMap: Record<string, VipInfo> = {};
 let loadedAt = 0;
 let inFlight: Promise<void> | null = null;
 const listeners = new Set<() => void>();
-const STALE_MS = 5 * 60_000;
+const STALE_MS = 60_000;
+
+// Coming back to the app (or the tab) picks up approvals and expiries at once
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshVips(true);
+  });
+}
 
 const emit = () => listeners.forEach((l) => l());
 

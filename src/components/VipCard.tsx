@@ -116,6 +116,9 @@ export const VipCard: React.FC<{
   const pan = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      // Take the gesture even when the finger started on a button inside
+      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderTerminationRequest: () => false,
       onPanResponderRelease: (_, g) => {
         if (Math.abs(g.dx) > 40) turn();
       },

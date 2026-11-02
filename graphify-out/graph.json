@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T21:10:46.459Z",
+    "generatedAt": "2026-11-02T21:34:35.891Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,13 +10,13 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 200,
-      "totalEdges": 371,
+      "totalNodes": 205,
+      "totalEdges": 384,
       "totalHyperedges": 7,
       "totalScreens": 15,
-      "totalComponents": 32,
-      "totalServices": 20,
-      "totalDatabaseTables": 22,
+      "totalComponents": 33,
+      "totalServices": 23,
+      "totalDatabaseTables": 23,
       "totalDatabaseRpcs": 46,
       "totalQaSuites": 18
     }
@@ -621,8 +621,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1585,
-      "bytes": 58267,
+      "lines": 1611,
+      "bytes": 59629,
       "exports": [
         "HomeScreen"
       ],
@@ -632,6 +632,9 @@
         "@react-native-async-storage/async-storage",
         "../theme",
         "../components/VipRing",
+        "../lib/vipService",
+        "../lib/gameStats",
+        "../components/StatCells",
         "../types",
         "../lib/supabase",
         "../lib/sounds",
@@ -846,8 +849,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1589,
-      "bytes": 65966,
+      "lines": 1703,
+      "bytes": 71070,
       "exports": [
         "ProfileScreen"
       ],
@@ -876,6 +879,9 @@
         "../components/VipOfferModal",
         "../components/VipStudio",
         "../components/VipAdminModal",
+        "../lib/shareVipCard",
+        "../lib/gameStats",
+        "../components/StatCells",
         "../lib/playerHistory"
       ],
       "supabaseTables": [
@@ -1698,8 +1704,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1774,
-      "bytes": 89280,
+      "lines": 1779,
+      "bytes": 90001,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -3116,6 +3122,31 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/components/StatCells.tsx",
+      "label": "StatCells.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/StatCells.tsx",
+      "role": "Four numbers in a row, shared by the home card and the profile stats.",
+      "exists": true,
+      "lines": 37,
+      "bytes": 1314,
+      "exports": [
+        "StatCells"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/gameStatsCore"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/TableGameConfirmationPrompt.tsx",
       "label": "TableGameConfirmationPrompt.tsx",
       "type": "component",
@@ -3211,8 +3242,8 @@
       "file": "src/components/VipCard.tsx",
       "role": "The VIP card: floats, flips with a sideways swipe or a tap; the back shows the photo or GIF, name and phrase.",
       "exists": true,
-      "lines": 218,
-      "bytes": 8385,
+      "lines": 221,
+      "bytes": 8626,
       "exports": [
         "VipBack",
         "VipCard"
@@ -3340,6 +3371,65 @@
         "wager_consent_me_${Date.now()}",
         "wager_status_${matchId}_${Date.now()}"
       ],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/gameStats.ts",
+      "label": "gameStats.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/gameStats.ts",
+      "role": "Loads UNO and poker numbers for one player from table_game_players and poker_ranking, cached for a minute (useTableGameCells).",
+      "exists": true,
+      "lines": 67,
+      "bytes": 2555,
+      "exports": [
+        "fetchTableGameCells",
+        "useTableGameCells"
+      ],
+      "imports": [
+        "react",
+        "./supabase",
+        "./poker",
+        "./gameStatsCore"
+      ],
+      "supabaseTables": [
+        "table_game_players"
+      ],
+      "supabaseRpcs": [
+        "poker_ranking"
+      ],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/gameStatsCore.ts",
+      "label": "gameStatsCore.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/gameStatsCore.ts",
+      "role": "Pure per-game personal numbers: dominó (wins, losses, zapatos, total), UNO (wins, losses, win rate, played) and poker (wins, played, hands, best hand).",
+      "exists": true,
+      "lines": 55,
+      "bytes": 2139,
+      "exports": [
+        "StatGame",
+        "STAT_GAMES",
+        "UNO_GAMES",
+        "StatTone",
+        "StatCell",
+        "TableRecord",
+        "countTableRecord",
+        "dominoCells",
+        "unoCells",
+        "pokerCells"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
     },
@@ -3562,6 +3652,31 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/shareVipCard.ts",
+      "label": "shareVipCard.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/shareVipCard.ts",
+      "role": "Draws the VIP card as a 1080x1350 picture on a canvas and shares it (Web Share) or downloads it.",
+      "exists": true,
+      "lines": 208,
+      "bytes": 6999,
+      "exports": [
+        "VipCardPicture",
+        "ShareOutcome",
+        "drawVipCard",
+        "shareVipCard"
+      ],
+      "imports": [
+        "react-native"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/tableGameService.ts",
       "label": "tableGameService.ts",
       "type": "service",
@@ -3699,8 +3814,8 @@
       "file": "src/lib/vipService.ts",
       "role": "Monthly VIP: the shared list of active VIPs (useVip), image picking that keeps GIFs animated, receipt and card uploads, and the member and admin RPCs.",
       "exists": true,
-      "lines": 242,
-      "bytes": 9000,
+      "lines": 249,
+      "bytes": 9271,
       "exports": [
         "VipInfo",
         "MyVip",
@@ -3875,6 +3990,13 @@
       "role": "One row per player/match for the VIP wager consent (status, team, expires_at). Written only by RPCs."
     },
     {
+      "id": "db:table_game_players",
+      "label": "table_game_players",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Who sat in each UNO or poker game and in which seat, with the name kept for guests. Read for personal stats per game."
+    },
+    {
       "id": "db:poker_hands",
       "label": "poker_hands",
       "type": "db_table",
@@ -3952,6 +4074,13 @@
       "role": "Closes a normal match whose countdown ended; the server checks the time and that nothing is at stake."
     },
     {
+      "id": "rpc:poker_ranking",
+      "label": "poker_ranking",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Wins, games, hands played and best winning hand per player, for one period."
+    },
+    {
       "id": "rpc:save_push_subscription",
       "label": "save_push_subscription",
       "type": "db_rpc",
@@ -3992,13 +4121,6 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "Closes a table game whose countdown ended; the server checks the time."
-    },
-    {
-      "id": "rpc:poker_ranking",
-      "label": "poker_ranking",
-      "type": "db_rpc",
-      "community": "database_sql",
-      "role": "Wins, games, hands played and best winning hand per player, for one period."
     },
     {
       "id": "rpc:table_game_ranking",
@@ -4814,6 +4936,24 @@
     },
     {
       "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/vipService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/gameStats.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
+      "target": "src/components/StatCells.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
       "target": "src/types.ts",
       "relation": "imports",
       "derived": true
@@ -5115,6 +5255,24 @@
     {
       "source": "src/screens/ProfileScreen.tsx",
       "target": "src/components/VipAdminModal.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/lib/shareVipCard.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/lib/gameStats.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/StatCells.tsx",
       "relation": "imports",
       "derived": true
     },
@@ -5761,6 +5919,18 @@
       "derived": true
     },
     {
+      "source": "src/components/StatCells.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/StatCells.tsx",
+      "target": "src/lib/gameStatsCore.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/TableGameConfirmationPrompt.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -5931,6 +6101,36 @@
     {
       "source": "src/components/WagerConsent.tsx",
       "target": "src/lib/offlineSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/gameStats.ts",
+      "target": "db:table_game_players",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/lib/gameStats.ts",
+      "target": "rpc:poker_ranking",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/gameStats.ts",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/gameStats.ts",
+      "target": "src/lib/poker.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/gameStats.ts",
+      "target": "src/lib/gameStatsCore.ts",
       "relation": "imports",
       "derived": true
     },

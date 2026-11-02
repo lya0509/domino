@@ -2,7 +2,10 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, RefreshControl, ActivityIndicator, Animated, Image, Alert, Platform, Modal, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
-import { VipAvatarRing } from '../components/VipRing';
+import { VIP_GOLD, VipAvatarRing } from '../components/VipRing';
+import { useVip, vipMediaUrl } from '../lib/vipService';
+import { STAT_GAMES, useTableGameCells } from '../lib/gameStats';
+import { StatCells } from '../components/StatCells';
 import { Profile, PlayerStats, DuoStats } from '../types';
 import { supabase } from '../lib/supabase';
 import { sounds } from '../lib/sounds';
@@ -547,6 +550,9 @@ export const HomeScreen: React.FC<Props> = ({
   };
 
   const myStats = currentUser ? rankings.find(r => r.id === currentUser.id) : null;
+  const myTableCells = useTableGameCells(currentUser?.id, gameTab);
+  const myVip = useVip(currentUser?.id);
+  const myVipMedia = vipMediaUrl(myVip?.media_path);
 
   const getMedal = (index: number) => {
     if (index === 0) return '🥇';
@@ -655,7 +661,17 @@ export const HomeScreen: React.FC<Props> = ({
 
         {/* My Stats Card — toca para ver perfil */}
         {currentUser && (
-          <TouchableOpacity style={styles.myStatsCard} onPress={() => onOpenProfile()} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={[styles.myStatsCard, myVip && styles.myStatsCardVip]}
+            onPress={() => onOpenProfile()}
+            activeOpacity={0.8}
+          >
+            {myVipMedia && (
+              <>
+                <Image source={{ uri: myVipMedia }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} pointerEvents="none" />
+              </>
+            )}
             <View style={{ marginBottom: theme.spacing.m }}>
             <VipAvatarRing userId={currentUser.id} size={56}>
               <View style={[styles.myStatsAvatar, { marginBottom: 0 }]}>
@@ -667,6 +683,13 @@ export const HomeScreen: React.FC<Props> = ({
               </View>
             </VipAvatarRing>
             </View>
+            <Text style={styles.myStatsGame}>{STAT_GAMES.find((g) => g.id === gameTab)?.label}</Text>
+            {gameTab !== 'domino' ? (
+              <View style={{ width: '100%' }}>
+                <StatCells cells={myTableCells ?? []} colored={false} />
+                {!myTableCells && <ActivityIndicator color={theme.colors.textDim} />}
+              </View>
+            ) : (
             <View style={styles.myStatsGrid}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{myStats?.wins ?? 0}</Text>
@@ -685,6 +708,7 @@ export const HomeScreen: React.FC<Props> = ({
                 <Text style={styles.statLabel}>Total</Text>
               </View>
             </View>
+            )}
             <Text style={styles.profileTapHint}>Ver mi perfil completo →</Text>
           </TouchableOpacity>
         )}
@@ -1210,6 +1234,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 13,
   },
+  myStatsCardVip: { borderColor: VIP_GOLD, borderWidth: 1.5, overflow: 'hidden' },
+  myStatsGame: { color: theme.colors.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   myStatsCard: {
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.l,

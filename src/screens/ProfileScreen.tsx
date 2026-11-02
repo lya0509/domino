@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  SafeAreaView, ActivityIndicator, Alert, RefreshControl, Image, Platform, StatusBar, TextInput, Modal
+  SafeAreaView, ActivityIndicator, Alert, RefreshControl, Image, Platform, StatusBar, TextInput, Modal, PanResponder
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -25,6 +25,9 @@ import { VIP_GOLD, VipRing } from '../components/VipRing';
 import { VipOfferModal } from '../components/VipOfferModal';
 import { VipStudio } from '../components/VipStudio';
 import { VipAdminModal } from '../components/VipAdminModal';
+import { shareVipCard } from '../lib/shareVipCard';
+import { STAT_GAMES, StatGame, useTableGameCells } from '../lib/gameStats';
+import { StatCells } from '../components/StatCells';
 import {
   HistoryMatch, MATCH_HISTORY_COLUMNS, matchesAgainst, matchesTogether, matchRecord, wonMatch,
 } from '../lib/playerHistory';
@@ -78,6 +81,26 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   const [myVip, setMyVip] = useState<MyVip | null>(null);
   const [showVipOffer, setShowVipOffer] = useState(false);
   const [showVipAdmin, setShowVipAdmin] = useState(false);
+  const [sharingCard, setSharingCard] = useState(false);
+  const [statGame, setStatGame] = useState<StatGame>('domino');
+  const tableCells = useTableGameCells(profileId, statGame);
+  // Swipe sideways on the stats card to go through Dominó, UNO and Póker
+  const statsPan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      // Take the gesture even when the finger started on a button inside
+      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderRelease: (_, g) => {
+        if (Math.abs(g.dx) < 40) return;
+        setStatGame((cur) => {
+          const i = STAT_GAMES.findIndex((x) => x.id === cur);
+          const next = (i + (g.dx < 0 ? 1 : -1) + STAT_GAMES.length) % STAT_GAMES.length;
+          return STAT_GAMES[next].id;
+        });
+      },
+    }),
+  ).current;
 
   const loadMyVip = useCallback(async () => {
     if (!isOwnProfile) return;
@@ -90,6 +113,39 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   useEffect(() => {
     loadMyVip();
   }, [loadMyVip, profileId]);
+
+  // While a request waits, check every 10 s so approval shows without leaving the screen
+  useEffect(() => {
+    if (myVip?.request?.status !== 'pending') return;
+    const id = setInterval(loadMyVip, 10_000);
+    return () => clearInterval(id);
+  }, [myVip?.request?.status, loadMyVip]);
+
+  const handleShareCard = async (downloadOnly: boolean) => {
+    if (!vip || !profileId || sharingCard) return;
+    setSharingCard(true);
+    try {
+      const outcome = await shareVipCard(
+        {
+          name: profile?.display_name || 'Socio',
+          initials: profile?.initials,
+          avatarUrl: profile?.avatar_url,
+          mediaUrl: vipMediaUrl(vip.media_path),
+          tagline: vip.tagline,
+          memberId: profileId,
+          points: profile?.betting_points ?? null,
+        },
+        downloadOnly,
+      );
+      if (outcome === 'downloaded' && !downloadOnly) {
+        Alert.alert('Imagen descargada', 'Este teléfono no deja compartir directo. La imagen quedó en tus descargas: compártela desde ahí.');
+      }
+    } catch (e: any) {
+      Alert.alert('No se pudo crear la imagen', e?.message || 'Intenta de nuevo.');
+    } finally {
+      setSharingCard(false);
+    }
+  };
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [secretTaps, setSecretTaps] = useState(0);
   const [showSecretPin, setShowSecretPin] = useState(false);
@@ -741,6 +797,16 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
                   tagline: vip.tagline,
                 }}
               />
+              {isOwnProfile && (
+                <View style={styles.vipShareRow}>
+                  <TouchableOpacity style={styles.vipShareBtn} onPress={() => handleShareCard(false)} disabled={sharingCard} accessibilityRole="button">
+                    {sharingCard ? <ActivityIndicator color={VIP_GOLD} /> : <Text style={styles.vipShareText}>📤 Compartir</Text>}
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.vipShareBtn} onPress={() => handleShareCard(true)} disabled={sharingCard} accessibilityRole="button">
+                    <Text style={styles.vipShareText}>⬇️ Descargar</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ) : credential;
         })()}
@@ -799,8 +865,28 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         })()}
 
         {/* Personal Stats */}
-        <View style={styles.card}>
+        <View style={styles.card} {...statsPan.panHandlers}>
           <Text style={styles.cardTitle}>📊 Estadísticas Personales</Text>
+          <View style={styles.statTabs}>
+            {STAT_GAMES.map((g) => (
+              <TouchableOpacity
+                key={g.id}
+                onPress={() => setStatGame(g.id)}
+                style={[styles.statTab, statGame === g.id && styles.statTabOn]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: statGame === g.id }}
+              >
+                <Text style={[styles.statTabText, statGame === g.id && styles.statTabTextOn]}>{g.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {statGame !== 'domino' ? (
+            <View style={{ paddingVertical: 4 }}>
+              <StatCells cells={tableCells ?? []} />
+              {!tableCells && <ActivityIndicator color={theme.colors.textDim} />}
+            </View>
+          ) : (
+          <>
           <View style={styles.statsGrid}>
             <View style={styles.statBox}>
               <Text style={[styles.statValue, { color: theme.colors.success }]}>{stats.wins}</Text>
@@ -829,6 +915,9 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
               {Math.round((stats.wins / stats.total) * 100)}% de victorias
             </Text>
           )}
+          </>
+          )}
+          <Text style={styles.statSwipeHint}>← Desliza para ver otro juego →</Text>
         </View>
 
         {/* Recent Matches */}
@@ -1257,7 +1346,14 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
         />
       )}
       {isOwnProfile && profile?.is_admin && (
-        <VipAdminModal visible={showVipAdmin} onClose={() => setShowVipAdmin(false)} />
+        <VipAdminModal
+          visible={showVipAdmin}
+          onClose={() => {
+            setShowVipAdmin(false);
+            // An admin may have approved their own request
+            loadMyVip();
+          }}
+        />
       )}
     </SafeAreaView>
   );
@@ -1279,6 +1375,24 @@ const styles = StyleSheet.create({
   // Inside the VIP card the frame, glow and GIF come from VipCard
   vipCredentialInCard: { backgroundColor: 'transparent', borderWidth: 0, marginBottom: 0, shadowOpacity: 0, elevation: 0 },
   credentialChipVip: { backgroundColor: VIP_GOLD, borderColor: VIP_GOLD },
+  statTabs: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 3, marginBottom: 12 },
+  statTab: { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: 'center' },
+  statTabOn: { backgroundColor: theme.colors.primary },
+  statTabText: { color: theme.colors.textDim, fontWeight: '700', fontSize: 13 },
+  statTabTextOn: { color: '#fff' },
+  statSwipeHint: { color: theme.colors.textDim, fontSize: 11, textAlign: 'center', marginTop: 10 },
+  vipShareRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 2 },
+  vipShareBtn: {
+    flex: 1,
+    maxWidth: 170,
+    borderWidth: 1,
+    borderColor: 'rgba(251,191,36,0.6)',
+    backgroundColor: 'rgba(251,191,36,0.08)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  vipShareText: { color: VIP_GOLD, fontWeight: '800' },
   vipPendingBar: {
     backgroundColor: 'rgba(251,191,36,0.08)',
     borderWidth: 1,

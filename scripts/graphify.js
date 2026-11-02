@@ -936,6 +936,10 @@ const walkDir = (dir) =>
 const CODE_FILES = ['index.ts', 'App.tsx', ...walkDir('src')].filter((f) => /\.tsx?$/.test(f));
 
 const FILE_ROLES = {
+  'src/lib/gameStatsCore.ts': 'Pure per-game personal numbers: dominó (wins, losses, zapatos, total), UNO (wins, losses, win rate, played) and poker (wins, played, hands, best hand).',
+  'src/lib/gameStats.ts': 'Loads UNO and poker numbers for one player from table_game_players and poker_ranking, cached for a minute (useTableGameCells).',
+  'src/components/StatCells.tsx': 'Four numbers in a row, shared by the home card and the profile stats.',
+  'src/lib/shareVipCard.ts': 'Draws the VIP card as a 1080x1350 picture on a canvas and shares it (Web Share) or downloads it.',
   'src/lib/vip.ts': 'Pure VIP rules shared with the unit tests: is a VIP still active, and whole days left.',
   'src/lib/vipService.ts':
     'Monthly VIP: the shared list of active VIPs (useVip), image picking that keeps GIFs animated, receipt and card uploads, and the member and admin RPCs.',
@@ -1081,6 +1085,7 @@ const RPC_ROLES = {
   expire_tournament_registration: 'After 5 minutes starts the tournament or cancels and refunds.',
 };
 const TABLE_ROLES = {
+  table_game_players: 'Who sat in each UNO or poker game and in which seat, with the name kept for guests. Read for personal stats per game.',
   vip_members: 'Who is VIP until when, with the approved card photo and phrase. Everyone reads it; only the VIP RPCs write it.',
   poker_hands: 'Each poker hand: who dealt and entered, what each put in, winners, hand and who wrote it. Chips are computed from it, never stored.',
   table_games: 'UNO games and their state. The app only reads it: every change goes through the table game RPCs.',

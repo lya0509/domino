@@ -892,8 +892,8 @@ export const HomeScreen: React.FC<Props> = ({
         {gameTab === 'poker' && (
           currentUserProfileId ? (
             <TouchableOpacity style={[styles.newMatchBtn, styles.pokerMatchBtn]} onPress={() => onOpenPoker()} accessibilityRole="button">
-              <Text style={[styles.newMatchIcon, styles.pokerMatchText]}>♠</Text>
-              <Text style={[styles.newMatchText, styles.pokerMatchText]}>Nueva Partida</Text>
+              <Text style={[styles.newMatchIcon, styles.pokerMatchIcon]}>♠</Text>
+              <Text style={styles.newMatchText}>Nueva Partida</Text>
             </TouchableOpacity>
           ) : (
             <Text style={styles.gameNotice}>Inicia sesión para jugar póker.</Text>
@@ -1291,12 +1291,13 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.m,
   },
   pokerMatchBtn: {
-    backgroundColor: POKER_COLOR,
+    // Deeper than the tab's gold, so white reads as well as on the other two games
+    backgroundColor: '#ad7f28',
     borderColor: '#e6c878',
     shadowColor: POKER_COLOR,
   },
-  pokerMatchText: {
-    color: '#1a1405',
+  pokerMatchIcon: {
+    color: '#fff',
   },
   variantTabs: {
     flexDirection: 'row',

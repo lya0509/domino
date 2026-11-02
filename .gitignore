@@ -45,3 +45,6 @@ yarn-error.*
 
 # Registros de las pruebas de navegador
 .playwright-mcp/
+
+# Informe de la noche para el dueño (explica la granja de puntos)
+ENTREGA.txt

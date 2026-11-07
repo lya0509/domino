@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import { sounds } from '../lib/sounds';
 import { offlineSync } from '../lib/offlineSync';
 import { realtimeManager } from '../lib/realtimeManager';
+import { useLiveRefresh } from '../lib/liveSync';
 
 let captureRef: any;
 let ConfettiCannon: any;
@@ -169,6 +170,34 @@ export const GameScreen: React.FC<Props> = ({ match, onUpdateMatch, onEndMatch, 
       unsub();
     };
   }, [match.id, match.rounds.length, (match.substitutions || []).length]);
+
+  // Another scorer's rounds must show even if realtime dropped. Only rounds added elsewhere are
+  // taken here: a round this phone has not sent yet must never be undone by an older read.
+  const syncedMatch = !match.isGuestMode && !!match.id && match.id.includes('-');
+  useLiveRefresh(
+    async () => {
+      if (!offlineSync.getIsOnline()) return;
+      const queued = offlineSync.getQueue().some((item: any) =>
+        item.payload?.id === match.id || item.payload?.matchData?.id === match.id);
+      if (queued) return;
+      const { data } = await supabase.from('matches').select('rounds, substitutions, players_json, status').eq('id', match.id).single();
+      if (!data?.rounds) return;
+      const moreRounds = data.rounds.length > match.rounds.length;
+      const moreSubs = (data.substitutions || []).length > (match.substitutions || []).length;
+      if (!moreRounds && !moreSubs) return;
+      onUpdateMatch(
+        {
+          ...match,
+          rounds: data.rounds,
+          substitutions: data.substitutions || [],
+          players: data.players_json || match.players,
+          status: data.status || match.status,
+        },
+        true
+      );
+    },
+    { name: `game-${match.id}`, every: 5000, enabled: syncedMatch, deps: [match.id, match.rounds.length, (match.substitutions || []).length] }
+  );
 
   // Players, the admin, whoever created the match, and a scorer who substituted themself out
   const canScore =

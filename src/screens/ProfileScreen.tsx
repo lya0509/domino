@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
+import { useLiveRefresh } from '../lib/liveSync';
 import { sounds } from '../lib/sounds';
 import { Profile } from '../types';
 import { BetHistoryRow } from '../components/BetHistoryRow';
@@ -180,9 +181,9 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
     setShowLegalModal(true);
   };
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (silent = false) => {
     if (!profileId) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
 
     try {
       // Reconcile any pending winning bets for own profile first so balance is 100% accurate
@@ -354,6 +355,15 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Points, stats and cosmetics change from other phones: keep them fresh without a spinner
+  useLiveRefresh(() => fetchData(true), {
+    name: `profile-${profileId}`,
+    every: 20000,
+    enabled: !!profileId,
+    tables: profileId ? [{ table: 'profiles', event: 'UPDATE', filter: `id=eq.${profileId}` }] : [],
+    deps: [fetchData],
+  });
 
   const onRefresh = async () => {
     setRefreshing(true);

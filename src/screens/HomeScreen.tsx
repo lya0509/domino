@@ -9,6 +9,7 @@ import { STAT_GAMES, useTableGameCells } from '../lib/gameStats';
 import { StatCells } from '../components/StatCells';
 import { Profile, PlayerStats, DuoStats } from '../types';
 import { supabase } from '../lib/supabase';
+import { liveChannel, onWake } from '../lib/liveSync';
 import { sounds } from '../lib/sounds';
 import { offlineSync } from '../lib/offlineSync';
 import { realtimeManager } from '../lib/realtimeManager';
@@ -55,7 +56,7 @@ const periodStart = (period: RankingPeriod): string | null => {
   return null;
 };
 
-const REFRESH_MS = 15000;
+const REFRESH_MS = 8000;
 
 export const HomeScreen: React.FC<Props> = ({
   onNewMatch,
@@ -505,28 +506,15 @@ export const HomeScreen: React.FC<Props> = ({
     // Unique topic per mount: reusing a fixed name returns the old, still-closing channel and .on() throws
 
 
-    const matchesChannel = supabase
-      .channel(`home-live-matches-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'matches' },
-        () => {
-          fetchLiveMatches();
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    const waitlistChannel = supabase
-      .channel(`home-waitlist-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'waitlist' },
-        () => {
-          fetchWaitlist();
-        }
-      )
-      .subscribe();
+    // Remade whenever they die; a null payload (after a rebuild) just means "read again"
+    const stopMatches = liveChannel('home-live-matches', [{ table: 'matches' }], () => {
+      fetchLiveMatches();
+      fetchData();
+    });
+    const stopWaitlist = liveChannel('home-waitlist', [{ table: 'waitlist' }], () => {
+      fetchWaitlist();
+    });
+    const stopWake = onWake(refreshIfChanged);
 
     const unsubWaitlistBroadcast = realtimeManager.onWaitlistChange(() => {
       fetchWaitlist();
@@ -538,8 +526,9 @@ export const HomeScreen: React.FC<Props> = ({
         document.removeEventListener('visibilitychange', refreshIfChanged);
         window.removeEventListener('focus', refreshIfChanged);
       }
-      supabase.removeChannel(matchesChannel);
-      supabase.removeChannel(waitlistChannel);
+      stopMatches();
+      stopWaitlist();
+      stopWake();
       unsubWaitlistBroadcast();
     };
   }, [fetchWaitlist, fetchData]);

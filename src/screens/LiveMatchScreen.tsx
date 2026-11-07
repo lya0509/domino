@@ -14,6 +14,7 @@ import { sounds } from '../lib/sounds';
 import { Player, Round, Profile } from '../types';
 import { offlineSync } from '../lib/offlineSync';
 import { realtimeManager } from '../lib/realtimeManager';
+import { useLiveRefresh } from '../lib/liveSync';
 import { placeMatchBet, reconcileUserPendingBets, settleMatchBetsAndWagers } from '../lib/bettingService';
 import { fetchActiveWaitlist, joinOrUpdateWaitlist, removeWaitlistEntry } from '../lib/waitlistService';
 
@@ -134,6 +135,25 @@ export const LiveMatchScreen: React.FC<Props> = ({ matchId, currentUserProfileId
     }
     setLoading(false);
   };
+
+  // Realtime drops on a phone that sleeps: the score is also read again by itself
+  const refreshMatch = async () => {
+    if (!offlineSync.getIsOnline()) return;
+    const { data, error } = await supabase.from('matches').select('*').eq('id', matchId).single();
+    if (!data || error) return;
+    setMatchData(data);
+    await checkAndSettleCompletedMatch(data);
+  };
+
+  useLiveRefresh(
+    () => {
+      refreshMatch();
+      fetchChatMessages();
+      refreshUserPointsAndBets();
+    },
+    { name: `live-match-${matchId}`, deps: [matchId] }
+  );
+  useLiveRefresh(refreshMatch, { name: `live-match-poll-${matchId}`, every: 4000, deps: [matchId] });
 
   const calculateMultipliers = async (matchInfo: any) => {
     const cachedMatches = await offlineSync.getCachedMatches();

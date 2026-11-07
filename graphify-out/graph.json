@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-02T23:52:56.995Z",
+    "generatedAt": "2026-11-07T02:26:46.732Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,12 +10,12 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 218,
-      "totalEdges": 417,
+      "totalNodes": 220,
+      "totalEdges": 430,
       "totalHyperedges": 7,
       "totalScreens": 15,
       "totalComponents": 35,
-      "totalServices": 27,
+      "totalServices": 29,
       "totalDatabaseTables": 23,
       "totalDatabaseRpcs": 50,
       "totalQaSuites": 18
@@ -123,8 +123,8 @@
         "Outdated Version Gate Screen"
       ],
       "exists": true,
-      "lines": 1587,
-      "bytes": 60653,
+      "lines": 1610,
+      "bytes": 61566,
       "exports": [
         "App"
       ],
@@ -158,6 +158,7 @@
         "./src/lib/sounds",
         "./src/lib/offlineSync",
         "./src/lib/realtimeManager",
+        "./src/lib/liveSync",
         "./src/lib/bettingService",
         "./src/lib/waitlistService",
         "./src/lib/graphifyBridge"
@@ -315,20 +316,17 @@
       "file": "src/lib/realtimeManager.ts",
       "role": "Manages the singleton waitlist channel (domino_waitlist_calls) and per-match channels (sync_match_<id>). Everything comes from Postgres Changes: table calls and near-turn notices are waitlist columns only the server writes, so nobody can spoof them.",
       "exists": true,
-      "lines": 147,
-      "bytes": 4669,
+      "lines": 117,
+      "bytes": 4091,
       "exports": [
         "realtimeManager"
       ],
       "imports": [
-        "@supabase/supabase-js",
-        "./supabase"
+        "./liveSync"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
-      "realtimeChannels": [
-        "domino_waitlist_calls"
-      ],
+      "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
     },
@@ -621,8 +619,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1612,
-      "bytes": 59704,
+      "lines": 1601,
+      "bytes": 59566,
       "exports": [
         "HomeScreen"
       ],
@@ -638,6 +636,7 @@
         "../components/StatCells",
         "../types",
         "../lib/supabase",
+        "../lib/liveSync",
         "../lib/sounds",
         "../lib/offlineSync",
         "../lib/realtimeManager",
@@ -659,10 +658,7 @@
       "supabaseRpcs": [
         "claim_daily_bonus"
       ],
-      "realtimeChannels": [
-        "home-live-matches-${Date.now()}",
-        "home-waitlist-${Date.now()}"
-      ],
+      "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": [
         "chaching",
@@ -736,8 +732,8 @@
         "🚨 Llamar Siguiente Dúo Waitlist Trigger Button"
       ],
       "exists": true,
-      "lines": 894,
-      "bytes": 41507,
+      "lines": 923,
+      "bytes": 42884,
       "exports": [
         "GameScreen"
       ],
@@ -754,10 +750,12 @@
         "expo-haptics",
         "../lib/sounds",
         "../lib/offlineSync",
-        "../lib/realtimeManager"
+        "../lib/realtimeManager",
+        "../lib/liveSync"
       ],
       "supabaseTables": [
         "profiles",
+        "matches",
         "duos"
       ],
       "supabaseRpcs": [
@@ -791,8 +789,8 @@
         "💬 Chat de la Mesa (Realtime live_chat with 2s anti-spam cooldown)"
       ],
       "exists": true,
-      "lines": 995,
-      "bytes": 49186,
+      "lines": 1015,
+      "bytes": 49890,
       "exports": [
         "LiveMatchScreen"
       ],
@@ -810,6 +808,7 @@
         "../types",
         "../lib/offlineSync",
         "../lib/realtimeManager",
+        "../lib/liveSync",
         "../lib/bettingService",
         "../lib/waitlistService"
       ],
@@ -853,8 +852,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1744,
-      "bytes": 72666,
+      "lines": 1754,
+      "bytes": 73087,
       "exports": [
         "ProfileScreen"
       ],
@@ -866,6 +865,7 @@
         "base64-arraybuffer",
         "../theme",
         "../lib/supabase",
+        "../lib/liveSync",
         "../lib/sounds",
         "../types",
         "../components/BetHistoryRow",
@@ -927,8 +927,8 @@
         "✍️ Custom Title Modal (20-char limit, 250,000 pts)"
       ],
       "exists": true,
-      "lines": 409,
-      "bytes": 20613,
+      "lines": 419,
+      "bytes": 21017,
       "exports": [
         "StoreScreen"
       ],
@@ -937,6 +937,7 @@
         "react-native",
         "../theme",
         "../lib/supabase",
+        "../lib/liveSync",
         "../lib/offlineSync",
         "../types",
         "../components/RainbowText",
@@ -974,8 +975,8 @@
         "50 Achievement Cards with Progress Bars & \"¡Reclamar +Pts!\" CTA"
       ],
       "exists": true,
-      "lines": 368,
-      "bytes": 20024,
+      "lines": 371,
+      "bytes": 20202,
       "exports": [
         "AchievementsScreen"
       ],
@@ -984,6 +985,7 @@
         "react-native",
         "../theme",
         "../lib/supabase",
+        "../lib/liveSync",
         "../lib/offlineSync",
         "../types"
       ],
@@ -1017,8 +1019,8 @@
         "Top 100 Ranked Player Rows with RainbowText, Equipped Titles & Borders"
       ],
       "exists": true,
-      "lines": 226,
-      "bytes": 10973,
+      "lines": 230,
+      "bytes": 11205,
       "exports": [
         "LeaderboardScreen"
       ],
@@ -1029,6 +1031,7 @@
         "../components/VipRing",
         "../components/VipEffects",
         "../lib/supabase",
+        "../lib/liveSync",
         "../types",
         "../lib/offlineSync",
         "../components/TableGameRanking",
@@ -1064,8 +1067,8 @@
         "Admin Panel: Create Tournament + Approve/Reject Participant Receipts"
       ],
       "exists": true,
-      "lines": 1569,
-      "bytes": 76562,
+      "lines": 1582,
+      "bytes": 76973,
       "exports": [
         "TournamentsScreen"
       ],
@@ -1074,6 +1077,7 @@
         "react-native",
         "../theme",
         "../lib/supabase",
+        "../lib/liveSync",
         "../lib/offlineSync",
         "../types",
         "expo-image-picker",
@@ -1101,9 +1105,7 @@
         "start_tournament",
         "expire_tournament_registration"
       ],
-      "realtimeChannels": [
-        "tournaments_live_${Date.now()}"
-      ],
+      "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
     },
@@ -1124,8 +1126,8 @@
         "Message Input Bar with 3s Anti-Spam Cooldown"
       ],
       "exists": true,
-      "lines": 303,
-      "bytes": 11596,
+      "lines": 307,
+      "bytes": 11813,
       "exports": [
         "GlobalChatScreen"
       ],
@@ -1134,16 +1136,15 @@
         "react-native",
         "../theme",
         "../lib/vipService",
-        "../lib/supabase"
+        "../lib/supabase",
+        "../lib/liveSync"
       ],
       "supabaseTables": [
         "profiles",
         "global_chat"
       ],
       "supabaseRpcs": [],
-      "realtimeChannels": [
-        "global_chat_channel_${Date.now()}"
-      ],
+      "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
     },
@@ -1720,8 +1721,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1789,
-      "bytes": 91598,
+      "lines": 1791,
+      "bytes": 92014,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -3643,6 +3644,60 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/liveSync.ts",
+      "label": "liveSync.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/liveSync.ts",
+      "role": "Keeps every screen live: heals the realtime socket (fresh token, reconnect) when the app wakes or the socket returns, rebuilds dead channels (liveChannel) and gives screens useLiveRefresh (reload on changes, on wake and every few seconds while visible).",
+      "exists": true,
+      "lines": 173,
+      "bytes": 5614,
+      "exports": [
+        "isOnScreen",
+        "wake",
+        "startLiveSync",
+        "onWake",
+        "LiveTable",
+        "liveChannel",
+        "useLiveRefresh"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "./supabase",
+        "./liveSyncCore"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [
+        "${name}-${Date.now()}-${channelCount}"
+      ],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/lib/liveSyncCore.ts",
+      "label": "liveSyncCore.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/liveSyncCore.ts",
+      "role": "Pure helpers for liveSync: the wake gate that loads once per burst and which channel states are dead.",
+      "exists": true,
+      "lines": 17,
+      "bytes": 616,
+      "exports": [
+        "createGate",
+        "isDeadChannel"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/matchRivals.ts",
       "label": "matchRivals.ts",
       "type": "service",
@@ -5048,6 +5103,12 @@
       "derived": true
     },
     {
+      "source": "App.tsx",
+      "target": "src/lib/liveSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/lib/offlineSync.ts",
       "target": "src/lib/supabase.ts",
       "relation": "imports",
@@ -5067,7 +5128,7 @@
     },
     {
       "source": "src/lib/realtimeManager.ts",
-      "target": "src/lib/supabase.ts",
+      "target": "src/lib/liveSync.ts",
       "relation": "imports",
       "derived": true
     },
@@ -5265,6 +5326,12 @@
     },
     {
       "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/liveSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
       "target": "src/lib/sounds.ts",
       "relation": "imports",
       "derived": true
@@ -5355,6 +5422,12 @@
     },
     {
       "source": "src/screens/GameScreen.tsx",
+      "target": "db:matches",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/screens/GameScreen.tsx",
       "target": "rpc:notify_near_turn",
       "relation": "calls_rpc",
       "derived": true
@@ -5398,6 +5471,12 @@
     {
       "source": "src/screens/GameScreen.tsx",
       "target": "src/lib/offlineSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/GameScreen.tsx",
+      "target": "src/lib/liveSync.ts",
       "relation": "imports",
       "derived": true
     },
@@ -5480,6 +5559,12 @@
       "derived": true
     },
     {
+      "source": "src/screens/LiveMatchScreen.tsx",
+      "target": "src/lib/liveSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/screens/ProfileScreen.tsx",
       "target": "db:profiles",
       "relation": "uses_table",
@@ -5512,6 +5597,12 @@
     {
       "source": "src/screens/ProfileScreen.tsx",
       "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/lib/liveSync.ts",
       "relation": "imports",
       "derived": true
     },
@@ -5619,6 +5710,12 @@
     },
     {
       "source": "src/screens/StoreScreen.tsx",
+      "target": "src/lib/liveSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/StoreScreen.tsx",
       "target": "src/lib/offlineSync.ts",
       "relation": "imports",
       "derived": true
@@ -5685,6 +5782,12 @@
     },
     {
       "source": "src/screens/AchievementsScreen.tsx",
+      "target": "src/lib/liveSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/AchievementsScreen.tsx",
       "target": "src/types.ts",
       "relation": "imports",
       "derived": true
@@ -5716,6 +5819,12 @@
     {
       "source": "src/screens/LeaderboardScreen.tsx",
       "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/LeaderboardScreen.tsx",
+      "target": "src/lib/liveSync.ts",
       "relation": "imports",
       "derived": true
     },
@@ -5817,6 +5926,12 @@
     },
     {
       "source": "src/screens/TournamentsScreen.tsx",
+      "target": "src/lib/liveSync.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/TournamentsScreen.tsx",
       "target": "src/lib/offlineSync.ts",
       "relation": "imports",
       "derived": true
@@ -5866,6 +5981,12 @@
     {
       "source": "src/screens/GlobalChatScreen.tsx",
       "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/GlobalChatScreen.tsx",
+      "target": "src/lib/liveSync.ts",
       "relation": "imports",
       "derived": true
     },
@@ -6592,6 +6713,18 @@
     {
       "source": "src/lib/gameStats.ts",
       "target": "src/lib/gameStatsCore.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/liveSync.ts",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/liveSync.ts",
+      "target": "src/lib/liveSyncCore.ts",
       "relation": "imports",
       "derived": true
     },

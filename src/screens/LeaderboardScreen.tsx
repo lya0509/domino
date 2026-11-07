@@ -4,6 +4,7 @@ import { theme } from '../theme';
 import { VipAvatarRing } from '../components/VipRing';
 import { VipName } from '../components/VipEffects';
 import { supabase } from '../lib/supabase';
+import { useLiveRefresh } from '../lib/liveSync';
 import { Profile } from '../types';
 import { offlineSync } from '../lib/offlineSync';
 import { TableGameRanking } from '../components/TableGameRanking';
@@ -74,8 +75,11 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onBack, cu
     fetchLeaderboards();
   }, []);
 
-  const fetchLeaderboards = async () => {
-    setLoading(true);
+  // A match that ends or a purchase elsewhere moves the rankings
+  useLiveRefresh(() => fetchLeaderboards(true), { name: 'leaderboard', every: 30000 });
+
+  const fetchLeaderboards = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [allProfiles, matches] = await Promise.all([
         offlineSync.getProfiles(offlineSync.getIsOnline()),

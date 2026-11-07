@@ -27,6 +27,7 @@ import { supabase } from './src/lib/supabase';
 import { sounds } from './src/lib/sounds';
 import { offlineSync, generateUUID, isValidUUID, SyncStatus } from './src/lib/offlineSync';
 import { realtimeManager } from './src/lib/realtimeManager';
+import { startLiveSync, onWake } from './src/lib/liveSync';
 import { settleMatchBetsAndWagers, reconcileUserPendingBets } from './src/lib/bettingService';
 import { callWaitlistDuo, fetchActiveWaitlist, WaitlistEntry } from './src/lib/waitlistService';
 import { initGraphifyBridge, updateGraphifyRuntimeState, registerGraphifyControllers } from './src/lib/graphifyBridge';
@@ -479,6 +480,28 @@ export default function App() {
       supabase.removeChannel(channel);
     };
   }, [session, showToast]);
+
+  // Back from sleep: heal realtime and read my own points again (the profile channel may have missed them)
+  useEffect(() => {
+    startLiveSync();
+    if (!currentUserProfileId) return;
+    const id = currentUserProfileId;
+    const reload = async () => {
+      const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
+      if (data) {
+        setCurrentUserProfile(prev => prev ? { ...prev, ...(data as Profile), is_admin: prev.is_admin || (data as Profile).is_admin } : (data as Profile));
+        offlineSync.updateCachedProfile(data as Profile);
+      }
+    };
+    const stop = onWake(reload);
+    const timer = setInterval(() => {
+      if (typeof document === 'undefined' || !document.hidden) reload();
+    }, 30000);
+    return () => {
+      stop();
+      clearInterval(timer);
+    };
+  }, [currentUserProfileId]);
 
   // Waitlist call & countdown via singleton realtimeManager
   useEffect(() => {

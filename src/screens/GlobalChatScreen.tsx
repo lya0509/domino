@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Keyboard
 import { theme } from '../theme';
 import { useVipList } from '../lib/vipService';
 import { supabase } from '../lib/supabase';
+import { useLiveRefresh, liveChannel } from '../lib/liveSync';
 
 interface ChatMessage {
   id: string;
@@ -33,9 +34,12 @@ export const GlobalChatScreen: React.FC<Props> = ({ onBack, currentUserProfileId
   useEffect(() => {
     fetchMessages();
 
-    // Subscribe to realtime changes
-    const channel = supabase.channel(`global_chat_channel_${Date.now()}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_chat' }, async payload => {
+    // Subscribe to realtime changes; the channel is made again if it dies, and then the list is read again
+    const stop = liveChannel('global_chat_channel', [{ table: 'global_chat', event: 'INSERT' }], async (payload: any) => {
+        if (!payload?.new) {
+          fetchMessages();
+          return;
+        }
         // Fetch the profile for the new message
         const { data: profile } = await supabase.from('profiles').select('display_name, initials, equipped_items').eq('id', payload.new.user_id).single();
         if (profile) {
@@ -46,13 +50,13 @@ export const GlobalChatScreen: React.FC<Props> = ({ onBack, currentUserProfileId
             return [newMsg, ...prev];
           });
         }
-      })
-      .subscribe();
+      });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return stop;
   }, []);
+
+  // Messages sent while the phone slept
+  useLiveRefresh(() => fetchMessages(), { name: 'global-chat-wake', every: 20000 });
 
   // Cooldown timer
   useEffect(() => {

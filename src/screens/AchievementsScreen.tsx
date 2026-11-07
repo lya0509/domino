@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, StatusBar } from 'react-native';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
+import { useLiveRefresh } from '../lib/liveSync';
 import { offlineSync } from '../lib/offlineSync';
 import { Profile } from '../types';
 
@@ -86,8 +87,8 @@ export const AchievementsScreen: React.FC<Props> = ({ onBack, currentUserProfile
     chat_messages: 0, store_items: 0
   });
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [profileRes, matchesRes, betsRes, chatsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', currentUserProfileId).single(),
@@ -202,6 +203,8 @@ export const AchievementsScreen: React.FC<Props> = ({ onBack, currentUserProfile
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useLiveRefresh(() => fetchData(true), { name: 'achievements', every: 30000, deps: [fetchData] });
 
   const handleClaim = async (achievement: Achievement) => {
     if (!profile) return;

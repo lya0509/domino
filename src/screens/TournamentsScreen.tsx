@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert, TextInput, Platform, StatusBar, Image, Modal } from 'react-native';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
+import { useLiveRefresh, liveChannel } from '../lib/liveSync';
 import { offlineSync } from '../lib/offlineSync';
 import { Match, Profile, Tournament, TournamentParticipant, TournamentBracket, BracketMatch } from '../types';
 import * as ImagePicker from 'expo-image-picker';
@@ -94,17 +95,20 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       if (refreshTimer) clearTimeout(refreshTimer);
       refreshTimer = setTimeout(() => fetchData(true), 400);
     };
-    const channel = supabase.channel(`tournaments_live_${Date.now()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, scheduleRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_participants' }, scheduleRefresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_brackets' }, scheduleRefresh)
-      .subscribe();
+    const stop = liveChannel(
+      'tournaments_live',
+      [{ table: 'tournaments' }, { table: 'tournament_participants' }, { table: 'tournament_brackets' }, { table: 'matches', event: 'UPDATE' }],
+      scheduleRefresh
+    );
 
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);
-      supabase.removeChannel(channel);
+      stop();
     };
   }, [activeTab]);
+
+  // Back from sleep, or realtime silent: read everything again without a spinner
+  useLiveRefresh(() => fetchData(true), { name: 'tournaments-wake', every: 15000, deps: [activeTab] });
 
   useEffect(() => {
     // Inicio Automático de Torneos de Llaves
@@ -130,6 +134,15 @@ export const TournamentsScreen: React.FC<Props> = ({ profileId, isAdmin, onBack,
       loadBrackets(showBracketModal.id);
     }
   }, [showBracketModal]);
+
+  // The open bracket follows its matches live: scores and who advanced
+  useLiveRefresh(() => showBracketModal && loadBrackets(showBracketModal.id), {
+    name: `brackets-${showBracketModal?.id}`,
+    every: 5000,
+    enabled: !!showBracketModal,
+    tables: [{ table: 'tournament_brackets' }, { table: 'matches', event: 'UPDATE' }],
+    deps: [showBracketModal?.id],
+  });
 
   const loadBrackets = async (tId: string) => {
     try {

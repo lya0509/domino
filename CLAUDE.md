@@ -33,6 +33,7 @@ Before running broad file searches, read the pre-indexed Full-System Graphify su
 - [`src/lib/supabase.ts`](file:///home/lya/proyectos/Domino/src/lib/supabase.ts) — Supabase client.
 - [`src/lib/offlineSync.ts`](file:///home/lya/proyectos/Domino/src/lib/offlineSync.ts) — Stale-While-Revalidate profile/match cache + persistent FIFO Offline Outbox (`@domino_offline_queue_v1`).
 - [`src/lib/realtimeManager.ts`](file:///home/lya/proyectos/Domino/src/lib/realtimeManager.ts) — Singleton `domino_waitlist_calls` channel + per-match `sync_match_<id>` channel, both Postgres Changes only (no Broadcast, which can't prove the sender).
+- [`src/lib/liveSync.ts`](file:///home/lya/proyectos/Domino/src/lib/liveSync.ts) — Keeps every screen live: heals the socket when the app wakes, rebuilds dead channels (`liveChannel`) and `useLiveRefresh` (reload on changes, on wake and every few seconds while visible). New screens with server data should use it.
 - [`src/lib/bettingService.ts`](file:///home/lya/proyectos/Domino/src/lib/bettingService.ts) — `placeMatchBet`, `settleMatchBetsAndWagers`, and `reconcileUserPendingBets`.
 - [`src/lib/waitlistService.ts`](file:///home/lya/proyectos/Domino/src/lib/waitlistService.ts) — `fetchActiveWaitlist`, `joinOrUpdateWaitlist`, `removeWaitlistEntry`, `callWaitlistDuo`.
 - [`src/lib/pushNotifications.ts`](file:///home/lya/proyectos/Domino/src/lib/pushNotifications.ts) — Web Push device registration; sending lives in `supabase/functions/send-push`.

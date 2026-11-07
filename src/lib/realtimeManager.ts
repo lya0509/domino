@@ -1,5 +1,4 @@
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { liveChannel } from './liveSync';
 
 type SignalHandler = (payload: any) => void;
 
@@ -7,38 +6,26 @@ type SignalHandler = (payload: any) => void;
 const SIGNAL_MAX_AGE_MS = 10 * 60 * 1000;
 
 class RealtimeManager {
-  private waitlistChannel: RealtimeChannel | null = null;
+  private waitlistChannel: (() => void) | null = null;
   private seenCalls: Map<string, string> = new Map();
   private seenNearTurns: Map<string, string> = new Map();
   private callDuoListeners: Set<SignalHandler> = new Set();
   private proximityListeners: Set<SignalHandler> = new Set();
   private waitlistChangeListeners: Set<() => void> = new Set();
 
-  private matchChannels: Map<string, RealtimeChannel> = new Map();
+  private matchChannels: Map<string, () => void> = new Map();
   private matchListeners: Map<string, Set<(newData: any) => void>> = new Map();
 
   /**
    * Initializes or returns the singleton waitlist channel.
    */
-  ensureWaitlistChannel(): RealtimeChannel {
-    if (this.waitlistChannel) {
-      return this.waitlistChannel;
-    }
-
-    const channel = supabase
-      .channel('domino_waitlist_calls')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'waitlist' },
-        (payload: any) => {
-          this.waitlistChangeListeners.forEach((cb) => cb());
-          if (payload?.eventType === 'UPDATE' && payload.new) this.emitQueueSignals(payload.new);
-        }
-      )
-      .subscribe();
-
-    this.waitlistChannel = channel;
-    return channel;
+  ensureWaitlistChannel(): void {
+    if (this.waitlistChannel) return;
+    // Remade by liveChannel whenever it dies; a null payload means "load again"
+    this.waitlistChannel = liveChannel('domino_waitlist_calls', [{ table: 'waitlist' }], (payload: any) => {
+      this.waitlistChangeListeners.forEach((cb) => cb());
+      if (payload?.eventType === 'UPDATE' && payload.new) this.emitQueueSignals(payload.new);
+    });
   }
 
   onCallDuo(cb: SignalHandler): () => void {
@@ -96,38 +83,21 @@ class RealtimeManager {
   }
 
   /**
-   * One long-lived channel per match topic, shared by every screen via listener sets.
-   * supabase.channel(topic) returns a
-   * still-closing channel after removeChannel(), where adding .on() throws — so we never recreate it.
+   * One long-lived channel per match, shared by every screen via listener sets.
+   * liveChannel makes it again whenever it dies.
    */
-  private ensureMatchChannel(matchId: string): RealtimeChannel {
+  private ensureMatchChannel(matchId: string): void {
     const topic = `sync_match_${matchId}`;
-    const existing = this.matchChannels.get(topic);
-    if (existing) return existing;
+    if (this.matchChannels.has(topic)) return;
 
     const listeners = new Set<(newData: any) => void>();
     this.matchListeners.set(topic, listeners);
-
-    const channel = supabase
-      .channel(topic)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'matches',
-          filter: `id=eq.${matchId}`,
-        },
-        (payload) => {
-          if (payload?.new) {
-            listeners.forEach((cb) => cb(payload.new));
-          }
-        }
-      )
-      .subscribe();
-
-    this.matchChannels.set(topic, channel);
-    return channel;
+    this.matchChannels.set(
+      topic,
+      liveChannel(topic, [{ table: 'matches', event: 'UPDATE', filter: `id=eq.${matchId}` }], (payload: any) => {
+        if (payload?.new) listeners.forEach((cb) => cb(payload.new));
+      })
+    );
   }
 
   /**

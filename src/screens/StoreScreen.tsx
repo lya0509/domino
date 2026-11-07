@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal, TextInput, Platform, StatusBar, Image } from 'react-native';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
+import { useLiveRefresh } from '../lib/liveSync';
 import { offlineSync } from '../lib/offlineSync';
 import { Profile } from '../types';
 import { RainbowText } from '../components/RainbowText';
@@ -42,6 +43,15 @@ export const StoreScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) =
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  // Points won at a table while the store is open
+  useLiveRefresh(() => fetchProfile(), {
+    name: `store-${currentUserProfileId}`,
+    every: 30000,
+    enabled: !!currentUserProfileId,
+    tables: currentUserProfileId ? [{ table: 'profiles', event: 'UPDATE', filter: `id=eq.${currentUserProfileId}` }] : [],
+    deps: [currentUserProfileId],
+  });
 
   const fetchProfile = async () => {
     try {

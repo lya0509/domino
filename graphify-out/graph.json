@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-07T03:37:51.076Z",
+    "generatedAt": "2026-11-07T10:52:33.546Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,14 +10,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 230,
-      "totalEdges": 458,
+      "totalNodes": 234,
+      "totalEdges": 462,
       "totalHyperedges": 7,
       "totalScreens": 15,
       "totalComponents": 38,
       "totalServices": 32,
       "totalDatabaseTables": 24,
-      "totalDatabaseRpcs": 51,
+      "totalDatabaseRpcs": 55,
       "totalQaSuites": 18
     }
   },
@@ -1728,12 +1728,14 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1803,
-      "bytes": 93843,
+      "lines": 1805,
+      "bytes": 94097,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
-      "supabaseRpcs": [],
+      "supabaseRpcs": [
+        "x"
+      ],
       "realtimeChannels": [],
       "storageKeys": [],
       "soundsPlayed": []
@@ -4213,6 +4215,10 @@
         "table_games"
       ],
       "supabaseRpcs": [
+        "check_in_table_game",
+        "make_table_game_guest",
+        "add_table_game_dealer",
+        "leave_table_game",
         "remember_club_guests",
         "cancel_poker_hand",
         "cancel_table_game",
@@ -4658,6 +4664,34 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "Removes the signed-in user's device from push notifications on logout."
+    },
+    {
+      "id": "rpc:check_in_table_game",
+      "label": "check_in_table_game",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "\"Estoy en la mesa\": a player confirms from their phone; poker needs it before the first hand and every table before finishing (SQL 22)."
+    },
+    {
+      "id": "rpc:make_table_game_guest",
+      "label": "make_table_game_guest",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "The creator turns a player who never confirmed into a guest so the table can go on (SQL 22)."
+    },
+    {
+      "id": "rpc:add_table_game_dealer",
+      "label": "add_table_game_dealer",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Adds someone who only deals a poker hand: no chips, never in a hand, never the winner (SQL 22)."
+    },
+    {
+      "id": "rpc:leave_table_game",
+      "label": "leave_table_game",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "A player leaves mid-game: chips stay recorded, no more hands, cannot win (SQL 22)."
     },
     {
       "id": "rpc:remember_club_guests",
@@ -7164,6 +7198,30 @@
       "source": "src/lib/tableGameService.ts",
       "target": "db:table_games",
       "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:check_in_table_game",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:make_table_game_guest",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:add_table_game_dealer",
+      "relation": "calls_rpc",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:leave_table_game",
+      "relation": "calls_rpc",
       "derived": true
     },
     {

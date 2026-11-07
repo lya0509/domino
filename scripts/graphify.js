@@ -63,7 +63,8 @@ function inspectFile(relPath) {
   }
 
   const supabaseRpcs = [];
-  const rpcRegex = /\.rpc\(\s*['"]([a-z0-9_]+)['"]/g;
+  // `.rpc('x'` on the client and the local `rpc('x'` helper in tableGameService.
+  const rpcRegex = /(?<![A-Za-z0-9_$])rpc\(\s*['"]([a-z0-9_]+)['"]/g;
   while ((m = rpcRegex.exec(content)) !== null) {
     if (!supabaseRpcs.includes(m[1])) supabaseRpcs.push(m[1]);
   }
@@ -1056,7 +1057,7 @@ CODE_FILES.forEach((f) => {
   const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
   for (const m of text.matchAll(/storage\s*\.from\(\s*['"`]([a-z0-9_-]+)/g)) codeRefs.buckets.add(m[1]);
   for (const m of text.matchAll(/\.from\(\s*['"`]([a-z0-9_]+)['"`]\s*\)/g)) codeRefs.tables.add(m[1]);
-  for (const m of text.matchAll(/\.rpc\(\s*['"`]([a-z0-9_]+)['"`]/g)) codeRefs.rpcs.add(m[1]);
+  for (const m of text.matchAll(/(?<![A-Za-z0-9_$])rpc\(\s*['"`]([a-z0-9_]+)['"`]/g)) codeRefs.rpcs.add(m[1]);
 });
 codeRefs.buckets.forEach((b) => codeRefs.tables.delete(b));
 
@@ -1072,6 +1073,7 @@ const RPC_ROLES = {
   check_in_table_game: '"Estoy en la mesa": a player confirms from their phone; poker needs it before the first hand and every table before finishing (SQL 22).',
   make_table_game_guest: 'The creator turns a player who never confirmed into a guest so the table can go on (SQL 22).',
   add_table_game_dealer: 'Adds someone who only deals a poker hand: no chips, never in a hand, never the winner (SQL 22).',
+  leave_table_game: 'A player leaves mid-game: their chips stay recorded, they leave the next hands and can never be the winner (SQL 22).',
   leave_table_game: 'A player leaves mid-game: chips stay recorded, no more hands, cannot win (SQL 22).',
   review_tournament_payment: 'Admin approves or rejects a Bs tournament payment; the pot is entry × approved and a rejected player may sign up again.',
   admin_decide_tournament_match: 'Admin gives a bracket to a team when nobody can close it (no confirmation, abandoned, no-show); the tournament advances.',

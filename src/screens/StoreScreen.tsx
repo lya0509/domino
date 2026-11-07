@@ -13,6 +13,9 @@ import {
   customTitle,
   Equipped,
   EXCLUSIVE_NOTE,
+  giftIdsOf,
+  giftItem,
+  giftNote,
   isEquipped,
   splitByOwnership,
   STORE_ITEMS,
@@ -230,7 +233,7 @@ export const StoreScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) =
                 <View style={styles.ownedIcon}>{preview(item)}</View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.ownedName}>{item.isCustom ? (custom ? `"${custom}"` : 'Etiqueta personalizada') : item.name}</Text>
-                  <Text style={styles.ownedWhere}>{item.isExclusive ? EXCLUSIVE_NOTE : whereOf(item)}</Text>
+                  <Text style={styles.ownedWhere}>{item.giftMonth ? giftNote(item) : item.isExclusive ? EXCLUSIVE_NOTE : whereOf(item)}</Text>
                   {on ? <Text style={styles.onBadge}>✓ Lo llevas puesto</Text> : null}
                 </View>
                 <View style={{ gap: 6 }}>
@@ -257,6 +260,29 @@ export const StoreScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) =
             );
           })
         )}
+
+        {/* This month's VIP gift: only VIPs get it, and only this month */}
+        {(() => {
+          const month = new Date(Date.now() - 4 * 3600_000).toISOString().slice(0, 7);
+          const ids = giftIdsOf(month);
+          const title = giftItem(ids.title);
+          const frame = giftItem(ids.border);
+          const inv = (profile?.inventory as string[]) || [];
+          if (!title || !frame || inv.includes(ids.title)) return null;
+          return (
+            <View style={styles.giftCard}>
+              <Text style={styles.giftTitle}>🎁 Regalo VIP de este mes</Text>
+              <View style={styles.giftRow}>
+                <View style={styles.ownedIcon}>{preview(frame)}</View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.ownedName}>{title.name}</Text>
+                  <Text style={styles.ownedWhere}>y el {frame.name.toLowerCase()}</Text>
+                </View>
+              </View>
+              <Text style={styles.giftNote}>Solo para socios VIP de este mes. No se vende y no vuelve: el que es VIP ahora se lo queda para siempre.</Text>
+            </View>
+          );
+        })()}
 
         {/* What is left to buy, by kind */}
         <Text style={[styles.sectionTitle, { marginTop: 28 }]}>🛒 Por comprar</Text>
@@ -342,6 +368,10 @@ export const StoreScreen: React.FC<Props> = ({ onBack, currentUserProfileId }) =
 };
 
 const styles = StyleSheet.create({
+  giftCard: { marginTop: 24, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#d4a843', backgroundColor: 'rgba(212,168,67,0.08)' },
+  giftTitle: { color: '#d4a843', fontSize: 16, fontWeight: '900', marginBottom: 8 },
+  giftRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  giftNote: { color: theme.colors.textDim, fontSize: 13, marginTop: 8 },
   container: { flex: 1, backgroundColor: theme.colors.background, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

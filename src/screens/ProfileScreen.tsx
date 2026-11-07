@@ -10,6 +10,7 @@ import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
 import { countsForStats } from '../lib/guests';
 import { useLiveRefresh } from '../lib/liveSync';
+import { MonthRecapCard } from '../components/MonthRecapCard';
 import { sounds } from '../lib/sounds';
 import { Profile } from '../types';
 import { BetHistoryRow } from '../components/BetHistoryRow';
@@ -853,6 +854,14 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
           ) : credential;
         })()}
 
+        {isOwnProfile && profileId && myVip?.active && (
+          <MonthRecapCard
+            userId={profileId}
+            name={profile?.display_name || 'Socio'}
+            matches={allMyMatches}
+            names={Object.fromEntries(Object.entries(profileMap).map(([id, p]) => [id, p.display_name]))}
+          />
+        )}
         {isOwnProfile && profileId && myVip?.active && (
           <VipStudio userId={profileId} myVip={myVip} onChanged={loadMyVip} onRenew={() => setShowVipOffer(true)} />
         )}

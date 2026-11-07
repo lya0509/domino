@@ -94,7 +94,7 @@ export const VipOfferModal: React.FC<Props> = ({ visible, onClose, userId, name,
         <View style={styles.sheet}>
           <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
             <Text style={styles.title}>{renewing ? '♛ Renueva tu VIP' : '♛ Hazte VIP'}</Text>
-            <Text style={styles.price}>{config?.priceText ?? '5 USD al mes, al cambio BCV del día'}</Text>
+            <Text style={styles.price}>{config?.priceText ?? '3 USD al mes, al cambio BCV del día'}</Text>
 
             <View style={{ marginVertical: 14 }}>
               <VipCard front={sampleFront} back={{ name, initials, avatarUrl, tagline: 'Así se ve tu tarjeta por detrás' }} sample autoFlip={visible} showHint={false} />

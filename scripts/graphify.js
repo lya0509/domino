@@ -943,6 +943,8 @@ const FILE_ROLES = {
   'src/components/StatCells.tsx': 'Four numbers in a row, shared by the home card and the profile stats.',
   'src/lib/liveSync.ts': 'Keeps every screen live: heals the realtime socket (fresh token, reconnect) when the app wakes or the socket returns, rebuilds dead channels (liveChannel) and gives screens useLiveRefresh (reload on changes, on wake and every few seconds while visible).',
   'src/lib/guests.ts': 'Guest rules (people without an account): suggestions from the club guest list while typing, and the limit (more than one guest and a dominó match counts for nobody).',
+  'src/lib/monthRecap.ts': 'Pure numbers for "Mi mes en el cafetín": a VIP month of dominó, UNO and poker, best partner, toughest rival, streak (more than one guest counts for nobody).',
+  'src/lib/shareMonthRecap.ts': 'Draws "Mi mes en el cafetín" as a 1080x1350 picture and shares it (WhatsApp) or saves it.',
   'src/lib/liveSyncCore.ts': 'Pure helpers for liveSync: the wake gate that loads once per burst and which channel states are dead.',
   'src/lib/storeCatalog.ts': 'Store catalog (same ids and prices as store_catalog() on the server) and the rules for wearing cosmetics: owned vs to buy, what is on, toggling titles, colors, frames, table colors and the custom title.',
   'src/lib/hallOfFame.ts': 'Hall of Fame numbers for dominó: wins, games, win rate and zapatos per player, plus the winners, zapateros and streak rankings.',
@@ -977,6 +979,7 @@ const FILE_ROLES = {
     'Table of the 10 poker hands, best first.',
   'src/components/GuestNameInput.tsx': 'Text box for a guest name with suggestions from the club guest list (club_guests); used by the roster picker, the dominó setup and the outside poker dealer.',
   'src/components/TableCheckIn.tsx': '"Estoy en la mesa" panel for UNO and poker: who still has to confirm from their phone, and the creator turning someone into a guest.',
+  'src/components/MonthRecapCard.tsx': 'VIP perk on the own profile: this month and last month in numbers, with a share button (SQL 23 sends the day-1 notice).',
   'src/components/RosterPicker.tsx':
     'Choose the players of a table game, with or without an account. Poker uses it in seat order.',
   'src/lib/poker.ts':

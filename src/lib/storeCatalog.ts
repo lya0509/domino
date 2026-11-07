@@ -11,6 +11,8 @@ export interface StoreItem {
   value?: string;
   isExclusive?: boolean;
   isCustom?: boolean;
+  /** Monthly VIP gift: 'YYYY-MM'. Never sold, kept forever. */
+  giftMonth?: string;
 }
 
 export interface Equipped {
@@ -47,7 +49,58 @@ export const CATEGORIES: { type: CosmeticType; label: string; where: string }[] 
 export const EXCLUSIVE_NOTE = 'Regalo para los socios veteranos del club. No se vende.';
 export const CUSTOM_MAX = 20;
 
+// Monthly VIP gifts: same months, emojis and colors as vip_gift_catalog() in SQL 23
+export const GIFT_MONTHS: { name: string; emoji: string; color: string }[] = [
+  { name: 'Enero', emoji: '🎆', color: '#F472B6' },
+  { name: 'Febrero', emoji: '💘', color: '#E11D48' },
+  { name: 'Marzo', emoji: '🌺', color: '#F97316' },
+  { name: 'Abril', emoji: '🌧️', color: '#38BDF8' },
+  { name: 'Mayo', emoji: '🌻', color: '#FACC15' },
+  { name: 'Junio', emoji: '⚽', color: '#22C55E' },
+  { name: 'Julio', emoji: '☀️', color: '#14B8A6' },
+  { name: 'Agosto', emoji: '🌴', color: '#84CC16' },
+  { name: 'Septiembre', emoji: '📚', color: '#6366F1' },
+  { name: 'Octubre', emoji: '🎃', color: '#EA580C' },
+  { name: 'Noviembre', emoji: '🃏', color: '#A855F7' },
+  { name: 'Diciembre', emoji: '🎄', color: '#DC2626' },
+];
+export const FIRST_GIFT = '2026-11';
+export const LAST_GIFT = '2030-12';
+
+/** 'gift_2026_11' (title) or 'giftb_2026_11' (frame) as a store item; null for anything else. */
+export const giftItem = (id: string): StoreItem | null => {
+  const m = /^gift(b?)_(\d{4})_(\d{2})$/.exec(id);
+  if (!m) return null;
+  const month = `${m[2]}-${m[3]}`;
+  const info = GIFT_MONTHS[Number(m[3]) - 1];
+  if (!info || month < FIRST_GIFT || month > LAST_GIFT) return null;
+  return m[1]
+    ? { id, type: 'border', name: `Marco ${info.name} ${m[2]}`, price: 0, value: info.color, isExclusive: true, giftMonth: month }
+    : { id, type: 'title', name: `${info.emoji} VIP ${info.name} ${m[2]}`, price: 0, isExclusive: true, giftMonth: month };
+};
+
+/** The gift ids of a club month, e.g. '2026-11'. */
+export const giftIdsOf = (month: string) => {
+  const key = month.replace('-', '_');
+  return { title: `gift_${key}`, border: `giftb_${key}` };
+};
+
+/** Gifts in an inventory, newest month first. */
+export const ownedGifts = (inventory: string[] | null | undefined): StoreItem[] =>
+  (Array.isArray(inventory) ? inventory : [])
+    .map(giftItem)
+    .filter((i): i is StoreItem => !!i)
+    .sort((a, b) => (b.giftMonth || '').localeCompare(a.giftMonth || '') || a.type.localeCompare(b.type));
+
+export const giftNote = (item: StoreItem): string => {
+  if (!item.giftMonth) return '';
+  const [y, mo] = item.giftMonth.split('-');
+  return `Regalo VIP de ${GIFT_MONTHS[Number(mo) - 1].name.toLowerCase()} ${y}. Es tuyo para siempre.`;
+};
+
+const GIFT_TITLE = new RegExp(`^\\S+ VIP (${GIFT_MONTHS.map((g) => g.name).join('|')}) \\d{4}$`);
 const CATALOG_TITLES = new Set(STORE_ITEMS.filter((i) => i.type === 'title' && !i.isCustom).map((i) => i.name));
+const isCatalogTitle = (title: string) => CATALOG_TITLES.has(title) || GIFT_TITLE.test(title);
 
 export const owns = (inventory: string[] | null | undefined, item: StoreItem): boolean =>
   Array.isArray(inventory) && inventory.includes(item.id);
@@ -55,7 +108,7 @@ export const owns = (inventory: string[] | null | undefined, item: StoreItem): b
 /** The custom title the player is wearing, if the title is not one from the catalog. */
 export const customTitle = (equipped: Equipped | null | undefined): string | null => {
   const t = (equipped?.title || '').trim();
-  return t && !CATALOG_TITLES.has(t) ? t : null;
+  return t && !isCatalogTitle(t) ? t : null;
 };
 
 export const isEquipped = (item: StoreItem, equipped: Equipped | null | undefined): boolean => {
@@ -80,6 +133,6 @@ export const toggleEquip = (item: StoreItem, equipped: Equipped | null | undefin
 
 /** Owned items first (the ones you can wear), then the ones left to buy. */
 export const splitByOwnership = (inventory: string[] | null | undefined) => ({
-  owned: STORE_ITEMS.filter((i) => owns(inventory, i)),
+  owned: [...STORE_ITEMS.filter((i) => owns(inventory, i)), ...ownedGifts(inventory)],
   toBuy: STORE_ITEMS.filter((i) => !owns(inventory, i)),
 });

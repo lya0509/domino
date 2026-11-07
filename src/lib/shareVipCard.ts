@@ -43,7 +43,7 @@ const drawCover = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: numb
   ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
 };
 
-const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+export const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -53,7 +53,7 @@ const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 };
 
-const fitText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number, size: number, weight: string, style = '') => {
+export const fitText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number, size: number, weight: string, style = '') => {
   let s = size;
   do {
     ctx.font = `${style} ${weight} ${s}px system-ui, -apple-system, Roboto, sans-serif`;
@@ -210,16 +210,13 @@ const download = (blob: Blob, filename: string) => {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 };
 
-/** Share the picture (WhatsApp, Instagram...) or, with `downloadOnly`, save it. */
-export const shareVipCard = async (card: VipCardPicture, downloadOnly = false): Promise<ShareOutcome> => {
-  if (Platform.OS !== 'web') throw new Error('Compartir la tarjeta está disponible en la app web.');
-  const blob = await drawVipCard(card);
-  const filename = 'mi-tarjeta-vip.png';
+/** Share a picture through the phone (WhatsApp, Instagram...) or save it when it cannot share files. */
+export const sharePicture = async (blob: Blob, filename: string, title: string, text: string, downloadOnly = false): Promise<ShareOutcome> => {
   const file = new File([blob], filename, { type: 'image/png' });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (!downloadOnly && nav.share && nav.canShare?.({ files: [file] })) {
     try {
-      await nav.share({ files: [file], title: 'Mi tarjeta VIP', text: '¡Soy socio VIP del Domino del Cafetín! ♛' });
+      await nav.share({ files: [file], title, text });
       return 'shared';
     } catch (e: any) {
       if (e?.name === 'AbortError') return 'cancelled';
@@ -228,4 +225,11 @@ export const shareVipCard = async (card: VipCardPicture, downloadOnly = false): 
   }
   download(blob, filename);
   return 'downloaded';
+};
+
+/** Share the picture (WhatsApp, Instagram...) or, with `downloadOnly`, save it. */
+export const shareVipCard = async (card: VipCardPicture, downloadOnly = false): Promise<ShareOutcome> => {
+  if (Platform.OS !== 'web') throw new Error('Compartir la tarjeta está disponible en la app web.');
+  const blob = await drawVipCard(card);
+  return sharePicture(blob, 'mi-tarjeta-vip.png', 'Mi tarjeta VIP', '¡Soy socio VIP del Domino del Cafetín! ♛', downloadOnly);
 };

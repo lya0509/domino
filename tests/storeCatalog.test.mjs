@@ -61,3 +61,35 @@ test('the custom title uses the text, not the item name', () => {
   assert.equal(e.title, null);
   assert.equal(customTitle({ title: '🏅 Superviviente' }), null);
 });
+
+import { GIFT_MONTHS, giftItem, ownedGifts, giftIdsOf, giftNote } from '../src/lib/storeCatalog.ts';
+
+test('monthly gifts match the server list (months, emojis, colors)', () => {
+  const sql = fs.readFileSync(new URL('../supabase/migrations/20261107_23_vip_regalos.sql', import.meta.url), 'utf8');
+  const arr = (start) => [...sql.slice(sql.indexOf(start)).split(']')[0].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  assert.deepEqual(arr("(ARRAY['Enero'"), GIFT_MONTHS.map((g) => g.name));
+  assert.deepEqual(arr("(ARRAY['🎆'"), GIFT_MONTHS.map((g) => g.emoji));
+  assert.deepEqual(arr("(ARRAY['#F472B6'"), GIFT_MONTHS.map((g) => g.color));
+});
+
+test('a gift id becomes a title or a frame of its month; outside the range it is nothing', () => {
+  assert.equal(giftItem('gift_2026_11').name, '🃏 VIP Noviembre 2026');
+  assert.equal(giftItem('giftb_2026_12').value, '#DC2626');
+  assert.equal(giftItem('gift_2026_10'), null);
+  assert.equal(giftItem('title_rey'), null);
+  assert.deepEqual(giftIdsOf('2027-01'), { title: 'gift_2027_01', border: 'giftb_2027_01' });
+  assert.equal(giftNote(giftItem('gift_2026_11')), 'Regalo VIP de noviembre 2026. Es tuyo para siempre.');
+});
+
+test('owned gifts show in "Lo que tienes", newest first, and can be worn', () => {
+  const inv = ['title_rey', 'gift_2026_11', 'giftb_2026_11', 'gift_2026_12'];
+  assert.deepEqual(ownedGifts(inv).map((i) => i.id), ['gift_2026_12', 'giftb_2026_11', 'gift_2026_11']);
+  assert.equal(splitByOwnership(inv).owned.length, 4);
+  const g = giftItem('gift_2026_11');
+  const e = toggleEquip(g, {});
+  assert.equal(e.title, '🃏 VIP Noviembre 2026');
+  assert.equal(isEquipped(g, e), true);
+  // A gift title is not mistaken for a custom one
+  assert.equal(customTitle(e), null);
+  assert.equal(isEquipped(item('title_custom'), e), false);
+});

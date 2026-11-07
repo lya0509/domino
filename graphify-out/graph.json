@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-07T03:14:52.921Z",
+    "generatedAt": "2026-11-07T03:37:51.076Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,12 +10,12 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 226,
-      "totalEdges": 450,
+      "totalNodes": 230,
+      "totalEdges": 458,
       "totalHyperedges": 7,
       "totalScreens": 15,
-      "totalComponents": 37,
-      "totalServices": 30,
+      "totalComponents": 38,
+      "totalServices": 32,
       "totalDatabaseTables": 24,
       "totalDatabaseRpcs": 51,
       "totalQaSuites": 18
@@ -856,8 +856,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1757,
-      "bytes": 73272,
+      "lines": 1766,
+      "bytes": 73666,
       "exports": [
         "ProfileScreen"
       ],
@@ -871,6 +871,7 @@
         "../lib/supabase",
         "../lib/guests",
         "../lib/liveSync",
+        "../components/MonthRecapCard",
         "../lib/sounds",
         "../types",
         "../components/BetHistoryRow",
@@ -932,8 +933,8 @@
         "✍️ Custom Title Modal (20-char limit, 250,000 pts)"
       ],
       "exists": true,
-      "lines": 419,
-      "bytes": 21017,
+      "lines": 449,
+      "bytes": 22626,
       "exports": [
         "StoreScreen"
       ],
@@ -1656,7 +1657,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 54,
-      "bytes": 2185,
+      "bytes": 2218,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1727,8 +1728,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1800,
-      "bytes": 93366,
+      "lines": 1803,
+      "bytes": 93843,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2684,6 +2685,24 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261107_23_vip_regalos.sql",
+      "label": "20261107_23_vip_regalos.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261107_23_vip_regalos.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 306,
+      "bytes": 12689,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/BetHistoryRow.tsx",
       "label": "BetHistoryRow.tsx",
       "type": "component",
@@ -2873,6 +2892,35 @@
         "./MatchGraph"
       ],
       "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/MonthRecapCard.tsx",
+      "label": "MonthRecapCard.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/MonthRecapCard.tsx",
+      "role": "VIP perk on the own profile: this month and last month in numbers, with a share button (SQL 23 sends the day-1 notice).",
+      "exists": true,
+      "lines": 161,
+      "bytes": 8135,
+      "exports": [
+        "MonthRecapCard"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/supabase",
+        "../lib/monthRecap",
+        "../lib/shareMonthRecap"
+      ],
+      "supabaseTables": [
+        "table_game_players"
+      ],
       "supabaseRpcs": [],
       "realtimeChannels": [],
       "storageKeys": [],
@@ -3835,6 +3883,35 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/monthRecap.ts",
+      "label": "monthRecap.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/monthRecap.ts",
+      "role": "Pure numbers for \"Mi mes en el cafetín\": a VIP month of dominó, UNO and poker, best partner, toughest rival, streak (more than one guest counts for nobody).",
+      "exists": true,
+      "lines": 149,
+      "bytes": 5457,
+      "exports": [
+        "MONTH_NAMES",
+        "RecapMatch",
+        "RecapTableGame",
+        "Person",
+        "MonthRecap",
+        "clubMonth",
+        "previousMonth",
+        "monthLabel",
+        "monthRange",
+        "buildMonthRecap"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/outbox.ts",
       "label": "outbox.ts",
       "type": "service",
@@ -3999,6 +4076,31 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/shareMonthRecap.ts",
+      "label": "shareMonthRecap.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/shareMonthRecap.ts",
+      "role": "Draws \"Mi mes en el cafetín\" as a 1080x1350 picture and shares it (WhatsApp) or saves it.",
+      "exists": true,
+      "lines": 91,
+      "bytes": 4002,
+      "exports": [
+        "drawMonthRecap",
+        "shareMonthRecap"
+      ],
+      "imports": [
+        "react-native",
+        "./monthRecap",
+        "./shareVipCard"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/shareVipCard.ts",
       "label": "shareVipCard.ts",
       "type": "service",
@@ -4006,12 +4108,15 @@
       "file": "src/lib/shareVipCard.ts",
       "role": "Draws the VIP card as a 1080x1350 picture on a canvas and shares it (Web Share) or downloads it.",
       "exists": true,
-      "lines": 232,
-      "bytes": 7950,
+      "lines": 236,
+      "bytes": 8241,
       "exports": [
         "VipCardPicture",
         "ShareOutcome",
+        "roundRect",
+        "fitText",
         "drawVipCard",
+        "sharePicture",
         "shareVipCard"
       ],
       "imports": [
@@ -4032,8 +4137,8 @@
       "file": "src/lib/storeCatalog.ts",
       "role": "Store catalog (same ids and prices as store_catalog() on the server) and the rules for wearing cosmetics: owned vs to buy, what is on, toggling titles, colors, frames, table colors and the custom title.",
       "exists": true,
-      "lines": 86,
-      "bytes": 4259,
+      "lines": 139,
+      "bytes": 6919,
       "exports": [
         "CosmeticType",
         "StoreItem",
@@ -4042,6 +4147,13 @@
         "CATEGORIES",
         "EXCLUSIVE_NOTE",
         "CUSTOM_MAX",
+        "GIFT_MONTHS",
+        "FIRST_GIFT",
+        "LAST_GIFT",
+        "giftItem",
+        "giftIdsOf",
+        "ownedGifts",
+        "giftNote",
         "owns",
         "customTitle",
         "isEquipped",
@@ -4422,6 +4534,13 @@
       ]
     },
     {
+      "id": "db:table_game_players",
+      "label": "table_game_players",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Who sat in each UNO or poker game and in which seat, with the name kept for guests. Read for personal stats per game."
+    },
+    {
       "id": "db:points_ledger",
       "label": "points_ledger",
       "type": "db_table",
@@ -4434,13 +4553,6 @@
       "type": "db_table",
       "community": "database_sql",
       "role": "One row per player/match for the VIP wager consent (status, team, expires_at). Written only by RPCs."
-    },
-    {
-      "id": "db:table_game_players",
-      "label": "table_game_players",
-      "type": "db_table",
-      "community": "database_sql",
-      "role": "Who sat in each UNO or poker game and in which seat, with the name kept for guests. Read for personal stats per game."
     },
     {
       "id": "db:club_guests",
@@ -5778,6 +5890,12 @@
     },
     {
       "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/components/MonthRecapCard.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
       "target": "src/lib/sounds.ts",
       "relation": "imports",
       "derived": true
@@ -6349,6 +6467,36 @@
     {
       "source": "src/components/MatchHistoryRow.tsx",
       "target": "src/lib/playerHistory.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/MonthRecapCard.tsx",
+      "target": "db:table_game_players",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/components/MonthRecapCard.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/MonthRecapCard.tsx",
+      "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/MonthRecapCard.tsx",
+      "target": "src/lib/monthRecap.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/MonthRecapCard.tsx",
+      "target": "src/lib/shareMonthRecap.ts",
       "relation": "imports",
       "derived": true
     },
@@ -6979,6 +7127,18 @@
     {
       "source": "src/lib/pushNotifications.ts",
       "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/shareMonthRecap.ts",
+      "target": "src/lib/monthRecap.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/shareMonthRecap.ts",
+      "target": "src/lib/shareVipCard.ts",
       "relation": "imports",
       "derived": true
     },

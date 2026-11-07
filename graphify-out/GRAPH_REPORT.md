@@ -15,15 +15,15 @@
 | Metric | Count |
 | :--- | :---: |
 | **System Communities** | **8** |
-| **Total Graph Nodes** | **226** |
-| **Directed Edges** | **450 (367 derived from code)** |
+| **Total Graph Nodes** | **230** |
+| **Directed Edges** | **458 (375 derived from code)** |
 | **System Hyperedges** | **7** |
 | **Screens** | **15** |
-| **Components** | **37** |
-| **Services** | **30** |
+| **Components** | **38** |
+| **Services** | **32** |
 | **DB Tables & Buckets** | **24** |
 | **DB RPCs** | **51** |
-| **SQL Scripts** | **56** |
+| **SQL Scripts** | **57** |
 | **QA Test Suites** | **18** |
 
 **RPCs called by the app:** `admin_decide_tournament_match`, `answer_table_game`, `award_zapatero_maestro`, `buy_store_item`, `call_waitlist_duo`, `cancel_poker_hand`, `cancel_table_game`, `claim_achievement`, `claim_daily_bonus`, `clean_old_tournaments`, `confirm_match_result`, `delete_user_account`, `dispute_match_result`, `expire_tournament_registration`, `finish_expired_match`, `finish_expired_table_game`, `get_my_bet_profit_left`, `get_my_vip`, `invite_tournament_partner`, `join_tournament_with_points`, `list_vip_media_pending`, `list_vip_requests`, `notify_near_turn`, `place_bet`, `poker_ranking`, `propose_wager`, `remember_club_guests`, `remove_push_subscription`, `request_vip`, `respond_tournament_partner`, `respond_wager`, `review_tournament_payment`, `review_vip_media`, `review_vip_request`, `save_push_subscription`, `seat_waitlist_entry`, `set_vip_media`, `set_vip_ring_style`, `set_vip_settings`, `set_vip_tagline`, `set_vip_win_style`, `settle_completed_match`, `settle_my_pending_bets`, `start_tournament`, `table_game_ranking`, `verify_admin_pin`

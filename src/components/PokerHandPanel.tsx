@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
 import {
-  callBet, closeByFold, closeShowdown, currentBet, DEFAULT_ENTRY, foldPlayer, handPot, isShortAllIn, loneSurvivor,
+  blindNotice, callBet, closeByFold, closeShowdown, currentBet, DEFAULT_ENTRY, foldPlayer, handPot, isShortAllIn, loneSurvivor,
   newBettingRound, owedBy, POKER_HANDS, PokerHand, raiseBet, splitPot, stackLeft, unfoldPlayer, Winner,
 } from '../lib/poker';
 import { TableGame } from '../lib/tableGames';
@@ -211,8 +211,16 @@ export const PokerHandPanel: React.FC<Props> = ({ game, hand: stored, chips, myS
     );
   }
 
+  const notice = blindNotice(hand, mySeat, entry);
+
   return (
     <View>
+      {notice && (
+        <View style={[styles.notice, notice.kind === 'small' ? styles.noticeSmall : notice.kind === 'big' ? styles.noticeBig : styles.noticeDealer]}>
+          <Text style={styles.noticeTitle}>{notice.title}</Text>
+          <Text style={styles.noticeDetail}>{notice.detail}</Text>
+        </View>
+      )}
       <PokerTable game={game} hand={hand} chips={chips} />
 
       {mySeat !== null && alive.includes(mySeat) && survivor === null && (
@@ -308,6 +316,12 @@ export const PokerHandPanel: React.FC<Props> = ({ game, hand: stored, chips, myS
 };
 
 const styles = StyleSheet.create({
+  notice: { borderRadius: theme.borderRadius.m, padding: theme.spacing.m, marginTop: theme.spacing.s, borderWidth: 2 },
+  noticeSmall: { backgroundColor: 'rgba(59,130,246,0.18)', borderColor: '#3b82f6' },
+  noticeBig: { backgroundColor: 'rgba(212,168,67,0.18)', borderColor: POKER_GOLD },
+  noticeDealer: { backgroundColor: 'rgba(245,240,230,0.1)', borderColor: '#f5f0e6' },
+  noticeTitle: { color: theme.colors.text, fontSize: 22, fontWeight: '900', textAlign: 'center' },
+  noticeDetail: { color: theme.colors.text, fontSize: 14, textAlign: 'center', marginTop: 4 },
   potLabel: { color: theme.colors.textDim, fontSize: 14, textAlign: 'center', marginTop: theme.spacing.s },
   pot: { color: POKER_GOLD, fontSize: 44, fontWeight: '900', textAlign: 'center', fontVariant: ['tabular-nums'] },
   seat: {

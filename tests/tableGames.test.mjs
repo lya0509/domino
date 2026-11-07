@@ -73,3 +73,41 @@ test('a server refusal is not mistaken for lost internet', () => {
   assert.equal(isConnectionError('Hay un jugador repetido'), false);
   assert.equal(isConnectionError(undefined), false);
 });
+
+import { activeSeats, playerSeats, missingCheckIn, needsMyCheckIn, guestCount, countsForRanking, playerNames as names22 } from '../src/lib/tableGames.ts';
+
+const mesa22 = {
+  status: 'active',
+  players: [
+    { seat: 0, user_id: 'a', name: 'Ana', role: 'player', checked_in_at: '2026-11-07T01:00:00Z', left_at: null },
+    { seat: 1, user_id: 'b', name: 'Beto', role: 'player', checked_in_at: null, left_at: null },
+    { seat: 2, user_id: null, name: 'Jorge', role: 'player', checked_in_at: '2026-11-07T01:00:00Z', left_at: null },
+    { seat: 3, user_id: 'c', name: 'Caro', role: 'player', checked_in_at: '2026-11-07T01:00:00Z', left_at: '2026-11-07T02:00:00Z' },
+    { seat: 4, user_id: null, name: 'Pedro', role: 'dealer', checked_in_at: '2026-11-07T01:00:00Z', left_at: null },
+  ],
+};
+
+test('whoever only deals has no seat in the hands; whoever left keeps chips but plays no more', () => {
+  assert.deepEqual(playerSeats(mesa22), [0, 1, 2, 3]);
+  assert.deepEqual(activeSeats(mesa22), [0, 1, 2]);
+  assert.equal(names22(mesa22), 'Ana, Beto, Jorge, Caro');
+});
+
+test('only players with an account who are still in must check in', () => {
+  assert.deepEqual(missingCheckIn(mesa22).map((p) => p.name), ['Beto']);
+  assert.equal(needsMyCheckIn(mesa22, 'b'), true);
+  assert.equal(needsMyCheckIn(mesa22, 'a'), false);
+  assert.equal(needsMyCheckIn({ ...mesa22, status: 'completed' }, 'b'), false);
+});
+
+test('before SQL 22 there is no check-in column, so nobody is waited for', () => {
+  const old = { status: 'active', players: [{ seat: 0, user_id: 'a', name: 'Ana' }, { seat: 1, user_id: 'b', name: 'Beto' }] };
+  assert.deepEqual(missingCheckIn(old), []);
+});
+
+test('the dealer is not a guest; two guests and the game counts for nobody', () => {
+  assert.equal(guestCount(mesa22), 1);
+  assert.equal(countsForRanking(mesa22), true);
+  const two = { players: [...mesa22.players, { seat: 5, user_id: null, name: 'Luis', role: 'player' }] };
+  assert.equal(countsForRanking(two), false);
+});

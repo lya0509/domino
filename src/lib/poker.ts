@@ -80,6 +80,44 @@ export const blindSeats = (entrants: number[], dealerSeat: number): { small: num
   return { small, big: nextAround(seats, small) };
 };
 
+/**
+ * The big notice on a player's own phone: whose turn it is to put the blinds in. The app already
+ * moved those chips into the pot; the notice says so, so nobody wonders why their stack went down.
+ */
+export const blindNotice = (
+  hand: PokerHand,
+  seat: number | null,
+  entry: number
+): { kind: 'small' | 'big' | 'dealer'; title: string; detail: string } | null => {
+  if (seat === null || hand.bettingRound !== 1) return null;
+  const { small, big } = blindSeats(hand.entrants, hand.dealerSeat);
+  const deals = seat === hand.dealerSeat;
+  if (seat === small) {
+    const put = hand.contributions[seat] ?? 0;
+    return {
+      kind: 'small',
+      title: `Te toca la salida baja: ${put}`,
+      detail: `Ya están en el pozo. Es la mitad de la salida alta (${entry}), y la pones antes de ver tus cartas.${deals ? ' Además repartes.' : ''}`,
+    };
+  }
+  if (seat === big) {
+    const put = hand.contributions[seat] ?? 0;
+    return {
+      kind: 'big',
+      title: `Te toca la salida alta: ${put}`,
+      detail: `Ya están en el pozo. Los demás tienen que igualarla para seguir en la mano.${deals ? ' Además repartes.' : ''}`,
+    };
+  }
+  if (deals) {
+    return {
+      kind: 'dealer',
+      title: 'Te toca repartir',
+      detail: hand.entrants.includes(seat) ? 'Repartes y juegas esta mano.' : 'Solo repartes: no entras en esta mano.',
+    };
+  }
+  return null;
+};
+
 /** Only a hint: the app keeps no turns, the table does. */
 export const firstToSpeak = (hand: PokerHand, chips: Chips): number | null => {
   const from = hand.bettingRound === 1 ? blindSeats(hand.entrants, hand.dealerSeat).big : hand.dealerSeat;

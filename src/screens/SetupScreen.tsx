@@ -6,6 +6,15 @@ import { GameMode, Player, Match, Profile } from '../types';
 import { supabase } from '../lib/supabase';
 import { offlineSync } from '../lib/offlineSync';
 import { PlayerChip } from '../components/PlayerChip';
+import { GuestNameInput } from '../components/GuestNameInput';
+import { GUEST_LIMIT } from '../lib/guests';
+import { rememberClubGuests } from '../lib/tableGameService';
+
+// A guest sits in a slot like a profile, but has no account: its id never reaches the server
+const GUEST_PREFIX = 'guest:';
+const isGuestSlot = (p: Profile | null | undefined) => !!p && p.id.startsWith(GUEST_PREFIX);
+const guestSlot = (name: string): Profile =>
+  ({ id: `${GUEST_PREFIX}${name.toLowerCase()}`, display_name: name, initials: name.slice(0, 2).toUpperCase(), betting_points: 0 } as Profile);
 
 interface Props {
   onStartMatch: (match: Omit<Match, 'id' | 'rounds' | 'status'>, waitlistId?: string) => void;
@@ -124,7 +133,7 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
       // We can't create auth users from client, so we just inform the user
       Alert.alert(
         'Registro Necesario',
-        `"${newName.trim()}" necesita registrarse en la app con su propio teléfono para aparecer en la lista de jugadores reales. \n\nSi no desea registrarse, puedes usar la opción de "Invitado" que ya está en la lista.`,
+        `"${newName.trim()}" necesita registrarse en la app con su propio teléfono para aparecer en la lista de jugadores reales. \n\nSi no desea registrarse, agrégalo como invitado: escribe su nombre en "Invitado sin cuenta", debajo de la lista.`,
         [{ text: 'Entendido' }]
       );
       setShowAddPlayer(false);
@@ -160,6 +169,11 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
         const filledSlots = slots.filter(s => s !== null);
         if (filledSlots.length < 4) {
           Alert.alert('Faltan Jugadores', `Selecciona los 4 jugadores para los equipos. Tienes ${filledSlots.length} de 4.`);
+          return;
+        }
+
+        if (isWagerMatch && filledSlots.some(isGuestSlot)) {
+          Alert.alert('Duelo VIP', 'El duelo VIP necesita a los 4 jugadores con cuenta. Quita al invitado o desactiva el duelo.');
           return;
         }
 
@@ -213,7 +227,7 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
         name: s!.display_name,
         initials: s!.initials,
         teamNumber: (i < 2 ? 1 : 2) as 1 | 2,
-        profileId: s!.id,
+        profileId: isGuestSlot(s) ? undefined : s!.id,
         order: i,
       }));
     } else {
@@ -243,12 +257,14 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
           name: s.display_name,
           initials: s.initials,
           teamNumber: teamNum as 1 | 2,
-          profileId: s.id,
+          profileId: isGuestSlot(s) ? undefined : s.id,
           order: i
         };
       });
     }
 
+    // The club's guest list remembers them for next time
+    rememberClubGuests(slots.filter(isGuestSlot).map((s) => s!.display_name));
     onStartMatch({ 
       gameMode: mode, 
       limitScore, 
@@ -257,6 +273,22 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
       wager_amount: isWagerMatch ? wagerAmount : 0
     }, waitlistId);
   };
+
+  const addGuestToSlot = (name: string) => {
+    if (slots.some((s) => s?.display_name.toLowerCase() === name.toLowerCase())) {
+      Alert.alert('Ya está', `${name} ya está en la mesa.`);
+      return;
+    }
+    const emptyIndex = slots.findIndex((s) => s === null);
+    if (emptyIndex === -1) {
+      Alert.alert('Lleno', 'Ya hay 4 jugadores. Quita uno primero.');
+      return;
+    }
+    const next = [...slots];
+    next[emptyIndex] = guestSlot(name);
+    setSlots(next);
+  };
+  const guestsSeated = slots.filter(isGuestSlot).length;
 
   const addPlayer = () => {
     if (players.length < 4) setPlayers([...players, { name: `Jugador ${players.length + 1}` }]);
@@ -282,7 +314,7 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
                 <Text style={styles.slotInitials}>{profile.initials}</Text>
               )}
             </VipAvatarRing>
-            <Text style={styles.slotName}>{profile.display_name}</Text>
+            <Text style={styles.slotName}>{profile.display_name}{isGuestSlot(profile) ? ' (invitado)' : ''}</Text>
             <Text style={styles.slotRemove}>✕</Text>
           </View>
         ) : (
@@ -464,6 +496,18 @@ export const SetupScreen: React.FC<Props> = ({ onStartMatch, isGuestMode, onBack
                     ))}
                   </View>
                 )}
+
+                <Text style={styles.availableTitle}>Invitado sin cuenta</Text>
+                <GuestNameInput
+                  onAdd={addGuestToSlot}
+                  chosen={slots.filter(isGuestSlot).map((s) => s!.display_name)}
+                  placeholder="Nombre del invitado"
+                />
+                <Text style={styles.loadingText}>
+                  {guestsSeated > GUEST_LIMIT
+                    ? 'Con más de un invitado la partida queda en el historial, pero no cuenta para el ranking ni admite apuestas.'
+                    : 'El invitado queda en el historial con su nombre. No suma ranking ni premio.'}
+                </Text>
 
                 <TouchableOpacity style={styles.addPlayerBtn} onPress={() => setShowAddPlayer(true)}>
                   <Text style={styles.addPlayerText}>+ ¿No aparece? Dile que se registre</Text>

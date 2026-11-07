@@ -4,6 +4,8 @@ import { theme } from '../theme';
 import { Profile } from '../types';
 import { MAX_PLAYERS, RosterEntry } from '../lib/tableGames';
 import { PlayerAvatar, PlayerChip } from './PlayerChip';
+import { GuestNameInput } from './GuestNameInput';
+import { GUEST_LIMIT } from '../lib/guests';
 
 interface Props {
   roster: RosterEntry[];
@@ -16,7 +18,6 @@ interface Props {
 /** Choose who plays, with or without an account. */
 export const RosterPicker: React.FC<Props> = ({ roster, onChange, profiles, ordered = false }) => {
   const [search, setSearch] = useState('');
-  const [guestName, setGuestName] = useState('');
 
   const registered = useMemo(() => {
     const text = search.trim().toLowerCase();
@@ -40,12 +41,14 @@ export const RosterPicker: React.FC<Props> = ({ roster, onChange, profiles, orde
     else add({ user_id: profile.id, name: profile.display_name });
   };
 
-  const addGuest = () => {
-    const name = guestName.trim();
-    if (!name) return;
+  const addGuest = (name: string) => {
+    if (roster.some((r) => !r.user_id && r.name.toLowerCase() === name.toLowerCase())) {
+      Alert.alert('Ya está', `${name} ya está en la mesa.`);
+      return;
+    }
     add({ name });
-    setGuestName('');
   };
+  const guests = roster.filter((r) => !r.user_id);
 
   const move = (index: number, step: number) => {
     const next = [...roster];
@@ -113,22 +116,12 @@ export const RosterPicker: React.FC<Props> = ({ roster, onChange, profiles, orde
         {registered.length === 0 && <Text style={styles.hint}>Nadie con ese nombre.</Text>}
       </View>
 
-      <View style={styles.guestRow}>
-        <TextInput
-          style={[styles.input, styles.guestInput]}
-          value={guestName}
-          onChangeText={setGuestName}
-          onSubmitEditing={addGuest}
-          maxLength={30}
-          placeholder="Jugador sin cuenta"
-          placeholderTextColor={theme.colors.textDim}
-          accessibilityLabel="Nombre de quien no tiene cuenta"
-        />
-        <TouchableOpacity style={styles.guestBtn} onPress={addGuest} accessibilityRole="button">
-          <Text style={styles.guestBtnText}>Agregar</Text>
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.hint}>Quien juega sin cuenta no entra en el ranking ni recibe premio.</Text>
+      <Text style={styles.registeredTitle}>Invitados (sin cuenta)</Text>
+      <GuestNameInput onAdd={addGuest} chosen={guests.map((g) => g.name)} placeholder="Nombre del invitado" />
+      <Text style={styles.hint}>
+        Los invitados quedan en el historial, pero no entran en el ranking ni reciben premio.
+        {guests.length > GUEST_LIMIT ? ' Con más de un invitado, esta partida no cuenta para el ranking de nadie.' : ''}
+      </Text>
     </>
   );
 };
@@ -163,15 +156,5 @@ const styles = StyleSheet.create({
   },
   registeredTitle: { color: theme.colors.textDim, fontSize: 13, fontWeight: '700', marginTop: theme.spacing.xs, marginBottom: theme.spacing.s },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.s, marginBottom: theme.spacing.m },
-  guestRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.s },
-  guestInput: { flex: 1, minWidth: 0 },
-  guestBtn: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: theme.spacing.m,
-    borderRadius: theme.borderRadius.s,
-    backgroundColor: theme.colors.secondary,
-  },
-  guestBtnText: { color: '#fff', fontWeight: 'bold' },
   hint: { color: theme.colors.textDim, fontSize: 13, marginBottom: theme.spacing.xs },
 });

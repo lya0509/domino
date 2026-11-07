@@ -7,6 +7,7 @@ import {
   isConnectionError,
   RosterEntry,
   TABLE_GAME_COLUMNS,
+  TABLE_GAME_COLUMNS_MESA,
   TableGame,
   TableGameKind,
 } from './tableGames';
@@ -15,7 +16,28 @@ interface Result {
   ok: boolean;
   queued?: boolean;
   error?: string;
+  data?: unknown;
 }
+
+// SQL 22 adds check-in, outside dealers, leaving and the single rematch. Until the owner runs it
+// the app asks for the old columns and behaves as before. null: not known yet.
+let mesa: boolean | null = null;
+const isMissingColumn = (error: { code?: string; message?: string } | null) =>
+  !!error && (error.code === '42703' || /does not exist|could not find/i.test(error.message || ''));
+export const mesaReady = (): boolean => mesa === true;
+
+const withColumns = async (build: (columns: string) => PromiseLike<{ data: any; error: any }>): Promise<{ data: any; error: any }> => {
+  if (mesa !== false) {
+    const res = await build(TABLE_GAME_COLUMNS_MESA);
+    if (!res.error) {
+      mesa = true;
+      return res;
+    }
+    if (!isMissingColumn(res.error)) return res;
+    mesa = false;
+  }
+  return build(TABLE_GAME_COLUMNS);
+};
 
 export interface RankingRow {
   user_id: string;
@@ -46,7 +68,7 @@ const sendOrQueue = async (
   const { data, error } = await supabase.rpc(fn, args);
   // set_poker_seat answers false when the hand moved on: the player has to know it didn't count
   if (!error && data === false) return { ok: false, error: 'Esa jugada ya no aplica: la mano cambió.' };
-  if (!error) return { ok: true };
+  if (!error) return { ok: true, data };
   if (isConnectionError(error.message)) {
     await offlineSync.enqueueTableGame(type, args);
     return { ok: true, queued: true };
@@ -71,31 +93,76 @@ const localGame = (id: string, game: AnyTableGame, roster: RosterEntry[], create
   players: roster.map((p, seat) => ({ seat, user_id: p.user_id ?? null, name: p.name })),
 });
 
+/** The server may answer with another id: the rematch someone else already started. */
+const startedGame = async (requested: string, result: Result, local: TableGame): Promise<Result & { game?: TableGame }> => {
+  if (!result.ok) return result;
+  const realId = typeof result.data === 'string' ? result.data : requested;
+  if (realId === requested) return { ...result, game: local };
+  const existing = await fetchTableGame(realId);
+  return { ...result, game: existing ?? { ...local, id: realId } };
+};
+
 export const startTableGame = async (
   game: TableGameKind,
   roster: RosterEntry[],
-  createdBy: string
+  createdBy: string,
+  rematchOf?: string
 ): Promise<Result & { game?: TableGame }> => {
   const id = generateUUID();
-  const result = await sendOrQueue('START_TABLE_GAME', 'start_table_game', { p_id: id, p_game: game, p_players: rosterPayload(roster) });
-  return result.ok ? { ...result, game: localGame(id, game, roster, createdBy) } : result;
+  const args: Record<string, unknown> = { p_id: id, p_game: game, p_players: rosterPayload(roster) };
+  if (rematchOf && mesaReady()) args.p_rematch_of = rematchOf;
+  const result = await sendOrQueue('START_TABLE_GAME', 'start_table_game', args);
+  return startedGame(id, result, localGame(id, game, roster, createdBy));
 };
 
 export const startPokerGame = async (
   roster: RosterEntry[],
   startChips: number,
   entry: number,
-  createdBy: string
+  createdBy: string,
+  rematchOf?: string
 ): Promise<Result & { game?: TableGame }> => {
   const id = generateUUID();
-  const result = await sendOrQueue('START_POKER_GAME', 'start_poker_game', {
+  const args: Record<string, unknown> = {
     p_id: id,
     p_players: rosterPayload(roster),
     p_start_chips: startChips,
     p_entry: entry,
-  });
-  if (!result.ok) return result;
-  return { ...result, game: { ...localGame(id, 'poker', roster, createdBy), start_chips: startChips, entry_amount: entry } };
+  };
+  if (rematchOf && mesaReady()) args.p_rematch_of = rematchOf;
+  const result = await sendOrQueue('START_POKER_GAME', 'start_poker_game', args);
+  return startedGame(id, result, { ...localGame(id, 'poker', roster, createdBy), start_chips: startChips, entry_amount: entry });
+};
+
+const rpc = async (fn: string, args: Record<string, unknown>): Promise<Result> => {
+  const { data, error } = await supabase.rpc(fn, args);
+  return error ? { ok: false, error: error.message } : { ok: true, data };
+};
+
+/** "Estoy en la mesa" from this phone. */
+export const checkInTableGame = (id: string) => rpc('check_in_table_game', { p_id: id });
+
+/** The creator turns someone who never confirmed into a guest, so the table can go on. */
+export const makeTableGameGuest = (id: string, seat: number) => rpc('make_table_game_guest', { p_id: id, p_seat: seat });
+
+/** Someone who only deals this hand: a player, an account or just a name. Answers the seat. */
+export const addTableGameDealer = async (id: string, userId: string | null, name: string | null): Promise<Result & { seat?: number }> => {
+  const res = await rpc('add_table_game_dealer', { p_id: id, p_user: userId, p_name: name });
+  return res.ok ? { ...res, seat: Number(res.data) } : res;
+};
+
+export const leaveTableGame = (id: string, seat: number) => rpc('leave_table_game', { p_id: id, p_seat: seat });
+
+/** Guest names the club has used, most recent first, for suggestions. Empty before SQL 22. */
+export const fetchClubGuests = async (): Promise<string[]> => {
+  const { data, error } = await supabase.from('club_guests').select('name').order('last_used_at', { ascending: false }).limit(300);
+  return error ? [] : (data || []).map((g: any) => g.name);
+};
+
+/** Dominó remembers its guests when the match starts. Best effort: never blocks a match. */
+export const rememberClubGuests = async (names: string[]) => {
+  if (names.length === 0) return;
+  await supabase.rpc('remember_club_guests', { p_names: names }).then(() => undefined, () => undefined);
 };
 
 export const savePokerHand = (gameId: string, hand: PokerHand): Promise<Result> =>
@@ -157,7 +224,7 @@ export const finishExpiredTableGame = async (id: string): Promise<boolean> => {
 };
 
 export const fetchTableGame = async (id: string): Promise<TableGame | null> => {
-  const { data } = await supabase.from('table_games').select(TABLE_GAME_COLUMNS).eq('id', id).maybeSingle();
+  const { data } = await withColumns((columns) => supabase.from('table_games').select(columns).eq('id', id).maybeSingle());
   return data ? bySeat(data) : null;
 };
 
@@ -166,10 +233,12 @@ export const fetchTableGames = async (
   limit = 30,
   kind: 'uno' | 'poker' | 'all' = 'all'
 ): Promise<TableGame[]> => {
-  let query = supabase.from('table_games').select(TABLE_GAME_COLUMNS).eq('status', status);
-  if (kind === 'poker') query = query.eq('game', 'poker');
-  if (kind === 'uno') query = query.neq('game', 'poker');
-  const { data } = await query.order('created_at', { ascending: false }).limit(limit);
+  const { data } = await withColumns((columns) => {
+    let query = supabase.from('table_games').select(columns).eq('status', status);
+    if (kind === 'poker') query = query.eq('game', 'poker');
+    if (kind === 'uno') query = query.neq('game', 'poker');
+    return query.order('created_at', { ascending: false }).limit(limit);
+  });
   return (data || []).map(bySeat);
 };
 

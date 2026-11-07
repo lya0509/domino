@@ -36,6 +36,8 @@ export const dominoStats = (matches: HofMatch[]): DominoRow[] => {
   for (const m of matches) {
     if (m.status && m.status !== 'completed') continue;
     if (m.winner_team !== 1 && m.winner_team !== 2) continue;
+    // More than one guest (empty seat): the match counts for nobody. Same rule as guests.ts
+    if ([m.team1_player1, m.team1_player2, m.team2_player1, m.team2_player2].filter((id) => !id).length > 1) continue;
     const seats: [string | null | undefined, 1 | 2][] = [
       [m.team1_player1, 1], [m.team1_player2, 1], [m.team2_player1, 2], [m.team2_player2, 2],
     ];

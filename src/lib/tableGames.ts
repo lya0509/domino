@@ -17,6 +17,12 @@ export interface TableGamePlayer {
   seat: number;
   user_id: string | null;
   name: string;
+  /** 'dealer' only deals: no chips, never in a hand, never the winner. Missing before SQL 22. */
+  role?: 'player' | 'dealer' | null;
+  /** "Estoy en la mesa". Missing before SQL 22, which counts as present. */
+  checked_in_at?: string | null;
+  /** Left mid-game: chips stay, no more hands, cannot win. */
+  left_at?: string | null;
 }
 
 export interface TableGame {
@@ -32,6 +38,7 @@ export interface TableGame {
   created_at: string;
   start_chips?: number | null;
   entry_amount?: number | null;
+  rematch_of?: string | null;
   players: TableGamePlayer[];
 }
 
@@ -43,6 +50,35 @@ export interface RosterEntry {
 export const TABLE_GAME_COLUMNS =
   'id, game, status, created_by, winner_seat, closed_by, closed_at, auto_confirm_at, disputed_at, created_at, start_chips, entry_amount, players:table_game_players(seat, user_id, name)';
 
+/** With SQL 22: check-in, outside dealers, leaving and the single rematch. */
+export const TABLE_GAME_COLUMNS_MESA =
+  'id, game, status, created_by, winner_seat, closed_by, closed_at, auto_confirm_at, disputed_at, created_at, start_chips, entry_amount, rematch_of, players:table_game_players(seat, user_id, name, role, checked_in_at, left_at)';
+
+/** More than one guest and the game counts for nobody's ranking, stats or prize. Same as guests.ts. */
+export const GUEST_LIMIT = 1;
+
+export const isDealerOnly = (p: Pick<TableGamePlayer, 'role'>): boolean => p.role === 'dealer';
+
+/** Seats that play (not only deal), including those who left: their chips still show. */
+export const playerSeats = (game: Pick<TableGame, 'players'>): number[] =>
+  game.players.filter((p) => !isDealerOnly(p)).map((p) => p.seat);
+
+/** Seats still in the game: they can enter hands and win. */
+export const activeSeats = (game: Pick<TableGame, 'players'>): number[] =>
+  game.players.filter((p) => !isDealerOnly(p) && !p.left_at).map((p) => p.seat);
+
+/** Players with an account who have not tapped "Estoy en la mesa" yet. */
+export const missingCheckIn = (game: Pick<TableGame, 'players'>): TableGamePlayer[] =>
+  game.players.filter((p) => !isDealerOnly(p) && !!p.user_id && !p.left_at && p.checked_in_at === null);
+
+export const needsMyCheckIn = (game: Pick<TableGame, 'players' | 'status'>, userId: string | null): boolean =>
+  !!userId && game.status === 'active' && missingCheckIn(game).some((p) => p.user_id === userId);
+
+export const guestCount = (game: Pick<TableGame, 'players'>): number =>
+  game.players.filter((p) => !isDealerOnly(p) && !p.user_id).length;
+
+export const countsForRanking = (game: Pick<TableGame, 'players'>): boolean => guestCount(game) <= GUEST_LIMIT;
+
 export const tableGameLabel = (game: string): string =>
   game === 'poker' ? 'Póker' : TABLE_GAMES.find((g) => g.key === game)?.label ?? game;
 
@@ -50,7 +86,7 @@ export const canStartRoster = (roster: RosterEntry[]): boolean =>
   roster.length >= MIN_PLAYERS && roster.length <= MAX_PLAYERS;
 
 export const playerNames = (game: Pick<TableGame, 'players'>): string =>
-  [...game.players].sort((a, b) => a.seat - b.seat).map((p) => p.name).join(', ');
+  [...game.players].filter((p) => !isDealerOnly(p)).sort((a, b) => a.seat - b.seat).map((p) => p.name).join(', ');
 
 export const winnerName = (game: Pick<TableGame, 'players' | 'winner_seat'>): string | null =>
   game.players.find((p) => p.seat === game.winner_seat)?.name ?? null;

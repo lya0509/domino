@@ -942,6 +942,7 @@ const FILE_ROLES = {
   'src/lib/gameStats.ts': 'Loads UNO and poker numbers for one player from table_game_players and poker_ranking, cached for a minute (useTableGameCells).',
   'src/components/StatCells.tsx': 'Four numbers in a row, shared by the home card and the profile stats.',
   'src/lib/liveSync.ts': 'Keeps every screen live: heals the realtime socket (fresh token, reconnect) when the app wakes or the socket returns, rebuilds dead channels (liveChannel) and gives screens useLiveRefresh (reload on changes, on wake and every few seconds while visible).',
+  'src/lib/guests.ts': 'Guest rules (people without an account): suggestions from the club guest list while typing, and the limit (more than one guest and a dominó match counts for nobody).',
   'src/lib/liveSyncCore.ts': 'Pure helpers for liveSync: the wake gate that loads once per burst and which channel states are dead.',
   'src/lib/storeCatalog.ts': 'Store catalog (same ids and prices as store_catalog() on the server) and the rules for wearing cosmetics: owned vs to buy, what is on, toggling titles, colors, frames, table colors and the custom title.',
   'src/lib/hallOfFame.ts': 'Hall of Fame numbers for dominó: wins, games, win rate and zapatos per player, plus the winners, zapateros and streak rankings.',
@@ -974,6 +975,8 @@ const FILE_ROLES = {
     'Before each hand: who deals (next in the ring by default), who enters, and "solo reparte".',
   'src/components/PokerHelpModal.tsx':
     'Table of the 10 poker hands, best first.',
+  'src/components/GuestNameInput.tsx': 'Text box for a guest name with suggestions from the club guest list (club_guests); used by the roster picker, the dominó setup and the outside poker dealer.',
+  'src/components/TableCheckIn.tsx': '"Estoy en la mesa" panel for UNO and poker: who still has to confirm from their phone, and the creator turning someone into a guest.',
   'src/components/RosterPicker.tsx':
     'Choose the players of a table game, with or without an account. Poker uses it in seat order.',
   'src/lib/poker.ts':
@@ -1062,6 +1065,11 @@ const RPC_ROLES = {
   review_vip_request: 'Admin approves (adds vip_days, extending an active VIP) or rejects with a reason. The member gets a push.',
   set_vip_media: 'An active VIP proposes the card photo or GIF; it waits for an admin.',
   review_vip_media: 'Admin approves or rejects a VIP card photo.',
+  remember_club_guests: 'Dominó saves its guest names in the club guest list when a match starts (SQL 22).',
+  check_in_table_game: '"Estoy en la mesa": a player confirms from their phone; poker needs it before the first hand and every table before finishing (SQL 22).',
+  make_table_game_guest: 'The creator turns a player who never confirmed into a guest so the table can go on (SQL 22).',
+  add_table_game_dealer: 'Adds someone who only deals a poker hand: no chips, never in a hand, never the winner (SQL 22).',
+  leave_table_game: 'A player leaves mid-game: chips stay recorded, no more hands, cannot win (SQL 22).',
   review_tournament_payment: 'Admin approves or rejects a Bs tournament payment; the pot is entry × approved and a rejected player may sign up again.',
   admin_decide_tournament_match: 'Admin gives a bracket to a team when nobody can close it (no confirmation, abandoned, no-show); the tournament advances.',
   set_vip_tagline: 'An active VIP sets the phrase on the back of the card (60 characters).',
@@ -1098,6 +1106,7 @@ const RPC_ROLES = {
 };
 const TABLE_ROLES = {
   table_game_players: 'Who sat in each UNO or poker game and in which seat, with the name kept for guests. Read for personal stats per game.',
+  club_guests: 'Club guest list: names of people who play without an account, for suggestions. Written only by the table RPCs and remember_club_guests (SQL 22).',
   vip_members: 'Who is VIP until when, with the approved card photo and phrase. Everyone reads it; only the VIP RPCs write it.',
   poker_hands: 'Each poker hand: who dealt and entered, what each put in, winners, hand and who wrote it. Chips are computed from it, never stored.',
   table_games: 'UNO games and their state. The app only reads it: every change goes through the table game RPCs.',

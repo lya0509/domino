@@ -2,7 +2,7 @@
   "metadata": {
     "project": "Domino VIP (PeSiMistas)",
     "version": "3.1.0-full-system",
-    "generatedAt": "2026-11-07T02:26:46.732Z",
+    "generatedAt": "2026-11-07T03:14:52.921Z",
     "generator": "scripts/graphify.js (Full-System AST/Regex Analyzer)",
     "schemaDrift": {
       "rpcsNotInRepoSql": [],
@@ -10,14 +10,14 @@
     },
     "summary": {
       "totalCommunities": 8,
-      "totalNodes": 220,
-      "totalEdges": 430,
+      "totalNodes": 226,
+      "totalEdges": 450,
       "totalHyperedges": 7,
       "totalScreens": 15,
-      "totalComponents": 35,
-      "totalServices": 29,
-      "totalDatabaseTables": 23,
-      "totalDatabaseRpcs": 50,
+      "totalComponents": 37,
+      "totalServices": 30,
+      "totalDatabaseTables": 24,
+      "totalDatabaseRpcs": 51,
       "totalQaSuites": 18
     }
   },
@@ -619,8 +619,8 @@
         "Rankings Tabs (Individual / Dúos) & Time Filters (Hoy / Semana / Histórico)"
       ],
       "exists": true,
-      "lines": 1601,
-      "bytes": 59566,
+      "lines": 1603,
+      "bytes": 59704,
       "exports": [
         "HomeScreen"
       ],
@@ -636,6 +636,7 @@
         "../components/StatCells",
         "../types",
         "../lib/supabase",
+        "../lib/guests",
         "../lib/liveSync",
         "../lib/sounds",
         "../lib/offlineSync",
@@ -687,8 +688,8 @@
         "💰 Apuesta de Puntos VIP Toggle & Amount Input (50 / 100 / 250 / Custom)"
       ],
       "exists": true,
-      "lines": 677,
-      "bytes": 28896,
+      "lines": 721,
+      "bytes": 31159,
       "exports": [
         "SetupScreen"
       ],
@@ -700,7 +701,10 @@
         "../types",
         "../lib/supabase",
         "../lib/offlineSync",
-        "../components/PlayerChip"
+        "../components/PlayerChip",
+        "../components/GuestNameInput",
+        "../lib/guests",
+        "../lib/tableGameService"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -852,8 +856,8 @@
         "Rivalidades (😤 Me han ganado más / 😎 Yo más les he ganado), Mis Dúos & Mis Apuestas"
       ],
       "exists": true,
-      "lines": 1754,
-      "bytes": 73087,
+      "lines": 1757,
+      "bytes": 73272,
       "exports": [
         "ProfileScreen"
       ],
@@ -865,6 +869,7 @@
         "base64-arraybuffer",
         "../theme",
         "../lib/supabase",
+        "../lib/guests",
         "../lib/liveSync",
         "../lib/sounds",
         "../types",
@@ -975,8 +980,8 @@
         "50 Achievement Cards with Progress Bars & \"¡Reclamar +Pts!\" CTA"
       ],
       "exists": true,
-      "lines": 371,
-      "bytes": 20202,
+      "lines": 373,
+      "bytes": 20338,
       "exports": [
         "AchievementsScreen"
       ],
@@ -985,6 +990,7 @@
         "react-native",
         "../theme",
         "../lib/supabase",
+        "../lib/guests",
         "../lib/liveSync",
         "../lib/offlineSync",
         "../types"
@@ -1650,7 +1656,7 @@
       "role": "Defines dependencies (Expo, React Native Web, Supabase, jsQR) and scripts (web, build, graphify).",
       "exists": true,
       "lines": 54,
-      "bytes": 2159,
+      "bytes": 2185,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -1721,8 +1727,8 @@
       "file": "scripts/graphify.js",
       "role": "This Graphify generator: builds graph.json, GRAPH_REPORT.md, qa_matrix.json and graph.html.",
       "exists": true,
-      "lines": 1791,
-      "bytes": 92014,
+      "lines": 1800,
+      "bytes": 93366,
       "exports": [],
       "imports": [],
       "supabaseTables": [],
@@ -2660,6 +2666,24 @@
       "soundsPlayed": []
     },
     {
+      "id": "supabase/migrations/20261107_22_mesa.sql",
+      "label": "20261107_22_mesa.sql (SQL Script)",
+      "type": "sql_script",
+      "community": "database_sql",
+      "file": "supabase/migrations/20261107_22_mesa.sql",
+      "role": "Versioned migration. Its header says when to run it and whether the published app is compatible.",
+      "exists": true,
+      "lines": 1024,
+      "bytes": 42181,
+      "exports": [],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/components/BetHistoryRow.tsx",
       "label": "BetHistoryRow.tsx",
       "type": "component",
@@ -2740,6 +2764,33 @@
         "react-native-svg",
         "../theme",
         "../lib/gameTabs"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/GuestNameInput.tsx",
+      "label": "GuestNameInput.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/GuestNameInput.tsx",
+      "role": "Text box for a guest name with suggestions from the club guest list (club_guests); used by the roster picker, the dominó setup and the outside poker dealer.",
+      "exists": true,
+      "lines": 119,
+      "bytes": 4220,
+      "exports": [
+        "loadClubGuests",
+        "GuestNameInput"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/guests",
+        "../lib/tableGameService"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -2970,8 +3021,8 @@
       "file": "src/components/PokerHandPanel.tsx",
       "role": "The hand in play: pot, each seat, raise, call and fold, and the showdown with ties, the odd chip and the all-in split the dealer writes.",
       "exists": true,
-      "lines": 413,
-      "bytes": 17211,
+      "lines": 427,
+      "bytes": 18171,
       "exports": [
         "PokerHandPanel"
       ],
@@ -3024,8 +3075,8 @@
       "file": "src/components/PokerNewHand.tsx",
       "role": "Before each hand: who deals (next in the ring by default), who enters, and \"solo reparte\".",
       "exists": true,
-      "lines": 139,
-      "bytes": 5427,
+      "lines": 186,
+      "bytes": 7832,
       "exports": [
         "POKER_GOLD",
         "PokerNewHand"
@@ -3035,7 +3086,9 @@
         "react-native",
         "../theme",
         "../lib/poker",
-        "../lib/tableGames"
+        "../lib/tableGames",
+        "../types",
+        "./GuestNameInput"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3077,8 +3130,8 @@
       "file": "src/components/PokerTable.tsx",
       "role": "Felt view everyone sees during a hand: the pot and how each seat stands.",
       "exists": true,
-      "lines": 91,
-      "bytes": 3720,
+      "lines": 113,
+      "bytes": 5111,
       "exports": [
         "POKER_FELT",
         "POKER_WOOD",
@@ -3173,8 +3226,8 @@
       "file": "src/components/RosterPicker.tsx",
       "role": "Choose the players of a table game, with or without an account. Poker uses it in seat order.",
       "exists": true,
-      "lines": 178,
-      "bytes": 6898,
+      "lines": 161,
+      "bytes": 6468,
       "exports": [
         "RosterPicker"
       ],
@@ -3184,7 +3237,9 @@
         "../theme",
         "../types",
         "../lib/tableGames",
-        "./PlayerChip"
+        "./PlayerChip",
+        "./GuestNameInput",
+        "../lib/guests"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3210,6 +3265,31 @@
         "react-native",
         "../theme",
         "../lib/gameStatsCore"
+      ],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
+      "id": "src/components/TableCheckIn.tsx",
+      "label": "TableCheckIn.tsx",
+      "type": "component",
+      "community": "ui_components",
+      "file": "src/components/TableCheckIn.tsx",
+      "role": "\"Estoy en la mesa\" panel for UNO and poker: who still has to confirm from their phone, and the creator turning someone into a guest.",
+      "exists": true,
+      "lines": 93,
+      "bytes": 3813,
+      "exports": [
+        "TableCheckIn"
+      ],
+      "imports": [
+        "react",
+        "react-native",
+        "../theme",
+        "../lib/tableGames"
       ],
       "supabaseTables": [],
       "supabaseRpcs": [],
@@ -3517,8 +3597,8 @@
       "file": "src/lib/gameStats.ts",
       "role": "Loads UNO and poker numbers for one player from table_game_players and poker_ranking, cached for a minute (useTableGameCells).",
       "exists": true,
-      "lines": 67,
-      "bytes": 2555,
+      "lines": 78,
+      "bytes": 3313,
       "exports": [
         "fetchTableGameCells",
         "useTableGameCells"
@@ -3527,6 +3607,7 @@
         "react",
         "./supabase",
         "./poker",
+        "./tableGames",
         "./gameStatsCore"
       ],
       "supabaseTables": [
@@ -3594,6 +3675,30 @@
       "soundsPlayed": []
     },
     {
+      "id": "src/lib/guests.ts",
+      "label": "guests.ts",
+      "type": "service",
+      "community": "backend_services",
+      "file": "src/lib/guests.ts",
+      "role": "Guest rules (people without an account): suggestions from the club guest list while typing, and the limit (more than one guest and a dominó match counts for nobody).",
+      "exists": true,
+      "lines": 49,
+      "bytes": 1985,
+      "exports": [
+        "GUEST_LIMIT",
+        "normalizeGuestName",
+        "suggestGuests",
+        "dominoGuestCount",
+        "countsForStats"
+      ],
+      "imports": [],
+      "supabaseTables": [],
+      "supabaseRpcs": [],
+      "realtimeChannels": [],
+      "storageKeys": [],
+      "soundsPlayed": []
+    },
+    {
       "id": "src/lib/hallOfFame.ts",
       "label": "hallOfFame.ts",
       "type": "service",
@@ -3601,8 +3706,8 @@
       "file": "src/lib/hallOfFame.ts",
       "role": "Hall of Fame numbers for dominó: wins, games, win rate and zapatos per player, plus the winners, zapateros and streak rankings.",
       "exists": true,
-      "lines": 77,
-      "bytes": 2917,
+      "lines": 79,
+      "bytes": 3129,
       "exports": [
         "HofMatch",
         "DominoRow",
@@ -3793,8 +3898,8 @@
       "file": "src/lib/poker.ts",
       "role": "Pure poker rules. Table chips stay inside a game and come from the closed hands; the server checks each closed hand again. Covered by tests/poker.test.mjs.",
       "exists": true,
-      "lines": 267,
-      "bytes": 11586,
+      "lines": 305,
+      "bytes": 12973,
       "exports": [
         "DEFAULT_START_CHIPS",
         "DEFAULT_ENTRY",
@@ -3808,6 +3913,7 @@
         "owedBy",
         "smallBlind",
         "blindSeats",
+        "blindNotice",
         "firstToSpeak",
         "openHand",
         "callBet",
@@ -3957,12 +4063,19 @@
       "file": "src/lib/tableGameService.ts",
       "role": "Reads and RPCs for table games. Starting and finishing go through the offline outbox when there is no connection.",
       "exists": true,
-      "lines": 183,
-      "bytes": 6764,
+      "lines": 252,
+      "bytes": 10157,
       "exports": [
+        "mesaReady",
         "RankingRow",
         "startTableGame",
         "startPokerGame",
+        "checkInTableGame",
+        "makeTableGameGuest",
+        "addTableGameDealer",
+        "leaveTableGame",
+        "fetchClubGuests",
+        "rememberClubGuests",
         "savePokerHand",
         "setPokerSeat",
         "cancelPokerHand",
@@ -3983,10 +4096,12 @@
         "./tableGames"
       ],
       "supabaseTables": [
+        "club_guests",
         "poker_hands",
         "table_games"
       ],
       "supabaseRpcs": [
+        "remember_club_guests",
         "cancel_poker_hand",
         "cancel_table_game",
         "answer_table_game",
@@ -4006,8 +4121,8 @@
       "file": "src/lib/tableGames.ts",
       "role": "Pure rules for table games (UNO and its variants): labels, roster size, who manages and who answers. Mirrors the server. Covered by tests/tableGames.test.mjs.",
       "exists": true,
-      "lines": 73,
-      "bytes": 2907,
+      "lines": 109,
+      "bytes": 5069,
       "exports": [
         "TableGameKind",
         "AnyTableGame",
@@ -4018,6 +4133,15 @@
         "TableGame",
         "RosterEntry",
         "TABLE_GAME_COLUMNS",
+        "TABLE_GAME_COLUMNS_MESA",
+        "GUEST_LIMIT",
+        "isDealerOnly",
+        "playerSeats",
+        "activeSeats",
+        "missingCheckIn",
+        "needsMyCheckIn",
+        "guestCount",
+        "countsForRanking",
         "tableGameLabel",
         "canStartRoster",
         "playerNames",
@@ -4213,8 +4337,8 @@
       "file": "src/screens/PokerScreen.tsx",
       "role": "Route poker: table chips, who deals, who enters, betting, closing a hand, correcting the last one, finishing the game and the live view for everyone else.",
       "exists": true,
-      "lines": 711,
-      "bytes": 28646,
+      "lines": 825,
+      "bytes": 33631,
       "exports": [
         "PokerScreen"
       ],
@@ -4233,6 +4357,7 @@
         "../lib/poker",
         "../lib/tableGames",
         "../lib/tableGameService",
+        "../components/TableCheckIn",
         "../components/PokerHandPanel",
         "../components/PokerHelpModal",
         "../components/PokerNewHand",
@@ -4260,8 +4385,8 @@
       "file": "src/screens/UnoScreen.tsx",
       "role": "Route uno: choose the variant and players (with or without an account), play, mark the winner, wait for confirmation and rematch. Also the live view for the rest of the club and the list of recent games.",
       "exists": true,
-      "lines": 457,
-      "bytes": 18803,
+      "lines": 550,
+      "bytes": 23032,
       "exports": [
         "UnoScreen"
       ],
@@ -4280,6 +4405,7 @@
         "../lib/matchRivals",
         "../lib/tableGames",
         "../lib/tableGameService",
+        "../components/TableCheckIn",
         "../components/RosterPicker"
       ],
       "supabaseTables": [],
@@ -4315,6 +4441,13 @@
       "type": "db_table",
       "community": "database_sql",
       "role": "Who sat in each UNO or poker game and in which seat, with the name kept for guests. Read for personal stats per game."
+    },
+    {
+      "id": "db:club_guests",
+      "label": "club_guests",
+      "type": "db_table",
+      "community": "database_sql",
+      "role": "Club guest list: names of people who play without an account, for suggestions. Written only by the table RPCs and remember_club_guests (SQL 22)."
     },
     {
       "id": "db:poker_hands",
@@ -4413,6 +4546,13 @@
       "type": "db_rpc",
       "community": "database_sql",
       "role": "Removes the signed-in user's device from push notifications on logout."
+    },
+    {
+      "id": "rpc:remember_club_guests",
+      "label": "remember_club_guests",
+      "type": "db_rpc",
+      "community": "database_sql",
+      "role": "Dominó saves its guest names in the club guest list when a match starts (SQL 22)."
     },
     {
       "id": "rpc:cancel_poker_hand",
@@ -5326,6 +5466,12 @@
     },
     {
       "source": "src/screens/HomeScreen.tsx",
+      "target": "src/lib/guests.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/HomeScreen.tsx",
       "target": "src/lib/liveSync.ts",
       "relation": "imports",
       "derived": true
@@ -5411,6 +5557,24 @@
     {
       "source": "src/screens/SetupScreen.tsx",
       "target": "src/components/PlayerChip.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/SetupScreen.tsx",
+      "target": "src/components/GuestNameInput.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/SetupScreen.tsx",
+      "target": "src/lib/guests.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/SetupScreen.tsx",
+      "target": "src/lib/tableGameService.ts",
       "relation": "imports",
       "derived": true
     },
@@ -5602,6 +5766,12 @@
     },
     {
       "source": "src/screens/ProfileScreen.tsx",
+      "target": "src/lib/guests.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/ProfileScreen.tsx",
       "target": "src/lib/liveSync.ts",
       "relation": "imports",
       "derived": true
@@ -5777,6 +5947,12 @@
     {
       "source": "src/screens/AchievementsScreen.tsx",
       "target": "src/lib/supabase.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/AchievementsScreen.tsx",
+      "target": "src/lib/guests.ts",
       "relation": "imports",
       "derived": true
     },
@@ -6111,6 +6287,24 @@
       "derived": true
     },
     {
+      "source": "src/components/GuestNameInput.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/GuestNameInput.tsx",
+      "target": "src/lib/guests.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/GuestNameInput.tsx",
+      "target": "src/lib/tableGameService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/InviteQr.tsx",
       "target": "src/lib/inviteQr.ts",
       "relation": "imports",
@@ -6303,6 +6497,18 @@
       "derived": true
     },
     {
+      "source": "src/components/PokerNewHand.tsx",
+      "target": "src/types.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/PokerNewHand.tsx",
+      "target": "src/components/GuestNameInput.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/PokerPot.tsx",
       "target": "src/lib/poker.ts",
       "relation": "imports",
@@ -6435,6 +6641,18 @@
       "derived": true
     },
     {
+      "source": "src/components/RosterPicker.tsx",
+      "target": "src/components/GuestNameInput.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/RosterPicker.tsx",
+      "target": "src/lib/guests.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
       "source": "src/components/StatCells.tsx",
       "target": "src/theme.ts",
       "relation": "imports",
@@ -6443,6 +6661,18 @@
     {
       "source": "src/components/StatCells.tsx",
       "target": "src/lib/gameStatsCore.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableCheckIn.tsx",
+      "target": "src/theme.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/components/TableCheckIn.tsx",
+      "target": "src/lib/tableGames.ts",
       "relation": "imports",
       "derived": true
     },
@@ -6712,6 +6942,12 @@
     },
     {
       "source": "src/lib/gameStats.ts",
+      "target": "src/lib/tableGames.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/lib/gameStats.ts",
       "target": "src/lib/gameStatsCore.ts",
       "relation": "imports",
       "derived": true
@@ -6754,6 +6990,12 @@
     },
     {
       "source": "src/lib/tableGameService.ts",
+      "target": "db:club_guests",
+      "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
       "target": "db:poker_hands",
       "relation": "uses_table",
       "derived": true
@@ -6762,6 +7004,12 @@
       "source": "src/lib/tableGameService.ts",
       "target": "db:table_games",
       "relation": "uses_table",
+      "derived": true
+    },
+    {
+      "source": "src/lib/tableGameService.ts",
+      "target": "rpc:remember_club_guests",
+      "relation": "calls_rpc",
       "derived": true
     },
     {
@@ -6994,6 +7242,12 @@
     },
     {
       "source": "src/screens/PokerScreen.tsx",
+      "target": "src/components/TableCheckIn.tsx",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/PokerScreen.tsx",
       "target": "src/components/PokerHandPanel.tsx",
       "relation": "imports",
       "derived": true
@@ -7079,6 +7333,12 @@
     {
       "source": "src/screens/UnoScreen.tsx",
       "target": "src/lib/tableGameService.ts",
+      "relation": "imports",
+      "derived": true
+    },
+    {
+      "source": "src/screens/UnoScreen.tsx",
+      "target": "src/components/TableCheckIn.tsx",
       "relation": "imports",
       "derived": true
     },

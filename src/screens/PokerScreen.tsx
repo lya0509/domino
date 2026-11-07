@@ -15,11 +15,15 @@ import {
   canScoreHand, chipLeaders, chipsAfterHands, copySeat, DEFAULT_ENTRY, DEFAULT_START_CHIPS, handLabel, handPot,
   openHand, PokerHand, smallBlind,
 } from '../lib/poker';
-import { canAnswerGame, canManageGame, canStartRoster, playerNames, RosterEntry, TableGame, winnerName } from '../lib/tableGames';
 import {
-  answerTableGame, cancelPokerHand, cancelTableGame, fetchPokerHands, fetchTableGame, fetchTableGames,
-  finishExpiredTableGame, finishTableGame, savePokerHand, setPokerSeat, startPokerGame,
+  activeSeats, canAnswerGame, canManageGame, canStartRoster, missingCheckIn, playerNames, playerSeats, RosterEntry, TableGame, winnerName,
+} from '../lib/tableGames';
+import {
+  addTableGameDealer, answerTableGame, cancelPokerHand, cancelTableGame, checkInTableGame, fetchPokerHands, fetchTableGame,
+  fetchTableGames, finishExpiredTableGame, finishTableGame, leaveTableGame, makeTableGameGuest, mesaReady, savePokerHand,
+  setPokerSeat, startPokerGame,
 } from '../lib/tableGameService';
+import { TableCheckIn } from '../components/TableCheckIn';
 import { PokerHandPanel } from '../components/PokerHandPanel';
 import { PokerHelpModal } from '../components/PokerHelpModal';
 import { POKER_GOLD, PokerNewHand } from '../components/PokerNewHand';
@@ -60,6 +64,8 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
   const [busy, setBusy] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [tieChoice, setTieChoice] = useState(false);
+  // "Otra con los mismos" shows a moment after the result, never under the finger that confirmed it
+  const [rematchReady, setRematchReady] = useState(false);
   const [, setTick] = useState(0);
 
   const [roster, setRoster] = useState<RosterEntry[]>([]);
@@ -181,14 +187,19 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
     }
   }, [status, game, hands, currentUserProfileId]);
 
-  const seats = useMemo(() => (game ? game.players.map((p) => p.seat) : []), [game]);
+  // Whoever only deals has no chips; whoever left keeps theirs on the board
+  const seats = useMemo(() => (game ? playerSeats(game) : []), [game]);
+  const stillIn = useMemo(() => (game ? activeSeats(game) : []), [game]);
   const chips = useMemo(
     () => chipsAfterHands(seats, game?.start_chips ?? DEFAULT_START_CHIPS, hands),
     [seats, game?.start_chips, hands]
   );
   const openedHand = hands.find((h) => h.status === 'open') ?? null;
   const lastHand = hands.length > 0 ? hands[hands.length - 1] : null;
-  const leaders = useMemo(() => (seats.length > 0 ? chipLeaders(chips) : []), [chips, seats]);
+  const leaders = useMemo(
+    () => (stillIn.length > 0 ? chipLeaders(Object.fromEntries(stillIn.map((s) => [s, chips[s] ?? 0]))) : []),
+    [chips, stillIn]
+  );
 
   const nameOf = (seat: number) => game?.players.find((p) => p.seat === seat)?.name ?? '';
 
@@ -220,13 +231,25 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
     reload();
   };
 
-  const begin = async (players: RosterEntry[], start: number, amount: number) => {
-    if (!currentUserProfileId) return;
+  const begin = async (players: RosterEntry[], start: number, amount: number, rematchOf?: string) => {
+    if (!currentUserProfileId || busy) return;
     setBusy(true);
-    const res = await startPokerGame(players, start, amount, currentUserProfileId);
+    const res = await startPokerGame(players, start, amount, currentUserProfileId, rematchOf);
     setBusy(false);
     if (!res.ok || !res.game) {
       Alert.alert('No se pudo empezar', res.error || 'Inténtalo de nuevo.');
+      // Someone is already at another open table: take this phone there
+      if (/ya está en otra partida/.test(res.error || '')) {
+        const playing = await fetchTableGames('active', 30, 'poker');
+        const mine = playing.find((g) => canManageGame(g, currentUserProfileId, false));
+        if (mine) await open(mine);
+      }
+      return;
+    }
+    if (rematchOf && !res.queued) {
+      // The server says which game it is: a new one, or the rematch someone else started a moment ago
+      sounds.playSound('pop');
+      await open((await fetchTableGame(res.game.id)) ?? res.game);
       return;
     }
     sounds.playSound('pop');
@@ -264,6 +287,56 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
         },
       },
     ]);
+  };
+
+  const checkIn = async () => {
+    if (!game) return;
+    setBusy(true);
+    const res = await checkInTableGame(game.id);
+    setBusy(false);
+    if (!res.ok) Alert.alert('No se pudo confirmar', res.error || 'Necesitas internet para confirmar.');
+    else sounds.playSound('pop');
+    reload();
+  };
+
+  const makeGuest = async (seat: number) => {
+    if (!game) return;
+    const res = await makeTableGameGuest(game.id, seat);
+    if (!res.ok) Alert.alert('No se pudo', res.error || 'Inténtalo de nuevo.');
+    reload();
+  };
+
+  const addDealer = async (userId: string | null, name: string): Promise<number | null> => {
+    if (!game) return null;
+    const res = await addTableGameDealer(game.id, userId, name);
+    if (!res.ok || res.seat === undefined) {
+      Alert.alert('No se pudo', res.error || 'Necesitas internet para agregar a quien reparte.');
+      return null;
+    }
+    await reload();
+    return res.seat;
+  };
+
+  const leaveGame = (seat: number) => {
+    if (!game) return;
+    const mine = game.players.find((p) => p.seat === seat)?.user_id === currentUserProfileId;
+    const name = nameOf(seat);
+    Alert.alert(
+      mine ? '¿Retirarte de la partida?' : `¿Retirar a ${name}?`,
+      `${mine ? 'Tus fichas quedan' : 'Sus fichas quedan'} anotadas como están, pero ya no ${mine ? 'entras' : 'entra'} en más manos ni ${mine ? 'puedes' : 'puede'} ganar la partida.`,
+      [
+        { text: 'Seguir jugando', style: 'cancel' },
+        {
+          text: 'Retirarse',
+          style: 'destructive',
+          onPress: async () => {
+            const res = await leaveTableGame(game.id, seat);
+            if (!res.ok) Alert.alert('No se pudo', res.error || 'Inténtalo de nuevo.');
+            reload();
+          },
+        },
+      ]
+    );
   };
 
   const correctLast = () => {
@@ -349,12 +422,27 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
   };
 
   const rematch = (finished: TableGame) => {
-    begin(
-      finished.players.map((p) => ({ user_id: p.user_id ?? undefined, name: p.name })),
-      finished.start_chips ?? DEFAULT_START_CHIPS,
-      finished.entry_amount ?? DEFAULT_ENTRY
-    );
+    Alert.alert('¿Otra partida con los mismos?', 'Si alguien de la mesa ya la empezó, entras a esa.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Empezar',
+        onPress: () =>
+          begin(
+            finished.players.filter((p) => p.role !== 'dealer').map((p) => ({ user_id: p.user_id ?? undefined, name: p.name })),
+            finished.start_chips ?? DEFAULT_START_CHIPS,
+            finished.entry_amount ?? DEFAULT_ENTRY,
+            finished.id
+          ),
+      },
+    ]);
   };
+
+  useEffect(() => {
+    setRematchReady(false);
+    if (status !== 'completed' && status !== 'cancelled') return;
+    const t = setTimeout(() => setRematchReady(true), 2000);
+    return () => clearTimeout(t);
+  }, [status, gameId]);
 
   const setupStart = toWhole(startChips);
   const setupEntry = toWhole(entry);
@@ -415,16 +503,25 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
     </>
   );
 
-  const renderStacks = (current: TableGame) => (
+  const renderStacks = (current: TableGame, canLeave = false) => (
     <View style={styles.stacks}>
       {[...current.players]
+        .filter((p) => p.role !== 'dealer')
         .sort((a, b) => (chips[b.seat] ?? 0) - (chips[a.seat] ?? 0))
-        .map((p) => (
-          <View key={p.seat} style={styles.stackRow}>
-            <Text style={styles.stackName} numberOfLines={1}>{p.name}</Text>
-            <Text style={styles.stackChips}>{chips[p.seat] ?? 0}</Text>
-          </View>
-        ))}
+        .map((p) => {
+          const mayRetire = canLeave && !p.left_at && (p.user_id === currentUserProfileId || current.created_by === currentUserProfileId || isAdmin);
+          return (
+            <View key={p.seat} style={[styles.stackRow, !!p.left_at && styles.stackLeft]}>
+              <Text style={styles.stackName} numberOfLines={1}>{p.name}{p.left_at ? ' (se retiró)' : ''}</Text>
+              {mayRetire && (
+                <TouchableOpacity onPress={() => leaveGame(p.seat)} style={styles.retireBtn} accessibilityRole="button" accessibilityLabel={`Retirar a ${p.name}`}>
+                  <Text style={styles.retireText}>{p.user_id === currentUserProfileId ? 'Retirarme' : 'Retirar'}</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={styles.stackChips}>{chips[p.seat] ?? 0}</Text>
+            </View>
+          );
+        })}
     </View>
   );
 
@@ -459,6 +556,18 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
         {current.disputed_at && (
           <Text style={styles.notice}>✋ Un jugador no estuvo de acuerdo con el ganador. Revisen las fichas y vuelvan a terminar.</Text>
         )}
+        {mesaReady() && (
+          <TableCheckIn
+            game={current}
+            userId={currentUserProfileId}
+            isAdmin={isAdmin}
+            busy={busy}
+            waitsFor={hands.length === 0 ? 'repartir la primera mano' : 'terminar la partida'}
+            accent={POKER_GOLD}
+            onCheckIn={checkIn}
+            onMakeGuest={makeGuest}
+          />
+        )}
         {openedHand ? (
           <PokerHandPanel
             key={`${openedHand.number}-${openedHand.status}`}
@@ -475,15 +584,17 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
         ) : (
           <>
             <Text style={styles.sectionTitle}>Fichas</Text>
-            {renderStacks(current)}
+            {renderStacks(current, mesaReady())}
             {manages ? (
               <PokerNewHand
                 game={current}
                 chips={chips}
                 number={(lastHand?.number ?? 0) + 1}
                 lastDealer={lastHand?.dealerSeat ?? null}
-                disabled={busy}
+                disabled={busy || missingCheckIn(current).length > 0}
                 onStart={dealHand}
+                onAddDealer={mesaReady() ? addDealer : undefined}
+                profiles={profiles}
               />
             ) : (
               <Text style={styles.empty}>Esperando la próxima mano.</Text>
@@ -519,7 +630,7 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
         {renderHistory(current)}
         {manages && (
           <TouchableOpacity style={styles.linkBtn} onPress={leaveTable} accessibilityRole="button">
-            <Text style={styles.linkText}>Salir de esta mesa</Text>
+            <Text style={styles.linkText}>Dejar de ver esta mesa (sigue abierta)</Text>
           </TouchableOpacity>
         )}
       </>
@@ -559,15 +670,15 @@ export const PokerScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, in
         <Text style={styles.gameMeta}>Partida anulada</Text>
       )}
       {renderStacks(current)}
-      {canManageGame(current, currentUserProfileId, false) && (
-        <TouchableOpacity style={styles.primaryBtn} onPress={() => rematch(current)} disabled={busy} accessibilityRole="button">
-          <Text style={styles.primaryText}>Otra con los mismos</Text>
-        </TouchableOpacity>
-      )}
       <TouchableOpacity style={styles.linkBtn} onPress={backToSetup} accessibilityRole="button">
         <Text style={styles.linkText}>Nueva partida</Text>
       </TouchableOpacity>
       {renderHistory(current)}
+      {canManageGame(current, currentUserProfileId, false) && rematchReady && (
+        <TouchableOpacity style={styles.primaryBtn} onPress={() => rematch(current)} disabled={busy} accessibilityRole="button">
+          <Text style={styles.primaryText}>Otra con los mismos</Text>
+        </TouchableOpacity>
+      )}
     </>
   );
 
@@ -690,6 +801,9 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
   },
   stackName: { color: theme.colors.text, fontSize: 15, fontWeight: '700', flex: 1, minWidth: 0 },
+  stackLeft: { opacity: 0.55 },
+  retireBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: theme.spacing.s },
+  retireText: { color: theme.colors.danger, fontSize: 13, fontWeight: '700' },
   stackChips: { color: POKER_GOLD, fontSize: 18, fontWeight: '900', fontVariant: ['tabular-nums'] },
   historyRow: { paddingVertical: theme.spacing.s, borderBottomWidth: 1, borderBottomColor: theme.colors.cardBorder },
   historyTitle: { color: theme.colors.text, fontSize: 15, fontWeight: '700' },

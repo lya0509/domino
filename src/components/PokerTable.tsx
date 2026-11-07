@@ -27,10 +27,14 @@ export const PokerTable: React.FC<Props> = ({ game, hand, chips }) => {
   const { small, big } = blindSeats(hand.entrants, hand.dealerSeat);
   const speaker = firstToSpeak(hand, chips);
 
-  const rolesOf = (seat: number) =>
-    [seat === hand.dealerSeat && 'Reparte', seat === small && 'Salida baja', seat === big && 'Salida alta']
-      .filter(Boolean)
-      .join(', ');
+  // Big, colored tags: who deals and who owes each blind must be obvious from across the table
+  const tagsOf = (seat: number) =>
+    [
+      seat === hand.dealerSeat && { key: 'dealer', text: 'REPARTE', style: styles.tagDealer },
+      seat === small && { key: 'small', text: 'BAJA', style: styles.tagSmall },
+      seat === big && { key: 'big', text: 'ALTA', style: styles.tagBig },
+    ].filter(Boolean) as { key: string; text: string; style: object }[];
+  const outsideDealer = !hand.entrants.includes(hand.dealerSeat);
 
   return (
     <View style={styles.table}>
@@ -38,17 +42,29 @@ export const PokerTable: React.FC<Props> = ({ game, hand, chips }) => {
         Mano {hand.number}, ronda {hand.bettingRound}. Reparte {nameOf(hand.dealerSeat)}
       </Text>
       <PokerPot amount={handPot(hand)} entry={game.entry_amount ?? DEFAULT_ENTRY} />
+      {hand.bettingRound === 1 && (
+        <Text style={styles.blinds}>
+          Salida baja: <Text style={styles.blindName}>{nameOf(small)}</Text>   Salida alta: <Text style={styles.blindName}>{nameOf(big)}</Text>
+        </Text>
+      )}
+      {outsideDealer && <Text style={styles.meta}>{nameOf(hand.dealerSeat)} solo reparte: no juega esta mano.</Text>}
       {speaker !== null && <Text style={styles.speaker}>Habla primero: {nameOf(speaker)}</Text>}
       <View style={styles.seats}>
         {hand.entrants.map((seat) => {
           const status = seatStatus(hand, seat, chips);
-          const roles = rolesOf(seat);
+          const tags = tagsOf(seat);
           return (
             <View key={seat} style={[styles.seat, status.state === 'folded' && styles.seatOut]}>
               <Text style={styles.name} numberOfLines={1}>{nameOf(seat)}<VipCrown userId={game.players.find((p) => p.seat === seat)?.user_id} /></Text>
               <Text style={styles.detail}>Puso {hand.contributions[seat]}, le quedan {stackLeft(hand, seat, chips)}</Text>
               <Text style={[styles.state, styles[status.state]]}>{statusText(status)}</Text>
-              {!!roles && <Text style={styles.role}>{roles}</Text>}
+              {tags.length > 0 && (
+                <View style={styles.tags}>
+                  {tags.map((t) => (
+                    <Text key={t.key} style={[styles.tag, t.style]}>{t.text}</Text>
+                  ))}
+                </View>
+              )}
             </View>
           );
         })}
@@ -82,7 +98,13 @@ const styles = StyleSheet.create({
   name: { color: theme.colors.text, fontSize: 15, fontWeight: '800' },
   detail: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontVariant: ['tabular-nums'] },
   state: { fontSize: 12, fontWeight: '700' },
-  role: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '600' },
+  blinds: { color: theme.colors.text, fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: theme.spacing.s },
+  blindName: { color: '#e6c878', fontWeight: '900' },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  tag: { fontSize: 12, fontWeight: '900', letterSpacing: 0.5, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, overflow: 'hidden' },
+  tagDealer: { backgroundColor: '#f5f0e6', color: '#1a1405' },
+  tagSmall: { backgroundColor: '#3b82f6', color: '#fff' },
+  tagBig: { backgroundColor: '#d4a843', color: '#1a1405' },
   folded: { color: '#f09a95' },
   allIn: { color: '#e6c878' },
   owes: { color: '#e6c878' },

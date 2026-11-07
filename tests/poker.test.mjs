@@ -308,3 +308,23 @@ test('copying one seat leaves what the others did', () => {
   assert.deepEqual(merged.folded, [1]);
   assert.deepEqual(copySeat(merged, before, 1).folded, []);
 });
+
+import { blindNotice as aviso, openHand as abrirMano } from '../src/lib/poker.ts';
+
+test('each phone says big whose turn it is to put the low and high blinds in', () => {
+  const chipsAll = { 0: 200, 1: 200, 2: 200, 3: 200 };
+  const h = abrirMano({ number: 1, dealerSeat: 0, dealerPlays: true, entrants: [0, 1, 2, 3], entry: 10, chips: chipsAll });
+  assert.equal(aviso(h, 1, 10).kind, 'small');
+  assert.equal(aviso(h, 1, 10).title, 'Te toca la salida baja: 5');
+  assert.equal(aviso(h, 2, 10).title, 'Te toca la salida alta: 10');
+  assert.equal(aviso(h, 0, 10).kind, 'dealer');
+  assert.equal(aviso(h, 3, 10), null);
+  assert.equal(aviso({ ...h, bettingRound: 2 }, 1, 10), null);
+});
+
+test('a dealer from outside the game only deals: the two after them put the blinds', () => {
+  const h = abrirMano({ number: 1, dealerSeat: 4, dealerPlays: false, entrants: [0, 1, 2], entry: 10, chips: { 0: 200, 1: 200, 2: 200 } });
+  assert.equal(aviso(h, 0, 10).kind, 'small');
+  assert.equal(aviso(h, 1, 10).kind, 'big');
+  assert.equal(aviso(h, 4, 10).detail, 'Solo repartes: no entras en esta mano.');
+});

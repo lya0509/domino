@@ -9,6 +9,7 @@ import { STAT_GAMES, useTableGameCells } from '../lib/gameStats';
 import { StatCells } from '../components/StatCells';
 import { Profile, PlayerStats, DuoStats } from '../types';
 import { supabase } from '../lib/supabase';
+import { countsForStats } from '../lib/guests';
 import { liveChannel, onWake } from '../lib/liveSync';
 import { sounds } from '../lib/sounds';
 import { offlineSync } from '../lib/offlineSync';
@@ -127,7 +128,8 @@ export const HomeScreen: React.FC<Props> = ({
       return m.created_at >= fromDate;
     });
 
-    const matchList = matches.filter((m: any) => m.status === 'completed');
+    // More than one guest and the match counts for nobody's ranking
+    const matchList = matches.filter((m: any) => m.status === 'completed' && countsForStats(m));
 
     const activeMatch = (rawMatches || []).find(
       (m: any) =>

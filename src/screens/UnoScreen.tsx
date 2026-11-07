@@ -13,13 +13,14 @@ import { hasQueuedGame } from '../lib/outbox';
 import { sounds } from '../lib/sounds';
 import { formatClock, secondsUntil } from '../lib/matchRivals';
 import {
-  canAnswerGame, canManageGame, canStartRoster, playerNames, RosterEntry, TABLE_GAMES,
+  canAnswerGame, canManageGame, canStartRoster, missingCheckIn, playerNames, RosterEntry, TABLE_GAMES,
   TableGame, TableGameKind, tableGameLabel, winnerName,
 } from '../lib/tableGames';
 import {
-  answerTableGame, cancelTableGame, fetchTableGame, fetchTableGames, finishExpiredTableGame,
-  finishTableGame, startTableGame,
+  answerTableGame, cancelTableGame, checkInTableGame, fetchTableGame, fetchTableGames, finishExpiredTableGame,
+  finishTableGame, leaveTableGame, makeTableGameGuest, mesaReady, startTableGame,
 } from '../lib/tableGameService';
+import { TableCheckIn } from '../components/TableCheckIn';
 import { RosterPicker } from '../components/RosterPicker';
 
 interface Props {
@@ -143,16 +144,27 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
     if (status === 'completed' || status === 'cancelled') saveLocalGame(null);
   }, [status]);
 
-  const begin = async (gameKind: TableGameKind, players: RosterEntry[]) => {
-    if (!currentUserProfileId) return;
+  const begin = async (gameKind: TableGameKind, players: RosterEntry[], rematchOf?: string) => {
+    if (!currentUserProfileId || busy) return;
     setBusy(true);
-    const res = await startTableGame(gameKind, players, currentUserProfileId);
+    const res = await startTableGame(gameKind, players, currentUserProfileId, rematchOf);
     setBusy(false);
     if (!res.ok || !res.game) {
       Alert.alert('No se pudo empezar', res.error || 'Inténtalo de nuevo.');
+      // Someone is already at another open table: take this phone there
+      if (/ya está en otra partida/.test(res.error || '')) {
+        const playing = await fetchTableGames('active', 30, 'uno');
+        const mine = playing.find((g) => canManageGame(g, currentUserProfileId, false));
+        if (mine) setGame(mine);
+      }
       return;
     }
     sounds.playSound('pop');
+    if (!res.queued) {
+      // The server says which game it is: new, or the rematch someone else started a moment ago
+      setGame((await fetchTableGame(res.game.id)) ?? res.game);
+      return;
+    }
     if (res.queued) saveLocalGame(res.game);
     setGame(res.game);
   };
@@ -217,7 +229,62 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
   };
 
   const rematch = (finished: TableGame) => {
-    begin(finished.game as TableGameKind, finished.players.map((p) => ({ user_id: p.user_id ?? undefined, name: p.name })));
+    Alert.alert('¿Otra partida con los mismos?', 'Si alguien de la mesa ya la empezó, entras a esa.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Empezar',
+        onPress: () =>
+          begin(
+            finished.game as TableGameKind,
+            finished.players.filter((p) => p.role !== 'dealer').map((p) => ({ user_id: p.user_id ?? undefined, name: p.name })),
+            finished.id
+          ),
+      },
+    ]);
+  };
+
+  // "Otra con los mismos" shows a moment after the result, never under the finger that confirmed it
+  const [rematchReady, setRematchReady] = useState(false);
+  useEffect(() => {
+    setRematchReady(false);
+    if (game?.status !== 'completed' && game?.status !== 'cancelled') return;
+    const t = setTimeout(() => setRematchReady(true), 2000);
+    return () => clearTimeout(t);
+  }, [game?.status, game?.id]);
+
+  const checkIn = async () => {
+    if (!game) return;
+    setBusy(true);
+    const res = await checkInTableGame(game.id);
+    setBusy(false);
+    if (!res.ok) Alert.alert('No se pudo confirmar', res.error || 'Necesitas internet para confirmar.');
+    else sounds.playSound('pop');
+    reload();
+  };
+
+  const makeGuest = async (seat: number) => {
+    if (!game) return;
+    const res = await makeTableGameGuest(game.id, seat);
+    if (!res.ok) Alert.alert('No se pudo', res.error || 'Inténtalo de nuevo.');
+    reload();
+  };
+
+  const leave = (seat: number, name: string) => {
+    if (!game) return;
+    const mine = game.players.find((p) => p.seat === seat)?.user_id === currentUserProfileId;
+    Alert.alert(mine ? '¿Retirarte de la partida?' : `¿Retirar a ${name}?`, 'Queda en el historial, pero ya no puede ganar esta partida.', [
+      { text: 'Seguir', style: 'cancel' },
+      {
+        text: 'Retirarse',
+        style: 'destructive',
+        onPress: async () => {
+          const res = await leaveTableGame(game.id, seat);
+          if (!res.ok) Alert.alert('No se pudo', res.error || 'Inténtalo de nuevo.');
+          if (winnerSeat === seat) setWinnerSeat(null);
+          reload();
+        },
+      },
+    ]);
   };
 
   const renderSetup = () => (
@@ -274,24 +341,46 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
         {current.disputed_at && (
           <Text style={styles.notice}>✋ Un jugador no estuvo de acuerdo. Marquen el ganador correcto.</Text>
         )}
+        {mesaReady() && (
+          <TableCheckIn
+            game={current}
+            userId={currentUserProfileId}
+            isAdmin={isAdmin}
+            busy={busy}
+            waitsFor="terminar la partida"
+            accent={theme.colors.accent}
+            onCheckIn={checkIn}
+            onMakeGuest={makeGuest}
+          />
+        )}
         <Text style={styles.sectionTitle}>{manages ? '¿Quién ganó?' : 'Jugadores'}</Text>
-        {current.players.map((p) => (
-          <TouchableOpacity
-            key={p.seat}
-            style={[styles.playerRow, winnerSeat === p.seat && styles.playerRowActive]}
-            disabled={!manages}
-            onPress={() => setWinnerSeat(p.seat)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: winnerSeat === p.seat }}
-          >
-            <Text style={styles.playerName}>{winnerSeat === p.seat ? '🏆 ' : ''}{p.name}<VipCrown userId={p.user_id} /></Text>
-          </TouchableOpacity>
-        ))}
+        {current.players.filter((p) => p.role !== 'dealer').map((p) => {
+          const left = !!p.left_at;
+          const mayRetire = mesaReady() && !left && (p.user_id === currentUserProfileId || current.created_by === currentUserProfileId || isAdmin);
+          return (
+            <View key={p.seat} style={styles.playerLine}>
+              <TouchableOpacity
+                style={[styles.playerRow, styles.playerRowFlex, winnerSeat === p.seat && styles.playerRowActive, left && styles.disabled]}
+                disabled={!manages || left}
+                onPress={() => setWinnerSeat(p.seat)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: winnerSeat === p.seat }}
+              >
+                <Text style={styles.playerName}>{winnerSeat === p.seat ? '🏆 ' : ''}{p.name}{left ? ' (se retiró)' : ''}<VipCrown userId={p.user_id} /></Text>
+              </TouchableOpacity>
+              {mayRetire && (
+                <TouchableOpacity onPress={() => leave(p.seat, p.name)} style={styles.retireBtn} accessibilityRole="button" accessibilityLabel={`Retirar a ${p.name}`}>
+                  <Text style={styles.retireText}>{p.user_id === currentUserProfileId ? 'Retirarme' : 'Retirar'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        })}
         {manages && (
           <>
             <TouchableOpacity
-              style={[styles.primaryBtn, winnerSeat === null && styles.disabled]}
-              disabled={winnerSeat === null || busy}
+              style={[styles.primaryBtn, (winnerSeat === null || missingCheckIn(current).length > 0) && styles.disabled]}
+              disabled={winnerSeat === null || busy || missingCheckIn(current).length > 0}
               onPress={finish}
               accessibilityRole="button"
             >
@@ -339,14 +428,14 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
         <Text style={styles.gameMeta}>Partida anulada</Text>
       )}
       <Text style={styles.gameMeta}>{playerNames(current)}</Text>
-      {canManageGame(current, currentUserProfileId, false) && (
+      <TouchableOpacity style={styles.linkBtn} onPress={backToSetup} accessibilityRole="button">
+        <Text style={styles.linkText}>Nueva partida</Text>
+      </TouchableOpacity>
+      {canManageGame(current, currentUserProfileId, false) && rematchReady && (
         <TouchableOpacity style={styles.primaryBtn} onPress={() => rematch(current)} disabled={busy} accessibilityRole="button">
           <Text style={styles.primaryText}>🔁 Otra con los mismos</Text>
         </TouchableOpacity>
       )}
-      <TouchableOpacity style={styles.linkBtn} onPress={backToSetup} accessibilityRole="button">
-        <Text style={styles.linkText}>Nueva partida</Text>
-      </TouchableOpacity>
     </>
   );
 
@@ -385,6 +474,10 @@ export const UnoScreen: React.FC<Props> = ({ currentUserProfileId, isAdmin, init
 };
 
 const styles = StyleSheet.create({
+  playerLine: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs },
+  playerRowFlex: { flex: 1, minWidth: 0 },
+  retireBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: theme.spacing.s },
+  retireText: { color: theme.colors.danger, fontSize: 13, fontWeight: '700' },
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: theme.spacing.m },
   backBtn: { padding: theme.spacing.s, minHeight: 44, justifyContent: 'center' },

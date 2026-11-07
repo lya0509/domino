@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
+import { countsForStats } from '../lib/guests';
 import { useLiveRefresh } from '../lib/liveSync';
 import { sounds } from '../lib/sounds';
 import { Profile } from '../types';
@@ -239,7 +240,9 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       setProfileMap(pMap);
 
       const duosData = duosRes.data || [];
-      const matches = matchesRes || [];
+      // History keeps every match; numbers skip the ones with more than one guest
+      const history = matchesRes || [];
+      const matches = history.filter(countsForStats);
 
       let wins = 0, losses = 0, zapatosGiven = 0, zapatosReceived = 0;
       matches.forEach((m: any) => {
@@ -263,7 +266,7 @@ export const ProfileScreen: React.FC<Props> = ({ profileId, isOwnProfile, onBack
       setStats({ wins, losses, total: wins + losses, zapatosGiven, zapatosReceived });
 
       // Build recent matches history
-      const myMatches = [...matches];
+      const myMatches = [...history];
       myMatches.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setRecentMatches(myMatches.slice(0, 5));
       setAllMyMatches(myMatches);

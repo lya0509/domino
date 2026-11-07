@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, StatusBar } from 'react-native';
 import { theme } from '../theme';
 import { supabase } from '../lib/supabase';
+import { countsForStats } from '../lib/guests';
 import { useLiveRefresh } from '../lib/liveSync';
 import { offlineSync } from '../lib/offlineSync';
 import { Profile } from '../types';
@@ -102,7 +103,8 @@ export const AchievementsScreen: React.FC<Props> = ({ onBack, currentUserProfile
       ]);
 
       const profileData = profileRes.data;
-      const matches = matchesRes.data;
+      // Achievements are not won against made-up guests
+      const matches = (matchesRes.data || []).filter(countsForStats);
       const bets = betsRes.data;
       const chats = chatsRes.data;
 

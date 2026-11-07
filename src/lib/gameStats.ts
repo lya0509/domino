@@ -1,23 +1,34 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import { handLabel } from './poker';
+import { countsForRanking } from './tableGames';
 import { countTableRecord, pokerCells, StatCell, StatGame, TableRecord, UNO_GAMES, unoCells } from './gameStatsCore';
 
 export * from './gameStatsCore';
 
-const fetchTableRecord = async (userId: string, games: string[]): Promise<TableRecord> => {
-  const { data, error } = await supabase
+const tableRecordQuery = (userId: string, games: string[], seatColumns: string) =>
+  supabase
     .from('table_game_players')
-    .select('seat, table_games!inner(game, status, winner_seat)')
+    .select(`seat, ${seatColumns}, table_games!inner(game, status, winner_seat, players:table_game_players(user_id${seatColumns.includes('role') ? ', role' : ''}))`)
     .eq('user_id', userId)
     .eq('table_games.status', 'completed')
     .in('table_games.game', games);
-  if (error) throw new Error(error.message);
+
+const fetchTableRecord = async (userId: string, games: string[]): Promise<TableRecord> => {
+  // With SQL 22 whoever only dealt did not play; before it, there is no role column
+  let res: any = await tableRecordQuery(userId, games, 'role');
+  if (res.error) res = await tableRecordQuery(userId, games, 'name');
+  if (res.error) throw new Error(res.error.message);
   return countTableRecord(
-    (data || []).map((r: any) => {
-      const g = Array.isArray(r.table_games) ? r.table_games[0] : r.table_games;
-      return { seat: r.seat, winner_seat: g?.winner_seat ?? null };
-    }),
+    (res.data || [])
+      .filter((r: any) => r.role !== 'dealer')
+      .map((r: any) => {
+        const g = Array.isArray(r.table_games) ? r.table_games[0] : r.table_games;
+        return { game: g, seat: r.seat };
+      })
+      // More than one guest at the table: the game counts for nobody
+      .filter(({ game }: any) => countsForRanking({ players: (game?.players || []).map((p: any) => ({ seat: 0, name: '', ...p })) }))
+      .map(({ game, seat }: any) => ({ seat, winner_seat: game?.winner_seat ?? null })),
   );
 };
 
